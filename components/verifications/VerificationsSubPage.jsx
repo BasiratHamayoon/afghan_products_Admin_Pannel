@@ -1,41 +1,25 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
-import {
-  Shield, Clock, CheckCircle, XCircle,
-  LayoutGrid, List, SlidersHorizontal, X,
-  TrendingUp, FileText, AlertTriangle,
-} from "lucide-react";
+import { Shield, SlidersHorizontal, X } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import Breadcrumb from "@/components/layout/Breadcrumb";
-import VerificationTable from "@/components/verifications/VerificationTable";
-import StatsCard from "@/components/common/StatCard";
+import VerificationTable from "@/components/verification/VerificationTable";
 import SearchInput from "@/components/common/SearchInput";
 import FilterDropdown from "@/components/common/FilterDropdown";
 import Pagination from "@/components/common/Pagination";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import EmptyState from "@/components/common/EmptyState";
-import ConfirmDialog from "@/components/common/ConfirmDialog";
 import ExportButton from "@/components/common/ExportButton";
-import {
-  fetchVerifications, approveVerification, rejectVerification,
-} from "@/store/actions/verificationsActions";
-import { dummyVerificationStats } from "@/data/dummyVerifications";
+import { fetchVerifications, approveVerification } from "@/store/actions/verificationsActions";
 import { useSearch } from "@/hooks/useSearch";
 import { useFilter } from "@/hooks/useFilter";
 import { usePagination } from "@/hooks/usePagination";
+import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
-
-const mainTabs = [
-  { id: "all", label: "All", icon: LayoutGrid },
-  { id: "pending", label: "Pending", icon: Clock },
-  { id: "approved", label: "Approved", icon: CheckCircle },
-  { id: "rejected", label: "Rejected", icon: XCircle },
-];
 
 const typeOptions = [
   { value: "all", label: "All Types" },
@@ -56,140 +40,63 @@ const sortOptions = [
   { value: "oldest", label: "Oldest First" },
   { value: "scoreHigh", label: "Score: High to Low" },
   { value: "scoreLow", label: "Score: Low to High" },
-  { value: "priorityHigh", label: "Priority: High First" },
 ];
 
-export default function VerificationsPage() {
+export default function VerificationsSubPage({ status, title, description }) {
   const dispatch = useDispatch();
   const router = useRouter();
   const { verifications, isLoading } = useSelector((state) => state.verifications);
   const { user } = useSelector((state) => state.auth);
-  const [activeTab, setActiveTab] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
-  const [rejectDialog, setRejectDialog] = useState({ open: false, verification: null });
-  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     dispatch(fetchVerifications());
   }, [dispatch]);
 
   const safeVerifications = Array.isArray(verifications) ? verifications.filter(Boolean) : [];
+  const statusFiltered = useMemo(() => safeVerifications.filter((v) => v.status === status), [safeVerifications, status]);
 
-  const tabFiltered = useMemo(() => {
-    if (activeTab === "all") return safeVerifications;
-    return safeVerifications.filter((v) => v.status === activeTab);
-  }, [safeVerifications, activeTab]);
-
-  const tabCounts = useMemo(() => ({
-    all: safeVerifications.length,
-    pending: safeVerifications.filter((v) => v.status === "pending").length,
-    approved: safeVerifications.filter((v) => v.status === "approved").length,
-    rejected: safeVerifications.filter((v) => v.status === "rejected").length,
-  }), [safeVerifications]);
-
-  const { query, setQuery, results: searched } = useSearch(tabFiltered, [
-    "userName", "userEmail", "type", "business.name",
-  ]);
-
-  const { filters, filteredData: filtered, updateFilter, resetFilters } = useFilter(searched, {
-    type: "all", priority: "all",
-  });
+  const { query, setQuery, results: searched } = useSearch(statusFiltered, ["userName", "userEmail", "type"]);
+  const { filters, filteredData, updateFilter, resetFilters } = useFilter(searched, { type: "all", priority: "all" });
 
   const sorted = useMemo(() => {
-    const priorityOrder = { high: 0, medium: 1, low: 2 };
-    const arr = [...filtered];
+    const arr = [...filteredData];
     switch (sortBy) {
       case "oldest": return arr.sort((a, b) => new Date(a.submittedAt) - new Date(b.submittedAt));
       case "scoreHigh": return arr.sort((a, b) => (b.score || 0) - (a.score || 0));
       case "scoreLow": return arr.sort((a, b) => (a.score || 0) - (b.score || 0));
-      case "priorityHigh": return arr.sort((a, b) => (priorityOrder[a.priority] ?? 1) - (priorityOrder[b.priority] ?? 1));
       default: return arr.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
     }
-  }, [filtered, sortBy]);
+  }, [filteredData, sortBy]);
 
-  const hasActiveFilters =
-    filters.type !== "all" ||
-    filters.priority !== "all" ||
-    query.trim() !== "";
+  const hasActiveFilters = filters.type !== "all" || filters.priority !== "all" || query.trim() !== "";
 
   const { currentPage, totalPages, paginatedData, goToPage, from, to, total } = usePagination(sorted, 10);
 
   const handleApprove = async (ver) => {
     if (!ver?.id) return;
-    setIsProcessing(true);
     const res = await dispatch(approveVerification(ver.id, user?.name || "Admin"));
-    setIsProcessing(false);
-    if (res?.success) toast.success(`${ver.userName}'s verification approved`);
+    if (res?.success) toast.success(`${ver.userName} approved`);
     else toast.error("Failed to approve");
   };
 
-  const handleRejectOpen = (ver) => {
-    if (!ver?.id) return;
-    setRejectDialog({ open: true, verification: ver });
-    router.push(`/verifications/${ver.id}`);
-  };
-
   const handleView = (ver) => { if (ver?.id) router.push(`/verifications/${ver.id}`); };
-
-  const stats = dummyVerificationStats || {};
+  const handleReject = (ver) => { if (ver?.id) router.push(`/verifications/${ver.id}`); };
 
   return (
     <div className="space-y-5">
       <Breadcrumb />
 
-      <PageHeader
-        title="Verifications"
-        description="Review and manage seller and identity verification requests"
-      >
-        <div className="flex items-center gap-2 flex-wrap justify-end">
-          <ExportButton onExport={(fmt) => toast.success(`Exporting as ${fmt}`)} />
-        </div>
+      <PageHeader title={title} description={`${statusFiltered.length} ${description}`}>
+        <ExportButton onExport={(fmt) => toast.success(`Exporting as ${fmt}`)} />
       </PageHeader>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatsCard title="Total Requests" value={stats.total || 0} icon={Shield} color="rgba(15,105,176,0.08)" index={0} />
-        <StatsCard title="Pending" value={stats.pending || 0} icon={Clock} color="rgba(245,158,11,0.08)" index={1} />
-        <StatsCard title="Approved" value={stats.approved || 0} icon={CheckCircle} color="rgba(16,185,129,0.08)" index={2} />
-        <StatsCard title="Rejected" value={stats.rejected || 0} icon={XCircle} color="rgba(239,68,68,0.08)" index={3} />
-      </div>
-
       <div className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden">
-        <div className="border-b border-gray-100 dark:border-white/[0.06]">
-          <div className="flex items-center overflow-x-auto scrollbar-thin">
-            {mainTabs.map((tab) => {
-              const Icon = tab.icon;
-              const count = tabCounts[tab.id];
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => { setActiveTab(tab.id); setQuery(""); resetFilters(); goToPage(1); }}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-4 text-xs font-bold transition-all cursor-pointer whitespace-nowrap border-b-2",
-                    activeTab === tab.id
-                      ? "border-[#0F69B0] text-[#0F69B0] bg-[#0F69B0]/[0.04]"
-                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-gray-50 dark:hover:bg-white/[0.03]"
-                  )}
-                >
-                  <Icon className="h-3.5 w-3.5 shrink-0" />
-                  {tab.label}
-                  <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-black", activeTab === tab.id ? "bg-[#0F69B0] text-white" : "bg-gray-100 dark:bg-white/[0.08] text-muted-foreground")}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         <div className="p-4 border-b border-gray-50 dark:border-white/[0.04]">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex-1 min-w-[180px]">
-              <SearchInput
-                value={query}
-                onChange={(v) => { setQuery(v); goToPage(1); }}
-                placeholder="Search applicant name, email, type..."
-              />
+              <SearchInput value={query} onChange={(v) => { setQuery(v); goToPage(1); }} placeholder="Search applicant name, email..." />
             </div>
             <FilterDropdown label="Sort" value={sortBy} options={sortOptions} onChange={(v) => { setSortBy(v); goToPage(1); }} />
             <button
@@ -203,7 +110,6 @@ export default function VerificationsPage() {
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
               Filters
-              {hasActiveFilters && <span className="h-4 w-4 rounded-full bg-[#0F69B0] text-white text-[9px] font-black flex items-center justify-center">!</span>}
             </button>
           </div>
 
@@ -222,10 +128,10 @@ export default function VerificationsPage() {
                   {hasActiveFilters && (
                     <button onClick={() => { resetFilters(); setQuery(""); goToPage(1); }} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer border border-red-200 dark:border-red-800/40 transition-colors">
                       <X className="h-3.5 w-3.5" />
-                      Clear All
+                      Clear
                     </button>
                   )}
-                  <p className="text-[11px] text-muted-foreground font-medium ml-auto">{sorted.length} result{sorted.length !== 1 ? "s" : ""}</p>
+                  <p className="text-[11px] text-muted-foreground font-medium ml-auto">{sorted.length} results</p>
                 </div>
               </motion.div>
             )}
@@ -234,12 +140,12 @@ export default function VerificationsPage() {
 
         <div className="p-4">
           {isLoading ? (
-            <LoadingSpinner size="lg" text="Loading verifications..." className="py-16" />
+            <LoadingSpinner size="lg" text="Loading..." className="py-16" />
           ) : sorted.length === 0 ? (
             <EmptyState
               icon={Shield}
-              title="No verifications found"
-              description={hasActiveFilters ? "Try adjusting your search or filters" : "No verification requests yet"}
+              title={`No ${status} verifications`}
+              description={hasActiveFilters ? "Try adjusting your filters" : `No ${status} verifications yet`}
               action={
                 hasActiveFilters ? (
                   <button onClick={() => { resetFilters(); setQuery(""); goToPage(1); }} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] cursor-pointer">
@@ -250,12 +156,7 @@ export default function VerificationsPage() {
             />
           ) : (
             <>
-              <VerificationTable
-                verifications={paginatedData}
-                onView={handleView}
-                onApprove={handleApprove}
-                onReject={handleRejectOpen}
-              />
+              <VerificationTable verifications={paginatedData} onView={handleView} onApprove={handleApprove} onReject={handleReject} />
               <div className="mt-5 border-t border-gray-50 dark:border-white/[0.04] pt-4">
                 <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={goToPage} from={from} to={to} total={total} />
               </div>

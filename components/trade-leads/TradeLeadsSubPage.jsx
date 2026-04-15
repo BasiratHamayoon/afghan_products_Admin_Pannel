@@ -1,18 +1,13 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
-import {
-  TrendingUp, LayoutGrid, ShoppingCart, PackageCheck,
-  Clock, AlertTriangle, XCircle, MessageSquare,
-} from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import TradeLeadTable from "@/components/trade-leads/TradeLeadTable";
-import TradeLeadFilter from "@/components/trade-leads/TradeLeadFilters";
-import StatsCard from "@/components/common/StatCard";
+import TradeLeadFilter from "@/components/trade-leads/TradeLeadFilter";
 import Pagination from "@/components/common/Pagination";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import EmptyState from "@/components/common/EmptyState";
@@ -22,27 +17,15 @@ import {
   fetchTradeLeads, removeTradeLead, editTradeLead,
   approveTradeLead, closeTradeLead,
 } from "@/store/actions/tradeLeadsActions";
-import { dummyTradeLeadStats } from "@/data/dummyTradeLeads";
 import { useSearch } from "@/hooks/useSearch";
 import { useFilter } from "@/hooks/useFilter";
 import { usePagination } from "@/hooks/usePagination";
-import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 
-const mainTabs = [
-  { id: "all", label: "All Leads", icon: LayoutGrid },
-  { id: "buy", label: "Buy Leads", icon: ShoppingCart },
-  { id: "sell", label: "Sell Leads", icon: PackageCheck },
-  { id: "pending", label: "Pending", icon: Clock },
-  { id: "expired", label: "Expired", icon: XCircle },
-  { id: "reported", label: "Reported", icon: AlertTriangle },
-];
-
-export default function TradeLeadsPage() {
+export default function TradeLeadsSubPage({ type, title, description }) {
   const dispatch = useDispatch();
   const router = useRouter();
   const { tradeLeads, isLoading } = useSelector((state) => state.tradeLeads);
-  const [activeTab, setActiveTab] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
   const [deleteDialog, setDeleteDialog] = useState({ open: false, lead: null });
@@ -53,33 +36,21 @@ export default function TradeLeadsPage() {
   }, [dispatch]);
 
   const safe = Array.isArray(tradeLeads) ? tradeLeads.filter(Boolean) : [];
+  const typeFiltered = useMemo(
+    () => safe.filter((l) => l.type === type),
+    [safe, type]
+  );
 
-  const tabFiltered = useMemo(() => {
-    if (activeTab === "all") return safe;
-    if (activeTab === "buy") return safe.filter((l) => l.type === "buy");
-    if (activeTab === "sell") return safe.filter((l) => l.type === "sell");
-    return safe.filter((l) => l.status === activeTab);
-  }, [safe, activeTab]);
-
-  const tabCounts = useMemo(() => ({
-    all: safe.length,
-    buy: safe.filter((l) => l.type === "buy").length,
-    sell: safe.filter((l) => l.type === "sell").length,
-    pending: safe.filter((l) => l.status === "pending").length,
-    expired: safe.filter((l) => l.status === "expired").length,
-    reported: safe.filter((l) => l.status === "reported").length,
-  }), [safe]);
-
-  const { query, setQuery, results: searched } = useSearch(tabFiltered, [
+  const { query, setQuery, results: searched } = useSearch(typeFiltered, [
     "title", "slug", "category", "user.name", "deliveryLocation",
   ]);
 
-  const { filters, filteredData: filtered, updateFilter, resetFilters } = useFilter(searched, {
+  const { filters, filteredData, updateFilter, resetFilters } = useFilter(searched, {
     status: "all", category: "all", priority: "all",
   });
 
   const sorted = useMemo(() => {
-    const arr = [...filtered];
+    const arr = [...filteredData];
     switch (sortBy) {
       case "oldest": return arr.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
       case "budgetHigh": return arr.sort((a, b) => (b.budget || 0) - (a.budget || 0));
@@ -88,7 +59,7 @@ export default function TradeLeadsPage() {
       case "views": return arr.sort((a, b) => (b.views || 0) - (a.views || 0));
       default: return arr.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
-  }, [filtered, sortBy]);
+  }, [filteredData, sortBy]);
 
   const hasActiveFilters =
     filters.status !== "all" ||
@@ -134,89 +105,18 @@ export default function TradeLeadsPage() {
     toast.success(`${!l.featured ? "Featured" : "Unfeatured"} successfully`);
   };
 
-  const stats = dummyTradeLeadStats || {};
-
   return (
     <div className="space-y-5">
       <Breadcrumb />
 
       <PageHeader
-        title="Trade Leads"
-        description="Manage and moderate buy and sell trade leads across the marketplace"
+        title={title}
+        description={`${typeFiltered.length} ${description}`}
       >
         <ExportButton onExport={(fmt) => toast.success(`Exporting as ${fmt}`)} />
       </PageHeader>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatsCard
-          title="Total Leads"
-          value={stats.total || 0}
-          icon={TrendingUp}
-          color="rgba(15,105,176,0.08)"
-          index={0}
-        />
-        <StatsCard
-          title="Buy Leads"
-          value={stats.buyLeads || 0}
-          icon={ShoppingCart}
-          color="rgba(124,58,237,0.08)"
-          index={1}
-        />
-        <StatsCard
-          title="Sell Leads"
-          value={stats.sellLeads || 0}
-          icon={PackageCheck}
-          color="rgba(16,185,129,0.08)"
-          index={2}
-        />
-        <StatsCard
-          title="Total Responses"
-          value={stats.totalResponses || 0}
-          icon={MessageSquare}
-          color="rgba(245,158,11,0.08)"
-          index={3}
-        />
-      </div>
-
       <div className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden">
-        <div className="border-b border-gray-100 dark:border-white/[0.06]">
-          <div className="flex items-center overflow-x-auto scrollbar-thin">
-            {mainTabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id);
-                    setQuery("");
-                    resetFilters();
-                    goToPage(1);
-                  }}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-4 text-xs font-bold transition-all cursor-pointer whitespace-nowrap border-b-2",
-                    activeTab === tab.id
-                      ? "border-[#0F69B0] text-[#0F69B0] bg-[#0F69B0]/[0.04]"
-                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-gray-50 dark:hover:bg-white/[0.03]"
-                  )}
-                >
-                  <Icon className="h-3.5 w-3.5 shrink-0" />
-                  {tab.label}
-                  <span
-                    className={cn(
-                      "px-1.5 py-0.5 rounded-full text-[10px] font-black",
-                      activeTab === tab.id
-                        ? "bg-[#0F69B0] text-white"
-                        : "bg-gray-100 dark:bg-white/[0.08] text-muted-foreground"
-                    )}
-                  >
-                    {tabCounts[tab.id]}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         <div className="p-4 border-b border-gray-50 dark:border-white/[0.04]">
           <TradeLeadFilter
             query={query}
@@ -235,15 +135,15 @@ export default function TradeLeadsPage() {
 
         <div className="p-4">
           {isLoading ? (
-            <LoadingSpinner size="lg" text="Loading trade leads..." className="py-16" />
+            <LoadingSpinner size="lg" text="Loading leads..." className="py-16" />
           ) : sorted.length === 0 ? (
             <EmptyState
               icon={TrendingUp}
-              title="No trade leads found"
+              title={`No ${type} leads found`}
               description={
                 hasActiveFilters
-                  ? "Try adjusting your search or filters"
-                  : "Trade leads submitted by users will appear here"
+                  ? "Try adjusting your filters"
+                  : `${type === "buy" ? "Buy" : "Sell"} leads submitted by users will appear here`
               }
               action={
                 hasActiveFilters ? (
@@ -289,10 +189,10 @@ export default function TradeLeadsPage() {
         title="Delete Trade Lead"
         description={
           deleteDialog.lead
-            ? `Are you sure you want to delete "${deleteDialog.lead.title}"? This cannot be undone.`
+            ? `Delete "${deleteDialog.lead.title}"? This cannot be undone.`
             : "Are you sure?"
         }
-        confirmLabel="Delete Lead"
+        confirmLabel="Delete"
         isLoading={isDeleting}
         variant="danger"
       />
