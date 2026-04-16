@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Shield, SlidersHorizontal, X } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import Breadcrumb from "@/components/layout/Breadcrumb";
-import VerificationTable from "@/components/verification/VerificationTable";
+import VerificationTable from "@/components/verifications/VerificationTable";
 import SearchInput from "@/components/common/SearchInput";
 import FilterDropdown from "@/components/common/FilterDropdown";
 import Pagination from "@/components/common/Pagination";

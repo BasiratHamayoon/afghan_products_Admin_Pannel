@@ -7,7 +7,7 @@ import { TrendingUp } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import TradeLeadTable from "@/components/trade-leads/TradeLeadTable";
-import TradeLeadFilter from "@/components/trade-leads/TradeLeadFilter";
+import TradeLeadFilter from "@/components/trade-leads/TradeLeadFilters";
 import Pagination from "@/components/common/Pagination";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import EmptyState from "@/components/common/EmptyState";

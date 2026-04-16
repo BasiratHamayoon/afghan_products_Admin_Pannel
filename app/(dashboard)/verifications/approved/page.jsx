@@ -1,5 +1,5 @@
 "use client";
-import VerificationsSubPage from "@/components/verification/VerificationsSubPage";
+import VerificationsSubPage from "@/components/verifications/VerificationsSubPage";
 
 export default function ApprovedVerificationsPage() {
   return (
