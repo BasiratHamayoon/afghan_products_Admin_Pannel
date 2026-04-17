@@ -32,8 +32,8 @@ export default function AddAdPage() {
     <div>
       <Breadcrumb />
       <PageHeader title="Create New Ad" description="Set up a new advertisement campaign">
-        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => router.push("/content-ads/ads")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
-          <ArrowLeft className="h-4 w-4" /> Back to Ads
+        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => router.push("/content-ads")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
+          <ArrowLeft className="h-4 w-4" /> Back
         </motion.button>
       </PageHeader>
 

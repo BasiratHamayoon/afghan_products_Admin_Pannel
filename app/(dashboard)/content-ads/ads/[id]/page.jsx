@@ -96,7 +96,7 @@ export default function AdDetailPage() {
       <Breadcrumb />
       <PageHeader title={ad.title || "Ad Detail"} description="Manage details for this advertisement">
         <div className="flex items-center gap-3">
-          <button onClick={() => router.push("/content-ads/ads")} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
+          <button onClick={() => router.push("/content-ads")} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
           <button onClick={() => setDeleteDialog(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-red-500 border border-red-200 dark:border-red-800/50 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer">

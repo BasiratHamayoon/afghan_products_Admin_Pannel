@@ -80,8 +80,8 @@ export default function BannerDetailPage() {
         <div className="h-16 w-16 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center"><XCircle className="h-8 w-8 text-red-500" /></div>
         <h2 className="text-lg font-black text-foreground">Banner not found</h2>
         <p className="text-sm text-muted-foreground font-medium">The banner does not exist or has been deleted.</p>
-        <button onClick={() => router.push("/content-ads/banners")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
-          <ArrowLeft className="h-4 w-4" /> Back to Banners
+        <button onClick={() => router.push("/content-ads")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
+          <ArrowLeft className="h-4 w-4" /> Back to Content & Ads
         </button>
       </div>
     );
@@ -95,7 +95,7 @@ export default function BannerDetailPage() {
       <Breadcrumb />
       <PageHeader title={banner.title || "Banner Detail"} description={`Manage details for ${banner.title || "this banner"}`}>
         <div className="flex items-center gap-3">
-          <button onClick={() => router.push("/content-ads/banners")} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
+          <button onClick={() => router.push("/content-ads")} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
           <button onClick={() => setDeleteDialog(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-red-500 border border-red-200 dark:border-red-800/50 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer">

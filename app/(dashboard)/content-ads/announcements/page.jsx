@@ -16,9 +16,7 @@ import EmptyState from "@/components/common/EmptyState";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import ExportButton from "@/components/common/ExportButton";
 import StatusBadge from "@/components/common/StatusBadge";
-import {
-  fetchAnnouncements, removeAnnouncement, editAnnouncement,
-} from "@/store/actions/contentActions";
+import { fetchAnnouncements, removeAnnouncement, editAnnouncement } from "@/store/actions/contentActions";
 import { announcementTypeOptions } from "@/data/dummyContent";
 import { useSearch } from "@/hooks/useSearch";
 import { useFilter } from "@/hooks/useFilter";
@@ -147,9 +145,15 @@ export default function AnnouncementsPage() {
           {isLoading ? (
             <LoadingSpinner size="lg" text="Loading announcements..." className="py-16" />
           ) : filteredData.length === 0 ? (
-            <EmptyState icon={Megaphone} title="No announcements found"
+            <EmptyState
+              icon={Megaphone}
+              title="No announcements found"
               description={hasActiveFilters ? "Try adjusting your search or filters" : "Create your first announcement"}
-              action={<button onClick={() => router.push("/content-ads/announcements/add")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}><Plus className="h-4 w-4" />New Announcement</button>}
+              action={
+                <button onClick={() => router.push("/content-ads/announcements/add")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
+                  <Plus className="h-4 w-4" />New Announcement
+                </button>
+              }
             />
           ) : (
             <>
@@ -162,7 +166,7 @@ export default function AnnouncementsPage() {
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.04 }}
-                      className="group rounded-2xl border border-gray-100 dark:border-white/[0.06] bg-white dark:bg-[#0f1420] hover:border-[#0F69B0]/20 transition-all shadow-[0_1px_6px_rgba(15,105,176,0.04)] p-4"
+                      className="rounded-2xl border border-gray-100 dark:border-white/[0.06] bg-white dark:bg-[#0f1420] hover:border-[#0F69B0]/20 transition-all shadow-[0_1px_6px_rgba(15,105,176,0.04)] p-4"
                     >
                       <div className="flex items-start gap-3">
                         <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${typeOpt?.color || "#0F69B0"}15` }}>
@@ -187,17 +191,17 @@ export default function AnnouncementsPage() {
                               <span>{formatDate(ann.startDate)} → {formatDate(ann.endDate)}</span>
                               <span className="capitalize font-bold" style={{ color: priorityColors[ann.priority] }}>● {ann.priority}</span>
                             </div>
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => handleTogglePinned(ann)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer" title="Pin">
+                            <div className="flex items-center gap-1">
+                              <button onClick={() => handleTogglePinned(ann)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-foreground hover:text-[#0F69B0] transition-all cursor-pointer" title="Pin">
                                 <Pin className="h-3.5 w-3.5" />
                               </button>
-                              <button onClick={() => router.push(`/content-ads/announcements/${ann.id}`)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer" title="View">
+                              <button onClick={() => router.push(`/content-ads/announcements/${ann.id}`)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-foreground hover:text-[#0F69B0] transition-all cursor-pointer" title="View">
                                 <Eye className="h-3.5 w-3.5" />
                               </button>
-                                <button onClick={() => router.push(`/content-ads/announcements/${ann.id}?tab=Edit`)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer" title="Edit">
+                              <button onClick={() => router.push(`/content-ads/announcements/${ann.id}?tab=Edit`)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-foreground hover:text-[#0F69B0] transition-all cursor-pointer" title="Edit">
                                 <Edit2 className="h-3.5 w-3.5" />
-                                </button>
-                              <button onClick={() => setDeleteDialog({ open: true, item: ann })} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500 transition-all cursor-pointer" title="Delete">
+                              </button>
+                              <button onClick={() => setDeleteDialog({ open: true, item: ann })} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-foreground hover:text-red-500 transition-all cursor-pointer" title="Delete">
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </div>

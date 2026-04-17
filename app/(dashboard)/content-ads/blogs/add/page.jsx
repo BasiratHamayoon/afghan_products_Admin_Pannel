@@ -32,8 +32,8 @@ export default function AddBlogPage() {
     <div>
       <Breadcrumb />
       <PageHeader title="Write New Blog Post" description="Create and publish a new article or guide">
-        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => router.push("/content-ads/blogs")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
-          <ArrowLeft className="h-4 w-4" /> Back to Blogs
+        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => router.push("/content-ads")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
+          <ArrowLeft className="h-4 w-4" /> Back
         </motion.button>
       </PageHeader>
 

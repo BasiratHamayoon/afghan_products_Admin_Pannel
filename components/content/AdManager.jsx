@@ -72,7 +72,7 @@ export default function AdManager({ ads, onView, onEdit, onDelete, onToggleStatu
                     <StatusBadge status={ad.status} />
                   </div>
                 </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                <div className="flex items-center gap-1 transition-opacity shrink-0">
                   <button onClick={() => onView?.(ad)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer" title="View">
                     <Eye className="h-3.5 w-3.5" />
                   </button>

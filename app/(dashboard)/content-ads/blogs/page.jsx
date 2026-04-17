@@ -134,7 +134,7 @@ export default function BlogsPage() {
                 {paginatedData.map((blog, i) => {
                   const catOpt = blogCategoryOptions.find((c) => c.value === blog.category);
                   return (
-                    <motion.div key={blog.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="group rounded-2xl border border-gray-100 dark:border-white/[0.06] bg-white dark:bg-[#0f1420] hover:border-[#0F69B0]/20 transition-all shadow-[0_1px_6px_rgba(15,105,176,0.04)] overflow-hidden">
+                    <motion.div key={blog.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="rounded-2xl border border-gray-100 dark:border-white/[0.06] bg-white dark:bg-[#0f1420] hover:border-[#0F69B0]/20 transition-all shadow-[0_1px_6px_rgba(15,105,176,0.04)] overflow-hidden">
                       <div className="flex items-start gap-4 p-4">
                         <div className="h-20 w-32 rounded-xl overflow-hidden bg-gray-100 dark:bg-white/[0.04] shrink-0 border border-gray-100 dark:border-white/[0.06]">
                           {blog.coverImage ? (
@@ -155,11 +155,11 @@ export default function BlogsPage() {
                                 <StatusBadge status={blog.status} />
                               </div>
                             </div>
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                              <button onClick={() => router.push(`/content-ads/blogs/${blog.id}`)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer" title="View"><Eye className="h-3.5 w-3.5" /></button>
-                              <button onClick={() => router.push(`/content-ads/blogs/${blog.id}`)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer" title="Edit"><Edit2 className="h-3.5 w-3.5" /></button>
-                              <button onClick={() => handleToggleFeatured(blog)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-yellow-50 dark:hover:bg-yellow-900/20 text-muted-foreground hover:text-yellow-500 transition-all cursor-pointer" title={blog.featured ? "Unfeature" : "Feature"}><Star className={cn("h-3.5 w-3.5", blog.featured && "fill-yellow-400 text-yellow-400")} /></button>
-                              <button onClick={() => setDeleteDialog({ open: true, item: blog })} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500 transition-all cursor-pointer" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button onClick={() => router.push(`/content-ads/blogs/${blog.id}`)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-foreground hover:text-[#0F69B0] transition-all cursor-pointer" title="View"><Eye className="h-3.5 w-3.5" /></button>
+                              <button onClick={() => router.push(`/content-ads/blogs/${blog.id}`)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-foreground hover:text-[#0F69B0] transition-all cursor-pointer" title="Edit"><Edit2 className="h-3.5 w-3.5" /></button>
+                              <button onClick={() => handleToggleFeatured(blog)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-yellow-50 dark:hover:bg-yellow-900/20 text-foreground hover:text-yellow-500 transition-all cursor-pointer" title={blog.featured ? "Unfeature" : "Feature"}><Star className={cn("h-3.5 w-3.5", blog.featured && "fill-yellow-400 text-yellow-400")} /></button>
+                              <button onClick={() => setDeleteDialog({ open: true, item: blog })} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-foreground hover:text-red-500 transition-all cursor-pointer" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
                             </div>
                           </div>
                           <p className="text-[11px] text-muted-foreground font-medium line-clamp-2 mb-2 leading-relaxed">{blog.excerpt}</p>

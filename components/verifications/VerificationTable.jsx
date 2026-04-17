@@ -146,7 +146,7 @@ export default function VerificationTable({ verifications = [], onView, onApprov
                 </td>
 
                 <td className="py-4 px-4">
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1 transition-opacity">
                     <button
                       onClick={() => onView?.(ver)}
                       className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer"
