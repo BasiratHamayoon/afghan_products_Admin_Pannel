@@ -1,15 +1,12 @@
 "use client";
 
+import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import {
   Users, Package, DollarSign, ShoppingCart,
-  ShieldCheck, TrendingUp, Wallet, AlertTriangle,
-  ArrowUpRight, ArrowDownRight,
+  ShieldCheck, TrendingUp, ArrowUpRight, ArrowDownRight, Minus,
 } from "lucide-react";
-import { dashboardStats } from "@/data/dummyStats";
 import { formatCurrency } from "@/lib/formatters";
-
-const iconMap = { Users, Package, DollarSign, ShoppingCart, ShieldCheck, TrendingUp, Wallet, AlertTriangle };
 
 const statStyles = [
   { icon: "rgba(15,105,176,0.12)", iconColor: "#0F69B0", glow: "rgba(15,105,176,0.08)" },
@@ -18,12 +15,29 @@ const statStyles = [
   { icon: "rgba(245,158,11,0.12)", iconColor: "#f59e0b", glow: "rgba(245,158,11,0.08)" },
   { icon: "rgba(239,68,68,0.12)", iconColor: "#ef4444", glow: "rgba(239,68,68,0.08)" },
   { icon: "rgba(6,182,212,0.12)", iconColor: "#06b6d4", glow: "rgba(6,182,212,0.08)" },
-  { icon: "rgba(99,102,241,0.12)", iconColor: "#6366f1", glow: "rgba(99,102,241,0.08)" },
-  { icon: "rgba(236,72,153,0.12)", iconColor: "#ec4899", glow: "rgba(236,72,153,0.08)" },
 ];
+
+function Skeleton({ className }) {
+  return <div className={`rounded-xl bg-gray-100 dark:bg-white/[0.06] animate-pulse ${className}`} />;
+}
+
+function StatCardSkeleton() {
+  return (
+    <div className="relative overflow-hidden rounded-2xl p-5 bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06]">
+      <div className="flex items-start justify-between mb-4">
+        <Skeleton className="h-11 w-11 rounded-xl" />
+        <Skeleton className="h-6 w-14 rounded-full" />
+      </div>
+      <Skeleton className="h-2.5 w-24 mb-2" />
+      <Skeleton className="h-8 w-20 mb-2" />
+      <Skeleton className="h-2.5 w-36" />
+    </div>
+  );
+}
 
 function StatCard({ title, value, change, changeType, icon: Icon, index }) {
   const isPositive = changeType === "increase";
+  const isNoChange = changeType === "no_change";
   const style = statStyles[index % statStyles.length];
 
   return (
@@ -41,54 +55,82 @@ function StatCard({ title, value, change, changeType, icon: Icon, index }) {
           transform: "translate(30%, -30%)",
         }}
       />
-
       <div className="relative flex items-start justify-between mb-4">
-        <div
-          className="h-11 w-11 rounded-xl flex items-center justify-center shadow-sm"
-          style={{ background: style.icon }}
-        >
+        <div className="h-11 w-11 rounded-xl flex items-center justify-center shadow-sm" style={{ background: style.icon }}>
           {Icon && <Icon className="h-5 w-5" style={{ color: style.iconColor }} />}
         </div>
-        <div
-          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
-            isPositive
-              ? "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400"
-              : "bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400"
-          }`}
-        >
-          {isPositive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-          {change}
+        <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${isNoChange ? "bg-gray-50 dark:bg-white/[0.06] text-gray-500" : isPositive ? "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400" : "bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400"}`}>
+          {isNoChange ? <Minus className="h-3 w-3" /> : isPositive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+          {change}%
         </div>
       </div>
-
       <div className="relative">
-        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">
-          {title}
-        </p>
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">{title}</p>
         <p className="text-2xl font-black text-foreground tracking-tight">{value}</p>
         <p className="text-[10px] text-muted-foreground mt-1.5 font-medium">
-          {isPositive ? "↑ Increased" : "↓ Decreased"} from last month
+          {isNoChange ? "— No change from last month" : isPositive ? "↑ Increased from last month" : "↓ Decreased from last month"}
         </p>
       </div>
     </motion.div>
   );
 }
 
+function buildStatCards(dashboard) {
+  if (!dashboard) return [];
+  const get = (obj) => ({
+    count: obj?.count ?? obj?.amount ?? 0,
+    percentage: obj?.percentage ?? 0,
+    trend: obj?.trend || "no_change",
+  });
+
+  const users = get(dashboard.totalUsers);
+  const products = get(dashboard.totalProducts);
+  const orders = get(dashboard.orders);
+  const revenue = get(dashboard.revenue);
+  const verifications = get(dashboard.pendingVerifications);
+  const tradeLeads = get(dashboard.tradeLeads);
+
+  return [
+    { id: "users", title: "Total Users", value: String(users.count), change: users.percentage, changeType: users.trend, icon: Users },
+    { id: "products", title: "Total Products", value: String(products.count), change: products.percentage, changeType: products.trend, icon: Package },
+    { id: "orders", title: "Orders", value: String(orders.count), change: orders.percentage, changeType: orders.trend, icon: ShoppingCart },
+    { id: "revenue", title: "Revenue", value: formatCurrency(revenue.count), change: revenue.percentage, changeType: revenue.trend, icon: DollarSign },
+    { id: "verifications", title: "Pending Verifications", value: String(verifications.count), change: verifications.percentage, changeType: verifications.trend, icon: ShieldCheck },
+    { id: "tradeLeads", title: "Trade Leads", value: String(tradeLeads.count), change: tradeLeads.percentage, changeType: tradeLeads.trend, icon: TrendingUp },
+  ];
+}
+
 export default function DashboardStats() {
+  const { stats, statsLoading } = useSelector((state) => state.dashboard);
+
+  if (statsLoading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
+        {Array.from({ length: 6 }).map((_, i) => <StatCardSkeleton key={i} />)}
+      </div>
+    );
+  }
+
+  const statCards = buildStatCards(stats);
+
+  if (statCards.length === 0) {
+    return (
+      <div className="rounded-2xl p-8 mb-5 bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] text-center">
+        <p className="text-sm text-muted-foreground font-medium">No stats available</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
-      {dashboardStats.map((stat, index) => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
+      {statCards.map((stat, index) => (
         <StatCard
           key={stat.id}
           title={stat.title}
-          value={
-            stat.title.includes("Revenue") || stat.title.includes("Wallet")
-              ? formatCurrency(stat.value)
-              : stat.value
-          }
+          value={stat.value}
           change={stat.change}
           changeType={stat.changeType}
-          icon={iconMap[stat.icon]}
+          icon={stat.icon}
           index={index}
         />
       ))}

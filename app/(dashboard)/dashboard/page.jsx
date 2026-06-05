@@ -1,42 +1,42 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useEffect, useRef } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Download } from "lucide-react";
+import { motion } from "framer-motion";
 import PageHeader from "@/components/layout/PageHeader";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import DashboardStats from "@/components/dashboard/DashboardStats";
 import RevenueChart from "@/components/dashboard/RevenueChart";
 import QuickActions from "@/components/dashboard/QuickActions";
-import ActivityFeed from "@/components/dashboard/ActivityFeed";
-import TopProducts from "@/components/dashboard/TopProducts";
+import {
+  fetchDashboardStats,
+  fetchRevenueByYear,
+  fetchUserYearData,
+} from "@/store/actions/dashboardActions";
 
 export default function DashboardPage() {
+  const dispatch = useDispatch();
+  const { selectedRevenueYear, selectedUserYear } = useSelector((state) => state.dashboard);
+  const hasFetched = useRef(false);
+
+  useEffect(() => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+    dispatch(fetchDashboardStats());
+    dispatch(fetchRevenueByYear(selectedRevenueYear));
+    dispatch(fetchUserYearData(selectedUserYear));
+  }, [dispatch]);
+
   return (
     <div>
       <Breadcrumb />
-      <PageHeader
-        title="Dashboard"
-        description="Welcome back! Here is your store overview."
-      >
-        <motion.button
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-bold shadow-lg cursor-pointer"
-          style={{
-            background: "linear-gradient(135deg, #0F69B0 0%, #0A4F85 100%)",
-            boxShadow: "0 4px 14px rgba(15,105,176,0.3)",
-          }}
-        >
-          <Download className="h-4 w-4" />
-          Download Report
-        </motion.button>
+      <PageHeader title="Dashboard" description="Welcome back! Here is your store overview.">
       </PageHeader>
 
       <DashboardStats />
       <RevenueChart />
       <QuickActions />
-      <ActivityFeed />
-      <TopProducts />
     </div>
   );
 }

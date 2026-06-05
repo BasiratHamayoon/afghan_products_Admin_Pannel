@@ -1,24 +1,29 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Star, Eye, Edit2, Trash2, CheckCircle, XCircle, AlertTriangle, Package } from "lucide-react";
-import { formatCurrency } from "@/lib/formatters";
+import {
+  Eye, Edit2, Trash2, Package, Archive, ArchiveRestore,
+  ToggleLeft, ToggleRight,
+} from "lucide-react";
 import { formatDate } from "@/lib/helpers";
+import { getFileUrl } from "@/lib/fileUrl";
 import { cn } from "@/lib/utils";
 
-const statusConfig = {
-  approved: { label: "Approved", bg: "rgba(16,185,129,0.1)", text: "#10b981", icon: CheckCircle },
-  pending: { label: "Pending", bg: "rgba(245,158,11,0.1)", text: "#f59e0b", icon: AlertTriangle },
-  rejected: { label: "Rejected", bg: "rgba(239,68,68,0.1)", text: "#ef4444", icon: XCircle },
-  reported: { label: "Reported", bg: "rgba(239,68,68,0.1)", text: "#ef4444", icon: AlertTriangle },
-};
-
-export default function ProductCard({ product, index = 0, onView, onEdit, onDelete, onApprove, onReject }) {
+export default function ProductCard({
+  product,
+  index = 0,
+  onView,
+  onEdit,
+  onDelete,
+  onArchive,
+  onUnarchive,
+  onToggleStatus,
+}) {
   if (!product) return null;
-  const status = statusConfig[product.status] || statusConfig.pending;
-  const StatusIcon = status.icon;
-  const isOutOfStock = product.stock === 0;
-  const isLowStock = product.stock > 0 && product.stock <= product.lowStockThreshold;
+
+  const imageUrl = product.images?.[0] ? getFileUrl(product.images[0]) : null;
+  const isOutOfStock = (product.stock ?? 0) === 0;
+  const isLowStock = (product.stock ?? 0) > 0 && (product.stock ?? 0) <= (product.minStock ?? 10);
 
   return (
     <motion.div
@@ -28,43 +33,32 @@ export default function ProductCard({ product, index = 0, onView, onEdit, onDele
       className="group relative rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] hover:border-[#0F69B0]/25 dark:hover:border-[#0F69B0]/20 transition-all hover:shadow-[0_4px_20px_rgba(15,105,176,0.1)] overflow-hidden"
     >
       <div className="relative h-44 bg-gray-50 dark:bg-white/[0.03] overflow-hidden">
-        {product.thumbnail ? (
-          <img src={product.thumbnail} alt={product.name} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        {imageUrl ? (
+          <img src={imageUrl} alt={product.name || ""} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
         ) : (
           <div className="h-full w-full flex items-center justify-center">
             <Package className="h-12 w-12 text-muted-foreground/30" />
           </div>
         )}
         <div className="absolute top-2 left-2 flex items-center gap-1 flex-wrap">
-          <span
-            className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
-            style={{ background: status.bg, color: status.text }}
-          >
-            <StatusIcon className="h-2.5 w-2.5" />
-            {status.label}
+          <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full", product.isArchived ? "bg-amber-500/90 text-white" : "bg-emerald-500/90 text-white")}>
+            {product.isArchived ? "Archived" : "Live"}
           </span>
-          {isOutOfStock && (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-900/80 text-white">Out of Stock</span>
-          )}
-          {isLowStock && !isOutOfStock && (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/90 text-white">Low Stock</span>
-          )}
+          {isOutOfStock && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/90 text-white">Out of Stock</span>}
+          {isLowStock && !isOutOfStock && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/90 text-white">Low Stock</span>}
         </div>
-        {product.featured && (
-          <div className="absolute top-2 right-2">
-            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-yellow-400 text-white flex items-center gap-1">
-              <Star className="h-2.5 w-2.5 fill-white" />
-              Featured
-            </span>
-          </div>
-        )}
+        <div className="absolute top-2 right-2">
+          <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full", product.isActive ? "bg-emerald-500/90 text-white" : "bg-gray-500/80 text-white")}>
+            {product.isActive ? "Active" : "Inactive"}
+          </span>
+        </div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-1 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <button onClick={() => onView?.(product)} className="h-8 px-3 rounded-lg bg-white/90 text-xs font-bold text-foreground hover:bg-white cursor-pointer transition-colors flex items-center gap-1">
-            <Eye className="h-3 w-3" /> View
+            <Eye className="h-3 w-3" />View
           </button>
           <button onClick={() => onEdit?.(product)} className="h-8 px-3 rounded-lg bg-[#0F69B0]/90 text-xs font-bold text-white hover:bg-[#0F69B0] cursor-pointer transition-colors flex items-center gap-1">
-            <Edit2 className="h-3 w-3" /> Edit
+            <Edit2 className="h-3 w-3" />Edit
           </button>
           <button onClick={() => onDelete?.(product)} className="h-8 w-8 rounded-lg bg-red-500/90 flex items-center justify-center text-white hover:bg-red-500 cursor-pointer transition-colors">
             <Trash2 className="h-3.5 w-3.5" />
@@ -74,46 +68,43 @@ export default function ProductCard({ product, index = 0, onView, onEdit, onDele
 
       <div className="p-4">
         <div className="mb-2">
-          <p className="text-xs font-semibold text-[#0F69B0] mb-0.5 truncate">{product.category}</p>
-          <h3 className="text-sm font-black text-foreground line-clamp-2 leading-tight">{product.name}</h3>
-          <p className="text-[10px] text-muted-foreground font-medium mt-0.5 truncate">{product.brand} · {product.sku}</p>
+          <p className="text-xs font-semibold text-[#0F69B0] mb-0.5 truncate">{product.categoryName || "—"}</p>
+          <h3 className="text-sm font-black text-foreground line-clamp-2 leading-tight">{product.name || "—"}</h3>
+          {product.brand && <p className="text-[10px] text-muted-foreground font-medium mt-0.5 truncate">{product.brand} · {product.sku || ""}</p>}
         </div>
 
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-base font-black text-foreground">{formatCurrency(product.price)}</span>
-          {product.comparePrice && product.comparePrice > product.price && (
-            <span className="text-xs text-muted-foreground line-through">{formatCurrency(product.comparePrice)}</span>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between text-[10px] text-muted-foreground font-medium mb-3">
-          <div className="flex items-center gap-1">
-            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-            <span>{product.rating || 0}</span>
-            <span>({product.reviewsCount || 0})</span>
-          </div>
-          <span>{product.soldCount || 0} sold</span>
-          <span className={product.stock === 0 ? "text-red-500 font-bold" : product.stock <= product.lowStockThreshold ? "text-orange-500 font-bold" : ""}>
-            {product.stock} in stock
+          <span className="text-base font-black text-foreground">
+            {product.sellingPrice !== undefined ? `AFN ${Number(product.sellingPrice).toLocaleString()}` : "—"}
           </span>
         </div>
 
-        {(product.status === "pending" || product.status === "reported") && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onApprove?.(product)}
-              className="flex-1 py-1.5 rounded-lg text-xs font-bold text-green-600 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors cursor-pointer"
-            >
-              ✓ Approve
+        <div className="flex items-center justify-between text-[10px] text-muted-foreground font-medium mb-3">
+          <span className={cn(isOutOfStock ? "text-red-500 font-bold" : isLowStock ? "text-orange-500 font-bold" : "")}>
+            {isOutOfStock ? "Out of Stock" : `${product.stock ?? 0} in stock`}
+          </span>
+          <span>{product.unit || ""}</span>
+          <span>{formatDate(product.createdAt)}</span>
+        </div>
+
+        <div className="flex items-center gap-1 pt-3 border-t border-gray-100 dark:border-white/[0.06]">
+          <button onClick={() => onToggleStatus?.(product)} className={cn("flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1", product.isActive ? "text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20" : "text-gray-500 hover:bg-gray-50 dark:hover:bg-white/[0.04]")}>
+            {product.isActive ? <ToggleRight className="h-3.5 w-3.5" /> : <ToggleLeft className="h-3.5 w-3.5" />}
+            {product.isActive ? "Active" : "Inactive"}
+          </button>
+          {product.isArchived ? (
+            <button onClick={() => onUnarchive?.(product)} className="flex-1 py-1.5 rounded-lg text-[11px] font-bold text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all cursor-pointer flex items-center justify-center gap-1">
+              <ArchiveRestore className="h-3.5 w-3.5" />Unarchive
             </button>
-            <button
-              onClick={() => onReject?.(product)}
-              className="flex-1 py-1.5 rounded-lg text-xs font-bold text-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors cursor-pointer"
-            >
-              ✕ Reject
+          ) : (
+            <button onClick={() => onArchive?.(product)} className="flex-1 py-1.5 rounded-lg text-[11px] font-bold text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all cursor-pointer flex items-center justify-center gap-1">
+              <Archive className="h-3.5 w-3.5" />Archive
             </button>
-          </div>
-        )}
+          )}
+          <button onClick={() => onDelete?.(product)} className="flex-1 py-1.5 rounded-lg text-[11px] font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all cursor-pointer flex items-center justify-center gap-1">
+            <Trash2 className="h-3.5 w-3.5" />Delete
+          </button>
+        </div>
       </div>
     </motion.div>
   );

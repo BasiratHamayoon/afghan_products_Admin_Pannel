@@ -5,12 +5,16 @@ import {
   Package,
   FolderTree,
   TrendingUp,
-  Wallet,
-  PiggyBank,
-  MessageSquare,
-  Megaphone,
-  AlertTriangle,
   Settings,
+  FolderOpen,
+  Layers,
+  Tag,
+  LayoutGrid,
+  Star,
+  Unlock,
+  List,
+  ShoppingCart,
+  MessageCircle,
 } from "lucide-react";
 
 export const sidebarMenuItems = [
@@ -43,42 +47,70 @@ export const sidebarMenuItems = [
     label: "Categories",
     icon: FolderTree,
     href: "/categories",
+    submenu: [
+      {
+        id: "categories-all",
+        label: "All Categories",
+        icon: FolderOpen,
+        href: "/categories",
+      },
+      {
+        id: "categories-sub",
+        label: "Sub Categories",
+        icon: Layers,
+        href: "/categories/sub-categories",
+      },
+      {
+        id: "categories-product-types",
+        label: "Product Types",
+        icon: Tag,
+        href: "/categories/product-types",
+      },
+    ],
+  },
+  {
+    id: "sections",
+    label: "Section Management",
+    icon: LayoutGrid,
+    href: "/sections",
+  },
+  {
+    id: "reviews",
+    label: "Reviews",
+    icon: Star,
+    href: "/reviews",
   },
   {
     id: "trade-leads",
     label: "Trade Leads",
     icon: TrendingUp,
     href: "/trade-leads",
+    submenu: [
+      {
+        id: "trade-leads-all",
+        label: "All Trade Leads",
+        icon: List,
+        href: "/trade-leads",
+      },
+      {
+        id: "trade-leads-unlock",
+        label: "Unlock Requests",
+        icon: Unlock,
+        href: "/trade-leads/unlock-requests",
+      },
+    ],
   },
   {
-    id: "payments-wallet",
-    label: "Payments & Wallet",
-    icon: Wallet,
-    href: "/payments-wallet",
+    id: "orders",
+    label: "Orders",
+    icon: ShoppingCart,
+    href: "/orders",
   },
   {
-    id: "investments",
-    label: "Investments",
-    icon: PiggyBank,
-    href: "/investments",
-  },
-  {
-    id: "consulting",
-    label: "Consulting",
-    icon: MessageSquare,
-    href: "/consulting",
-  },
-  {
-    id: "content-ads",
-    label: "Content & Ads",
-    icon: Megaphone,
-    href: "/content-ads"
-  },
-  {
-    id: "disputes",
-    label: "Disputes",
-    icon: AlertTriangle,
-    href: "/disputes"
+    id: "contact-us",
+    label: "Contact Messages",
+    icon: MessageCircle,
+    href: "/contact-us",
   },
   {
     id: "settings",

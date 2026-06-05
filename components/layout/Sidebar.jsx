@@ -1,4 +1,3 @@
-// Sidebar.jsx
 "use client";
 
 import { usePathname } from "next/navigation";
@@ -9,11 +8,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { sidebarMenuItems } from "@/config/sidebarConfig";
 import { toggleSubmenu } from "@/store/slices/sidebarSlice";
-import { logout } from "@/store/slices/authSlice";
+import { logoutUser } from "@/store/actions/authActions";
 import { ChevronDown, LogOut } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 const SIDEBAR_EXPANDED = 272;
 const SIDEBAR_COLLAPSED = 72;
@@ -24,11 +24,46 @@ export default function Sidebar() {
   const router = useRouter();
   const { isCollapsed, openSubmenus } = useSelector((state) => state.sidebar);
   const [logoutDialog, setLogoutDialog] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const handleLogout = () => {
-    dispatch(logout());
-    setLogoutDialog(false);
-    router.push("/login");
+  useEffect(() => {
+    sidebarMenuItems.forEach((item) => {
+      if (item.submenu) {
+        const isAnySubActive = item.submenu.some(
+          (sub) => pathname === sub.href || pathname.startsWith(sub.href + "/")
+        );
+        if (isAnySubActive && !openSubmenus.includes(item.id)) {
+          dispatch(toggleSubmenu(item.id));
+        }
+      }
+    });
+  }, []);
+
+  const performLogout = useCallback(async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await dispatch(logoutUser());
+      toast.success("Logged out successfully!");
+    } catch {
+      toast.success("Logged out successfully!");
+    } finally {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token");
+      }
+      setIsLoggingOut(false);
+      setLogoutDialog(false);
+      router.push("/login");
+    }
+  }, [dispatch, router, isLoggingOut]);
+
+  const isItemActive = (item) => {
+    if (item.submenu) {
+      return item.submenu.some(
+        (sub) => pathname === sub.href || pathname.startsWith(sub.href + "/")
+      );
+    }
+    return pathname === item.href || pathname.startsWith(item.href + "/");
   };
 
   return (
@@ -118,7 +153,7 @@ export default function Sidebar() {
 
           <nav className="px-2 space-y-0.5">
             {sidebarMenuItems.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+              const isActive = isItemActive(item);
               const isSubmenuOpen = openSubmenus.includes(item.id);
               const Icon = item.icon;
 
@@ -161,53 +196,123 @@ export default function Sidebar() {
                   ) : (
                     <div>
                       {item.submenu ? (
-                        <button
-                          onClick={() => dispatch(toggleSubmenu(item.id))}
-                          className={cn(
-                            "flex items-center justify-between w-full h-10 px-3 rounded-xl transition-all duration-200 text-[13px] group/item cursor-pointer",
-                            isActive
-                              ? "text-[#0F69B0] font-semibold"
-                              : "text-muted-foreground hover:text-foreground"
-                          )}
-                          style={isActive ? { background: "rgba(15,105,176,0.08)" } : {}}
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div
-                              className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0 transition-all duration-200"
-                              style={{
-                                background: isActive
-                                  ? "rgba(15,105,176,0.12)"
-                                  : "rgba(0,0,0,0.04)",
-                              }}
-                            >
-                              <Icon
-                                className={cn(
-                                  "h-3.5 w-3.5 shrink-0 transition-colors",
-                                  isActive ? "text-[#0F69B0]" : "text-muted-foreground group-hover/item:text-[#0F69B0]"
-                                )}
-                              />
-                            </div>
-                            <span className="truncate font-medium">{item.label}</span>
-                          </div>
-                          <motion.div
-                            animate={{ rotate: isSubmenuOpen ? 180 : 0 }}
-                            transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
-                            className="shrink-0 ml-1"
+                        <>
+                          <button
+                            onClick={() => dispatch(toggleSubmenu(item.id))}
+                            className={cn(
+                              "flex items-center justify-between w-full h-10 px-3 rounded-xl transition-all duration-200 text-[13px] group/item cursor-pointer",
+                              isActive
+                                ? "text-[#0F69B0] font-semibold"
+                                : "text-muted-foreground hover:text-foreground"
+                            )}
+                            style={isActive ? { background: "rgba(15,105,176,0.08)" } : {}}
                           >
-                            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/50" />
-                          </motion.div>
-                        </button>
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div
+                                className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0 transition-all duration-200"
+                                style={{
+                                  background: isActive
+                                    ? "rgba(15,105,176,0.12)"
+                                    : "rgba(0,0,0,0.04)",
+                                }}
+                              >
+                                <Icon
+                                  className={cn(
+                                    "h-3.5 w-3.5 shrink-0 transition-colors",
+                                    isActive
+                                      ? "text-[#0F69B0]"
+                                      : "text-muted-foreground group-hover/item:text-[#0F69B0]"
+                                  )}
+                                />
+                              </div>
+                              <span className="truncate font-medium">{item.label}</span>
+                            </div>
+                            <motion.div
+                              animate={{ rotate: isSubmenuOpen ? 180 : 0 }}
+                              transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+                              className="shrink-0 ml-1"
+                            >
+                              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/50" />
+                            </motion.div>
+                          </button>
+
+                          <AnimatePresence initial={false}>
+                            {isSubmenuOpen && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+                                className="overflow-hidden"
+                              >
+                                <div
+                                  className="ml-5 mt-0.5 mb-1 pl-3 py-0.5 space-y-0.5"
+                                  style={{ borderLeft: "2px solid rgba(15,105,176,0.1)" }}
+                                >
+                                  {item.submenu.map((sub) => {
+                                    const SubIcon = sub.icon;
+                                    const isSubActive =
+                                      pathname === sub.href ||
+                                      (sub.href !== "/categories" &&
+                                        pathname.startsWith(sub.href));
+                                    return (
+                                      <Link
+                                        key={sub.id}
+                                        href={sub.href}
+                                        className={cn(
+                                          "flex items-center gap-2.5 py-1.5 px-2.5 rounded-lg text-[12px] transition-all duration-200 font-medium cursor-pointer",
+                                          isSubActive
+                                            ? "text-white"
+                                            : "text-muted-foreground hover:text-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04]"
+                                        )}
+                                        style={
+                                          isSubActive
+                                            ? {
+                                                background:
+                                                  "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)",
+                                                boxShadow: "0 2px 8px rgba(15,105,176,0.22)",
+                                              }
+                                            : {}
+                                        }
+                                      >
+                                        {SubIcon ? (
+                                          <SubIcon
+                                            className={cn(
+                                              "h-3 w-3 shrink-0",
+                                              isSubActive ? "text-white" : "text-muted-foreground/60"
+                                            )}
+                                          />
+                                        ) : (
+                                          <div
+                                            className={cn(
+                                              "w-1.5 h-1.5 rounded-full shrink-0 transition-all",
+                                              isSubActive ? "bg-white" : "bg-muted-foreground/30"
+                                            )}
+                                          />
+                                        )}
+                                        {sub.label}
+                                      </Link>
+                                    );
+                                  })}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </>
                       ) : (
                         <Link
                           href={item.href}
                           className={cn(
                             "flex items-center gap-2.5 h-10 px-3 rounded-xl transition-all duration-200 text-[13px] group/item relative overflow-hidden cursor-pointer",
-                            isActive ? "text-white font-semibold" : "text-muted-foreground hover:text-foreground"
+                            isActive
+                              ? "text-white font-semibold"
+                              : "text-muted-foreground hover:text-foreground"
                           )}
                           style={
                             isActive
                               ? {
-                                  background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)",
+                                  background:
+                                    "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)",
                                   boxShadow: "0 4px 14px rgba(15,105,176,0.28)",
                                 }
                               : {}
@@ -229,7 +334,9 @@ export default function Sidebar() {
                             <Icon
                               className={cn(
                                 "h-3.5 w-3.5 shrink-0 transition-colors",
-                                isActive ? "text-white" : "text-muted-foreground group-hover/item:text-[#0F69B0]"
+                                isActive
+                                  ? "text-white"
+                                  : "text-muted-foreground group-hover/item:text-[#0F69B0]"
                               )}
                             />
                           </div>
@@ -239,53 +346,6 @@ export default function Sidebar() {
                           )}
                         </Link>
                       )}
-
-                      <AnimatePresence initial={false}>
-                        {item.submenu && isSubmenuOpen && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
-                            className="overflow-hidden"
-                          >
-                            <div
-                              className="ml-5 mt-0.5 mb-1 pl-3 py-0.5 space-y-0.5"
-                              style={{ borderLeft: "2px solid rgba(15,105,176,0.1)" }}
-                            >
-                              {item.submenu.map((sub) => {
-                                const isSubActive = pathname === sub.href;
-                                return (
-                                  <Link
-                                    key={sub.id}
-                                    href={sub.href}
-                                    className={cn(
-                                      "flex items-center gap-2 py-1.5 px-2.5 rounded-lg text-[12px] transition-all duration-200 font-medium cursor-pointer",
-                                      isSubActive ? "text-white" : "text-muted-foreground hover:text-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04]"
-                                    )}
-                                    style={
-                                      isSubActive
-                                        ? {
-                                            background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)",
-                                            boxShadow: "0 2px 8px rgba(15,105,176,0.22)",
-                                          }
-                                        : {}
-                                    }
-                                  >
-                                    <div
-                                      className={cn(
-                                        "w-1.5 h-1.5 rounded-full shrink-0 transition-all",
-                                        isSubActive ? "bg-white" : "bg-muted-foreground/30"
-                                      )}
-                                    />
-                                    {sub.label}
-                                  </Link>
-                                );
-                              })}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
                     </div>
                   )}
                 </div>
@@ -342,13 +402,14 @@ export default function Sidebar() {
 
       <ConfirmDialog
         open={logoutDialog}
-        onClose={() => setLogoutDialog(false)}
-        onConfirm={handleLogout}
+        onClose={() => !isLoggingOut && setLogoutDialog(false)}
+        onConfirm={performLogout}
         title="Sign Out"
         description="Are you sure you want to sign out? You will need to log in again to access the admin portal."
-        confirmLabel="Sign Out"
+        confirmLabel={isLoggingOut ? "Signing Out..." : "Sign Out"}
         cancelLabel="Stay Logged In"
         variant="danger"
+        isLoading={isLoggingOut}
       />
     </>
   );

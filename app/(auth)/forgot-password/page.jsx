@@ -1,26 +1,65 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, ArrowLeft, ArrowRight, Loader2, CheckCircle, Send } from "lucide-react";
+import {
+  Mail,
+  ArrowLeft,
+  ArrowRight,
+  Loader2,
+  CheckCircle,
+  Send,
+} from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import toast from "react-hot-toast";
+import { useDispatch, useSelector } from "react-redux";
+import { forgotPassword } from "@/store/actions/authActions";
+import { clearForgotPasswordState } from "@/store/slices/authSlice";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export default function ForgotPasswordPage() {
+  const dispatch = useDispatch();
+  const { forgotPasswordLoading, forgotPasswordSuccess, forgotPasswordError } =
+    useSelector((state) => state.auth);
+
   const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSent, setIsSent] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      setIsSent(true);
+  useEffect(() => {
+    return () => {
+      dispatch(clearForgotPasswordState());
+    };
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (forgotPasswordError) {
+      toast.error(forgotPasswordError);
+    }
+  }, [forgotPasswordError]);
+
+  useEffect(() => {
+    if (forgotPasswordSuccess) {
       toast.success("Reset link sent to your email!");
-    }, 2000);
+    }
+  }, [forgotPasswordSuccess]);
+
+  const performForgotPassword = useCallback(
+    async (emailVal) => {
+      if (!emailVal) return;
+      dispatch(forgotPassword({ email: emailVal }));
+    },
+    [dispatch]
+  );
+
+  const { debouncedCallback: debouncedForgotPassword } = useDebounce(
+    performForgotPassword,
+    300
+  );
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    debouncedForgotPassword(email);
   };
 
   return (
@@ -37,6 +76,7 @@ export default function ForgotPasswordPage() {
         <div className="absolute -top-20 -right-20 w-44 h-44 bg-[#0F69B0]/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-20 -left-20 w-44 h-44 bg-violet-500/12 rounded-full blur-3xl pointer-events-none" />
 
+        {/* Header */}
         <div className="relative px-8 pt-9 pb-4 flex flex-col items-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.75 }}
@@ -55,7 +95,7 @@ export default function ForgotPasswordPage() {
           </motion.div>
 
           <AnimatePresence mode="wait">
-            {isSent ? (
+            {forgotPasswordSuccess ? (
               <motion.div
                 key="sent"
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -92,7 +132,10 @@ export default function ForgotPasswordPage() {
                   </div>
                   <motion.div
                     className="absolute -inset-1.5 rounded-2xl border-2 border-[#0F69B0]/20"
-                    animate={{ scale: [1, 1.12, 1], opacity: [0.5, 0, 0.5] }}
+                    animate={{
+                      scale: [1, 1.12, 1],
+                      opacity: [0.5, 0, 0.5],
+                    }}
                     transition={{ duration: 2, repeat: Infinity }}
                   />
                 </div>
@@ -107,9 +150,10 @@ export default function ForgotPasswordPage() {
           </AnimatePresence>
         </div>
 
+        {/* Content */}
         <div className="relative px-8 pb-9">
           <AnimatePresence mode="wait">
-            {isSent ? (
+            {forgotPasswordSuccess ? (
               <motion.div
                 key="sent-content"
                 initial={{ opacity: 0, y: 15 }}
@@ -117,13 +161,17 @@ export default function ForgotPasswordPage() {
                 className="space-y-3"
               >
                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 rounded-xl p-3.5 text-center">
-                  <p className="text-[11px] text-muted-foreground mb-1">Reset link sent to</p>
-                  <p className="text-sm font-bold text-green-700 dark:text-green-400 font-mono">{email}</p>
+                  <p className="text-[11px] text-muted-foreground mb-1">
+                    Reset link sent to
+                  </p>
+                  <p className="text-sm font-bold text-green-700 dark:text-green-400 font-mono">
+                    {email}
+                  </p>
                 </div>
                 <p className="text-[11px] text-center text-muted-foreground">
                   Didn&apos;t receive it?{" "}
                   <button
-                    onClick={() => setIsSent(false)}
+                    onClick={() => dispatch(clearForgotPasswordState())}
                     className="text-[#0F69B0] font-bold hover:underline cursor-pointer underline-offset-4"
                   >
                     Try again
@@ -145,6 +193,7 @@ export default function ForgotPasswordPage() {
                 onSubmit={handleSubmit}
                 className="space-y-3"
               >
+                {/* Email Field */}
                 <div
                   className={`relative flex items-center rounded-xl border-2 transition-all duration-300 ${
                     focusedField === "email"
@@ -154,7 +203,9 @@ export default function ForgotPasswordPage() {
                 >
                   <div
                     className={`absolute left-4 transition-all duration-300 ${
-                      focusedField === "email" ? "text-[#0F69B0]" : "text-gray-400 dark:text-white/30"
+                      focusedField === "email"
+                        ? "text-[#0F69B0]"
+                        : "text-gray-400 dark:text-white/30"
                     }`}
                   >
                     <Mail className="h-4 w-4" />
@@ -168,24 +219,49 @@ export default function ForgotPasswordPage() {
                     placeholder="Email address"
                     className="w-full bg-transparent pl-11 pr-4 py-3.5 text-sm outline-none placeholder:text-gray-400/60 dark:placeholder:text-white/25 text-foreground cursor-text font-medium"
                     required
+                    disabled={forgotPasswordLoading}
+                    autoComplete="email"
                   />
                 </div>
 
+                {/* Error */}
+                <AnimatePresence>
+                  {forgotPasswordError && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="bg-red-500/8 border border-red-500/20 rounded-xl px-3.5 py-2.5">
+                        <p className="text-[11px] text-red-500 text-center font-semibold">
+                          {forgotPasswordError}
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Submit Button */}
                 <motion.button
-                  whileHover={{ scale: 1.015 }}
-                  whileTap={{ scale: 0.97 }}
+                  whileHover={{ scale: forgotPasswordLoading ? 1 : 1.015 }}
+                  whileTap={{ scale: forgotPasswordLoading ? 1 : 0.97 }}
                   type="submit"
-                  disabled={isLoading}
+                  disabled={forgotPasswordLoading}
                   className="w-full relative overflow-hidden rounded-xl py-3.5 font-bold text-sm text-white disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#0F69B0]/30"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-[#0F69B0] via-[#1a82d4] to-[#0A4F85]" />
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12"
                     animate={{ x: ["-130%", "130%"] }}
-                    transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 2.5 }}
+                    transition={{
+                      duration: 2.2,
+                      repeat: Infinity,
+                      repeatDelay: 2.5,
+                    }}
                   />
                   <div className="relative flex items-center gap-2">
-                    {isLoading ? (
+                    {forgotPasswordLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
                         <span>Sending...</span>

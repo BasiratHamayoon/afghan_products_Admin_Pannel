@@ -1,268 +1,467 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { motion } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import {
   Shield, Clock, CheckCircle, XCircle,
-  LayoutGrid, List, SlidersHorizontal, X,
-  TrendingUp, FileText, AlertTriangle,
+  X, Building, Eye, Star, FileText, Trash2,
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import Breadcrumb from "@/components/layout/Breadcrumb";
-import VerificationTable from "@/components/verifications/VerificationTable";
 import StatsCard from "@/components/common/StatCard";
 import SearchInput from "@/components/common/SearchInput";
-import FilterDropdown from "@/components/common/FilterDropdown";
 import Pagination from "@/components/common/Pagination";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import EmptyState from "@/components/common/EmptyState";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
-import ExportButton from "@/components/common/ExportButton";
 import {
-  fetchVerifications, approveVerification, rejectVerification,
-} from "@/store/actions/verificationsActions";
-import { dummyVerificationStats } from "@/data/dummyVerifications";
-import { useSearch } from "@/hooks/useSearch";
-import { useFilter } from "@/hooks/useFilter";
-import { usePagination } from "@/hooks/usePagination";
-import { cn } from "@/lib/utils";
+  fetchPendingSellers,
+  fetchVerifiedSellers,
+  fetchBusinesses,
+  updateVerificationStatus,
+  deleteBusinessAction,
+} from "@/store/actions/businessesActions";
+import { getFileUrl } from "@/lib/fileUrl";
 import toast from "react-hot-toast";
+import { cn } from "@/lib/utils";
 
-const mainTabs = [
-  { id: "all", label: "All", icon: LayoutGrid },
+const TABS = [
+  { id: "all", label: "All Businesses", icon: Building },
   { id: "pending", label: "Pending", icon: Clock },
-  { id: "approved", label: "Approved", icon: CheckCircle },
-  { id: "rejected", label: "Rejected", icon: XCircle },
+  { id: "verified", label: "Verified", icon: CheckCircle },
 ];
 
-const typeOptions = [
-  { value: "all", label: "All Types" },
-  { value: "seller", label: "Seller" },
-  { value: "identity", label: "Identity" },
-  { value: "business", label: "Business" },
-];
+const PAGE_LIMIT = 10;
 
-const priorityOptions = [
-  { value: "all", label: "All Priority" },
-  { value: "high", label: "High" },
-  { value: "medium", label: "Medium" },
-  { value: "low", label: "Low" },
-];
+const vStatusConfig = {
+  VERIFIED: { label: "Verified", bg: "bg-emerald-500/10", text: "text-emerald-600", dot: "bg-emerald-500" },
+  PENDING: { label: "Pending", bg: "bg-amber-500/10", text: "text-amber-600", dot: "bg-amber-500" },
+  REJECTED: { label: "Rejected", bg: "bg-red-500/10", text: "text-red-500", dot: "bg-red-500" },
+  UNVERIFIED: { label: "Unverified", bg: "bg-gray-500/10", text: "text-gray-500", dot: "bg-gray-400" },
+};
 
-const sortOptions = [
-  { value: "newest", label: "Newest First" },
-  { value: "oldest", label: "Oldest First" },
-  { value: "scoreHigh", label: "Score: High to Low" },
-  { value: "scoreLow", label: "Score: Low to High" },
-  { value: "priorityHigh", label: "Priority: High First" },
-];
+function getInitials(name) {
+  if (!name) return "?";
+  return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+}
 
 export default function VerificationsPage() {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { verifications, isLoading } = useSelector((state) => state.verifications);
-  const { user } = useSelector((state) => state.auth);
+  const { pendingSellers, verifiedSellers, businesses, isLoading } = useSelector(
+    (state) => state.businesses
+  );
+
   const [activeTab, setActiveTab] = useState("all");
-  const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState("newest");
-  const [rejectDialog, setRejectDialog] = useState({ open: false, verification: null });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [verifyDialog, setVerifyDialog] = useState({ open: false, business: null, action: null });
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, business: null });
   const [isProcessing, setIsProcessing] = useState(false);
+  const debounceRef = useRef(null);
+  const hasFetched = useRef(false);
 
   useEffect(() => {
-    dispatch(fetchVerifications());
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+    dispatch(fetchBusinesses({ page: 1, limit: 100 }));
+    dispatch(fetchPendingSellers());
+    dispatch(fetchVerifiedSellers());
   }, [dispatch]);
 
-  const safeVerifications = Array.isArray(verifications) ? verifications.filter(Boolean) : [];
+  const handleSearchChange = useCallback((val) => {
+    setSearchQuery(val);
+    setCurrentPage(1);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedSearch(val);
+    }, 400);
+  }, []);
 
-  const tabFiltered = useMemo(() => {
-    if (activeTab === "all") return safeVerifications;
-    return safeVerifications.filter((v) => v.status === activeTab);
-  }, [safeVerifications, activeTab]);
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery("");
+    setDebouncedSearch("");
+    setCurrentPage(1);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+  }, []);
 
-  const tabCounts = useMemo(() => ({
-    all: safeVerifications.length,
-    pending: safeVerifications.filter((v) => v.status === "pending").length,
-    approved: safeVerifications.filter((v) => v.status === "approved").length,
-    rejected: safeVerifications.filter((v) => v.status === "rejected").length,
-  }), [safeVerifications]);
+  const handleTabChange = useCallback((tab) => {
+    setActiveTab(tab);
+    setSearchQuery("");
+    setDebouncedSearch("");
+    setCurrentPage(1);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+  }, []);
 
-  const { query, setQuery, results: searched } = useSearch(tabFiltered, [
-    "userName", "userEmail", "type", "business.name",
-  ]);
-
-  const { filters, filteredData: filtered, updateFilter, resetFilters } = useFilter(searched, {
-    type: "all", priority: "all",
-  });
-
-  const sorted = useMemo(() => {
-    const priorityOrder = { high: 0, medium: 1, low: 2 };
-    const arr = [...filtered];
-    switch (sortBy) {
-      case "oldest": return arr.sort((a, b) => new Date(a.submittedAt) - new Date(b.submittedAt));
-      case "scoreHigh": return arr.sort((a, b) => (b.score || 0) - (a.score || 0));
-      case "scoreLow": return arr.sort((a, b) => (a.score || 0) - (b.score || 0));
-      case "priorityHigh": return arr.sort((a, b) => (priorityOrder[a.priority] ?? 1) - (priorityOrder[b.priority] ?? 1));
-      default: return arr.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+  const handleVerifyConfirm = async () => {
+    const { business, action } = verifyDialog;
+    if (!business?.id) {
+      setVerifyDialog({ open: false, business: null, action: null });
+      return;
     }
-  }, [filtered, sortBy]);
-
-  const hasActiveFilters =
-    filters.type !== "all" ||
-    filters.priority !== "all" ||
-    query.trim() !== "";
-
-  const { currentPage, totalPages, paginatedData, goToPage, from, to, total } = usePagination(sorted, 10);
-
-  const handleApprove = async (ver) => {
-    if (!ver?.id) return;
     setIsProcessing(true);
-    const res = await dispatch(approveVerification(ver.id, user?.name || "Admin"));
-    setIsProcessing(false);
-    if (res?.success) toast.success(`${ver.userName}'s verification approved`);
-    else toast.error("Failed to approve");
+    try {
+      const res = await dispatch(updateVerificationStatus(business.id, action));
+      if (res?.success) {
+        toast.success(action === "approve" ? "Business verified" : "Business rejected");
+      } else {
+        toast.error(res?.message || "Action failed");
+      }
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setIsProcessing(false);
+      setVerifyDialog({ open: false, business: null, action: null });
+    }
   };
 
-  const handleRejectOpen = (ver) => {
-    if (!ver?.id) return;
-    setRejectDialog({ open: true, verification: ver });
-    router.push(`/verifications/${ver.id}`);
+  const handleDeleteConfirm = async () => {
+    const { business } = deleteDialog;
+    if (!business?.id) {
+      setDeleteDialog({ open: false, business: null });
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      const res = await dispatch(deleteBusinessAction(business.id));
+      if (res?.success) {
+        toast.success("Business deleted successfully");
+      } else {
+        toast.error(res?.message || "Delete failed");
+      }
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setIsProcessing(false);
+      setDeleteDialog({ open: false, business: null });
+    }
   };
 
-  const handleView = (ver) => { if (ver?.id) router.push(`/verifications/${ver.id}`); };
+  const handleViewDetail = useCallback((biz) => {
+    const bizId = biz?.id || biz?._id;
+    if (!bizId) {
+      toast.error("Business ID not found");
+      return;
+    }
+    router.push(`/verifications/${bizId}`);
+  }, [router]);
 
-  const stats = dummyVerificationStats || {};
+  const getDisplayData = useCallback(() => {
+    let data = [];
+    if (activeTab === "all") data = Array.isArray(businesses) ? businesses : [];
+    else if (activeTab === "pending") data = Array.isArray(pendingSellers) ? pendingSellers : [];
+    else if (activeTab === "verified") data = Array.isArray(verifiedSellers) ? verifiedSellers : [];
+
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase();
+      data = data.filter(
+        (b) =>
+          b.businessName?.toLowerCase().includes(q) ||
+          b.ownerName?.toLowerCase().includes(q) ||
+          b.ownerEmail?.toLowerCase().includes(q) ||
+          b.ownershipType?.toLowerCase().includes(q)
+      );
+    }
+    return data;
+  }, [activeTab, businesses, pendingSellers, verifiedSellers, debouncedSearch]);
+
+  const displayData = getDisplayData();
+  const total = displayData.length;
+  const totalPages = Math.ceil(total / PAGE_LIMIT) || 1;
+  const from = total === 0 ? 0 : (currentPage - 1) * PAGE_LIMIT + 1;
+  const to = Math.min(currentPage * PAGE_LIMIT, total);
+  const paginatedData = displayData.slice(
+    (currentPage - 1) * PAGE_LIMIT,
+    currentPage * PAGE_LIMIT
+  );
+
+  const tabCounts = {
+    all: Array.isArray(businesses) ? businesses.length : 0,
+    pending: Array.isArray(pendingSellers) ? pendingSellers.length : 0,
+    verified: Array.isArray(verifiedSellers) ? verifiedSellers.length : 0,
+  };
 
   return (
     <div className="space-y-5">
       <Breadcrumb />
-
       <PageHeader
         title="Verifications"
-        description="Review and manage seller and identity verification requests"
-      >
-        <div className="flex items-center gap-2 flex-wrap justify-end">
-          <ExportButton onExport={(fmt) => toast.success(`Exporting as ${fmt}`)} />
-        </div>
-      </PageHeader>
+        description="Review and manage seller business verification requests"
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatsCard title="Total Requests" value={stats.total || 0} icon={Shield} color="rgba(15,105,176,0.08)" index={0} />
-        <StatsCard title="Pending" value={stats.pending || 0} icon={Clock} color="rgba(245,158,11,0.08)" index={1} />
-        <StatsCard title="Approved" value={stats.approved || 0} icon={CheckCircle} color="rgba(16,185,129,0.08)" index={2} />
-        <StatsCard title="Rejected" value={stats.rejected || 0} icon={XCircle} color="rgba(239,68,68,0.08)" index={3} />
+        <StatsCard title="All Businesses" value={tabCounts.all} icon={Building} color="rgba(15,105,176,0.08)" index={0} />
+        <StatsCard title="Pending" value={tabCounts.pending} icon={Clock} color="rgba(245,158,11,0.08)" index={1} />
+        <StatsCard title="Verified" value={tabCounts.verified} icon={CheckCircle} color="rgba(16,185,129,0.08)" index={2} />
+        <StatsCard title="Total Requests" value={tabCounts.pending + tabCounts.verified} icon={Shield} color="rgba(124,58,237,0.08)" index={3} />
       </div>
 
       <div className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden">
-        <div className="border-b border-gray-100 dark:border-white/[0.06]">
-          <div className="flex items-center overflow-x-auto scrollbar-thin">
-            {mainTabs.map((tab) => {
-              const Icon = tab.icon;
-              const count = tabCounts[tab.id];
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => { setActiveTab(tab.id); setQuery(""); resetFilters(); goToPage(1); }}
+        <div className="flex items-center overflow-x-auto scrollbar-thin border-b border-gray-100 dark:border-white/[0.06]">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={cn(
+                  "flex items-center gap-2 px-5 py-4 text-xs font-bold transition-all cursor-pointer whitespace-nowrap border-b-2",
+                  activeTab === tab.id
+                    ? "border-[#0F69B0] text-[#0F69B0] bg-[#0F69B0]/[0.04]"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:bg-gray-50 dark:hover:bg-white/[0.03]"
+                )}
+              >
+                <Icon className="h-3.5 w-3.5 shrink-0" />
+                {tab.label}
+                <span
                   className={cn(
-                    "flex items-center gap-2 px-4 py-4 text-xs font-bold transition-all cursor-pointer whitespace-nowrap border-b-2",
+                    "px-1.5 py-0.5 rounded-full text-[10px] font-black",
                     activeTab === tab.id
-                      ? "border-[#0F69B0] text-[#0F69B0] bg-[#0F69B0]/[0.04]"
-                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-gray-50 dark:hover:bg-white/[0.03]"
+                      ? "bg-[#0F69B0] text-white"
+                      : "bg-gray-100 dark:bg-white/[0.08] text-muted-foreground"
                   )}
                 >
-                  <Icon className="h-3.5 w-3.5 shrink-0" />
-                  {tab.label}
-                  <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-black", activeTab === tab.id ? "bg-[#0F69B0] text-white" : "bg-gray-100 dark:bg-white/[0.08] text-muted-foreground")}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+                  {tabCounts[tab.id]}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="p-4 border-b border-gray-50 dark:border-white/[0.04]">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex-1 min-w-[180px]">
               <SearchInput
-                value={query}
-                onChange={(v) => { setQuery(v); goToPage(1); }}
-                placeholder="Search applicant name, email, type..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+                placeholder="Search business, owner..."
               />
             </div>
-            <FilterDropdown label="Sort" value={sortBy} options={sortOptions} onChange={(v) => { setSortBy(v); goToPage(1); }} />
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={cn(
-                "flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
-                showFilters || hasActiveFilters
-                  ? "border-[#0F69B0] bg-[#0F69B0]/8 text-[#0F69B0]"
-                  : "border-gray-200 dark:border-white/[0.08] text-muted-foreground hover:border-[#0F69B0]/30 hover:text-[#0F69B0]"
-              )}
-            >
-              <SlidersHorizontal className="h-3.5 w-3.5" />
-              Filters
-              {hasActiveFilters && <span className="h-4 w-4 rounded-full bg-[#0F69B0] text-white text-[9px] font-black flex items-center justify-center">!</span>}
-            </button>
-          </div>
-
-          <AnimatePresence>
-            {showFilters && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.22 }}
-                className="overflow-hidden"
+            {searchQuery && (
+              <button
+                onClick={handleClearSearch}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40"
               >
-                <div className="flex items-center gap-2 flex-wrap pt-3">
-                  <FilterDropdown label="Type" value={filters.type || "all"} options={typeOptions} onChange={(v) => { updateFilter("type", v); goToPage(1); }} />
-                  <FilterDropdown label="Priority" value={filters.priority || "all"} options={priorityOptions} onChange={(v) => { updateFilter("priority", v); goToPage(1); }} />
-                  {hasActiveFilters && (
-                    <button onClick={() => { resetFilters(); setQuery(""); goToPage(1); }} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer border border-red-200 dark:border-red-800/40 transition-colors">
-                      <X className="h-3.5 w-3.5" />
-                      Clear All
-                    </button>
-                  )}
-                  <p className="text-[11px] text-muted-foreground font-medium ml-auto">{sorted.length} result{sorted.length !== 1 ? "s" : ""}</p>
-                </div>
-              </motion.div>
+                <X className="h-3.5 w-3.5" />
+                Clear
+              </button>
             )}
-          </AnimatePresence>
+            <p className="text-[11px] text-muted-foreground font-medium">
+              {total} result{total !== 1 ? "s" : ""}
+            </p>
+          </div>
         </div>
 
         <div className="p-4">
           {isLoading ? (
-            <LoadingSpinner size="lg" text="Loading verifications..." className="py-16" />
-          ) : sorted.length === 0 ? (
+            <LoadingSpinner size="lg" text="Loading..." className="py-16" />
+          ) : paginatedData.length === 0 ? (
             <EmptyState
               icon={Shield}
-              title="No verifications found"
-              description={hasActiveFilters ? "Try adjusting your search or filters" : "No verification requests yet"}
+              title="No records found"
+              description={
+                activeTab === "pending"
+                  ? "No pending requests"
+                  : activeTab === "verified"
+                  ? "No verified sellers"
+                  : debouncedSearch
+                  ? "Try adjusting your search"
+                  : "No businesses found"
+              }
               action={
-                hasActiveFilters ? (
-                  <button onClick={() => { resetFilters(); setQuery(""); goToPage(1); }} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] cursor-pointer">
-                    Clear Filters
+                debouncedSearch ? (
+                  <button
+                    onClick={handleClearSearch}
+                    className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
+                  >
+                    Clear Search
                   </button>
                 ) : null
               }
             />
           ) : (
             <>
-              <VerificationTable
-                verifications={paginatedData}
-                onView={handleView}
-                onApprove={handleApprove}
-                onReject={handleRejectOpen}
-              />
-              <div className="mt-5 border-t border-gray-50 dark:border-white/[0.04] pt-4">
-                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={goToPage} from={from} to={to} total={total} />
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr style={{ borderBottom: "2px solid rgba(15,105,176,0.06)" }}>
+                      {["Business", "Owner", "Type", "Documents", "Rating", "Status", "Actions"].map((h) => (
+                        <th
+                          key={h}
+                          className="text-left py-3.5 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 whitespace-nowrap"
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedData.map((biz, i) => {
+                      const vs = biz.verificationStatus || "UNVERIFIED";
+                      const vsc = vStatusConfig[vs] || vStatusConfig.UNVERIFIED;
+                      const logoUrl = biz.logo ? getFileUrl(biz.logo) : null;
+                      const docCount = [
+                        biz.tradeLicense,
+                        biz.nationalIdOrPassport,
+                        biz.taxCertificate,
+                      ].filter(Boolean).length;
+
+                      return (
+                        <motion.tr
+                          key={biz.id || biz._id || i}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.04 }}
+                          className="border-b border-gray-50 dark:border-white/[0.03] last:border-0 hover:bg-gray-50/50 dark:hover:bg-white/[0.015] transition-colors"
+                        >
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div
+                                className="h-10 w-10 rounded-full flex items-center justify-center shrink-0 shadow-[0_2px_8px_rgba(15,105,176,0.15)] overflow-hidden"
+                                style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
+                              >
+                                {logoUrl ? (
+                                  <img src={logoUrl} alt={biz.businessName} className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="text-xs font-black text-white">{getInitials(biz.businessName)}</span>
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-foreground truncate max-w-[160px]">
+                                  {biz.businessName || "—"}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
+                                  Est. {biz.yearOfEstablishment || "—"}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <p className="text-xs font-semibold text-foreground whitespace-nowrap">
+                              {biz.ownerName || "—"}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground font-medium mt-0.5 truncate max-w-[160px]">
+                              {biz.ownerEmail || "—"}
+                            </p>
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#0F69B0]/10 text-[#0F69B0] whitespace-nowrap">
+                              {biz.ownershipType || "—"}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-1">
+                              <FileText className="h-3.5 w-3.5 text-muted-foreground/50" />
+                              <span className="text-xs font-bold text-foreground">{docCount}/3</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-1">
+                              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                              <span className="text-xs font-bold text-foreground">{biz.averageRating || 0}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg whitespace-nowrap",
+                                vsc.bg,
+                                vsc.text
+                              )}
+                            >
+                              <span className={cn("h-1.5 w-1.5 rounded-full", vsc.dot)} />
+                              {vsc.label}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => handleViewDetail(biz)}
+                                className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer"
+                                title="View Details"
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                              </button>
+                              {(vs === "PENDING" || vs === "UNVERIFIED") && (
+                                <>
+                                  <button
+                                    onClick={() => setVerifyDialog({ open: true, business: biz, action: "approve" })}
+                                    className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-muted-foreground hover:text-emerald-600 transition-all cursor-pointer"
+                                    title="Approve"
+                                  >
+                                    <CheckCircle className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => setVerifyDialog({ open: true, business: biz, action: "reject" })}
+                                    className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500 transition-all cursor-pointer"
+                                    title="Reject"
+                                  >
+                                    <XCircle className="h-3.5 w-3.5" />
+                                  </button>
+                                </>
+                              )}
+                              <button
+                                onClick={() => setDeleteDialog({ open: true, business: biz })}
+                                className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500 transition-all cursor-pointer"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-4 border-t border-gray-50 dark:border-white/[0.04] pt-4">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  from={from}
+                  to={to}
+                  total={total}
+                />
               </div>
             </>
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={verifyDialog.open}
+        onClose={() => setVerifyDialog({ open: false, business: null, action: null })}
+        onConfirm={handleVerifyConfirm}
+        title={verifyDialog.action === "approve" ? "Approve Verification" : "Reject Verification"}
+        description={
+          verifyDialog.business
+            ? `Are you sure you want to ${verifyDialog.action === "approve" ? "verify" : "reject"} "${verifyDialog.business.businessName}"?`
+            : "Are you sure?"
+        }
+        confirmLabel={verifyDialog.action === "approve" ? "Approve" : "Reject"}
+        isLoading={isProcessing}
+        variant={verifyDialog.action === "approve" ? "primary" : "danger"}
+      />
+
+      <ConfirmDialog
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, business: null })}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Business"
+        description={
+          deleteDialog.business
+            ? `Are you sure you want to delete "${deleteDialog.business.businessName}"? This action cannot be undone.`
+            : "Are you sure?"
+        }
+        confirmLabel="Delete"
+        isLoading={isProcessing}
+        variant="danger"
+      />
     </div>
   );
 }

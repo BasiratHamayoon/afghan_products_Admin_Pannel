@@ -1,66 +1,71 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
+import { useRouter, useParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  ArrowLeft, Edit2, Trash2, CheckCircle,
-  XCircle, Star, LayoutDashboard, Ban,
+  ArrowLeft, Trash2, XCircle, Loader2,
+  Package, MapPin, AlertTriangle,
+  DollarSign, Hash, FileText, User, Mail,
+  Calendar, CheckCircle, Tag,
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import Breadcrumb from "@/components/layout/Breadcrumb";
-import TradeLeadDetails from "@/components/trade-leads/TradeLeadDetails";
-import TradeLeadForm from "@/components/trade-leads/TradeLeadForm";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
-import StatusBadge from "@/components/common/StatusBadge";
 import {
-  fetchTradeLeadById, removeTradeLead, editTradeLead,
-  approveTradeLead, closeTradeLead,
+  fetchTradeLeadById,
+  removeTradeLead,
+  updateTradeLeadStatus,
 } from "@/store/actions/tradeLeadsActions";
-import { tradeLeadTypeConfig } from "@/data/dummyTradeLeads";
-import { cn } from "@/lib/utils";
+import { getFileUrl } from "@/lib/fileUrl";
+import { formatDate } from "@/lib/helpers";
 import toast from "react-hot-toast";
+import { cn } from "@/lib/utils";
 
-const tabs = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "edit", label: "Edit Lead", icon: Edit2 },
-];
+const urgencyConfig = {
+  HIGH: { label: "High Urgency", bg: "bg-red-500/10", text: "text-red-500", dot: "bg-red-500" },
+  MEDIUM: { label: "Medium Urgency", bg: "bg-amber-500/10", text: "text-amber-600", dot: "bg-amber-500" },
+  LOW: { label: "Low Urgency", bg: "bg-emerald-500/10", text: "text-emerald-600", dot: "bg-emerald-500" },
+};
+
+const statusConfig = {
+  PENDING: { label: "Pending", bg: "bg-amber-500/10", text: "text-amber-600", dot: "bg-amber-500" },
+  APPROVED: { label: "Approved", bg: "bg-emerald-500/10", text: "text-emerald-600", dot: "bg-emerald-500" },
+  REJECTED: { label: "Rejected", bg: "bg-red-500/10", text: "text-red-500", dot: "bg-red-500" },
+  EXPIRED: { label: "Expired", bg: "bg-gray-500/10", text: "text-gray-500", dot: "bg-gray-400" },
+};
+
+function getInitials(name) {
+  if (!name) return "?";
+  return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+}
 
 export default function TradeLeadDetailPage() {
   const params = useParams();
   const id = params?.id;
   const router = useRouter();
   const dispatch = useDispatch();
-  const searchParams = useSearchParams();
-  const { selectedLead: lead, isLoading } = useSelector((state) => state.tradeLeads);
-  const [activeTab, setActiveTab] = useState("overview");
+
+  const { selectedLead, isDetailLoading } = useSelector((state) => state.tradeLeads);
+
   const [deleteDialog, setDeleteDialog] = useState(false);
+  const [statusDialog, setStatusDialog] = useState({ open: false, status: null });
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [notFound, setNotFound] = useState(false);
+
+  const hasFetched = useRef(false);
 
   useEffect(() => {
-    if (id) dispatch(fetchTradeLeadById(id));
-  }, [dispatch, id]);
+    if (!id || hasFetched.current) return;
+    hasFetched.current = true;
+    dispatch(fetchTradeLeadById(id)).then((res) => {
+      if (!res?.success) setNotFound(true);
+    });
+  }, [id, dispatch]);
 
-  useEffect(() => {
-    if (searchParams.get("tab") === "edit") setActiveTab("edit");
-  }, [searchParams]);
-
-  const handleUpdate = async (data) => {
-    if (!id) return;
-    setIsSaving(true);
-    const res = await dispatch(editTradeLead(id, data));
-    setIsSaving(false);
-    if (res?.success) {
-      toast.success("Lead updated!");
-      setActiveTab("overview");
-      router.replace(`/trade-leads/${id}`);
-    } else {
-      toast.error("Failed to update");
-    }
-  };
+  const lead = selectedLead?.id === id ? selectedLead : null;
 
   const handleDelete = async () => {
     if (!id) return;
@@ -68,53 +73,48 @@ export default function TradeLeadDetailPage() {
     const res = await dispatch(removeTradeLead(id));
     setIsDeleting(false);
     if (res?.success) {
-      toast.success("Lead deleted");
+      toast.success("Trade lead deleted");
       router.push("/trade-leads");
     } else {
-      toast.error("Failed to delete");
+      toast.error(res?.message || "Failed to delete");
     }
+    setDeleteDialog(false);
   };
 
-  const handleApprove = async () => {
-    if (!id) return;
-    const res = await dispatch(approveTradeLead(id));
-    if (res?.success) toast.success("Lead approved");
-    else toast.error("Failed to approve");
+  const handleStatusConfirm = async () => {
+    if (!lead?.id || !statusDialog.status) {
+      setStatusDialog({ open: false, status: null });
+      return;
+    }
+    setIsUpdating(true);
+    const res = await dispatch(updateTradeLeadStatus(lead.id, statusDialog.status));
+    setIsUpdating(false);
+    if (res?.success) {
+      toast.success(`Status updated to ${statusDialog.status}`);
+    } else {
+      toast.error(res?.message || "Failed to update status");
+    }
+    setStatusDialog({ open: false, status: null });
   };
 
-  const handleClose = async () => {
-    if (!id) return;
-    const res = await dispatch(closeTradeLead(id));
-    if (res?.success) toast.success("Lead closed");
-    else toast.error("Failed to close");
-  };
-
-  const handleToggleFeatured = async () => {
-    if (!lead?.id) return;
-    await dispatch(editTradeLead(lead.id, { ...lead, featured: !lead.featured }));
-    toast.success(`${!lead.featured ? "Featured" : "Unfeatured"} successfully`);
-  };
-
-  if (isLoading) {
+  if (isDetailLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <LoadingSpinner size="lg" text="Loading lead..." />
+      <div className="flex items-center justify-center py-32">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-[#0F69B0]" />
+          <p className="text-sm text-muted-foreground font-medium">Loading trade lead...</p>
+        </div>
       </div>
     );
   }
 
-  if (!lead || !lead.id) {
+  if (notFound || (!isDetailLoading && !lead?.id)) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-4">
+      <div className="flex flex-col items-center justify-center py-32 gap-4">
         <div className="h-16 w-16 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
           <XCircle className="h-8 w-8 text-red-500" />
         </div>
-        <div>
-          <h2 className="text-lg font-black text-foreground mb-1">Trade Lead not found</h2>
-          <p className="text-sm text-muted-foreground font-medium max-w-sm">
-            The trade lead does not exist or has been removed.
-          </p>
-        </div>
+        <h2 className="text-lg font-black text-foreground">Trade lead not found</h2>
         <button
           onClick={() => router.push("/trade-leads")}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer"
@@ -127,169 +127,288 @@ export default function TradeLeadDetailPage() {
     );
   }
 
-  const typeConfig = tradeLeadTypeConfig[lead.type] || tradeLeadTypeConfig.buy;
-  const isPending = lead.status === "pending";
-  const isActive = lead.status === "active";
+  if (!lead) return null;
+
+  const urgency = urgencyConfig[lead.urgency] || urgencyConfig.LOW;
+  const status = statusConfig[lead.status] || statusConfig.PENDING;
+  const attachmentUrl = lead.attachment ? getFileUrl(lead.attachment) : null;
+  const isPending = lead.status === "PENDING";
+  const isRejected = lead.status === "REJECTED";
+
+  const detailFields = [
+    { label: "Product", value: lead.productName, icon: Package },
+    { label: "Category", value: lead.categoryName, icon: Tag },
+    { label: "Quantity", value: `${lead.quantity} ${lead.unit}`, icon: Hash },
+    { label: "Min Budget", value: `AFN ${Number(lead.minBudget).toLocaleString()}`, icon: DollarSign },
+    { label: "Max Budget", value: `AFN ${Number(lead.maxBudget).toLocaleString()}`, icon: DollarSign },
+    { label: "Location", value: lead.location, icon: MapPin },
+    { label: "Urgency", value: urgency.label, icon: AlertTriangle },
+    { label: "Status", value: status.label, icon: CheckCircle },
+    { label: "Created", value: formatDate(lead.createdAt), icon: Calendar },
+    { label: "Updated", value: formatDate(lead.updatedAt), icon: Calendar },
+  ];
 
   return (
     <div className="space-y-5">
       <Breadcrumb />
-
-      <PageHeader
-        title={lead.title || "Trade Lead Detail"}
-        description={`${typeConfig.label} · ${lead.category || "Uncategorized"} · ${lead.user?.name || ""}`}
-      >
+      <PageHeader title="Trade Lead Detail" description={lead.productName || "Trade Lead"}>
         <div className="flex items-center gap-2 flex-wrap justify-end">
-          <button
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
             onClick={() => router.push("/trade-leads")}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Back</span>
-          </button>
-
-          <button
-            onClick={handleToggleFeatured}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition-colors cursor-pointer",
-              lead.featured
-                ? "border-yellow-200 dark:border-yellow-800/40 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
-                : "border-gray-200 dark:border-white/[0.08] text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04]"
-            )}
-          >
-            <Star className={cn("h-4 w-4", lead.featured && "fill-yellow-400 text-yellow-400")} />
-            <span className="hidden sm:inline">{lead.featured ? "Unfeature" : "Feature"}</span>
-          </button>
+            Back
+          </motion.button>
 
           {isPending && (
-            <button
-              onClick={handleApprove}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border border-green-200 dark:border-green-800/40 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors cursor-pointer"
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setStatusDialog({ open: true, status: "APPROVED" })}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border border-emerald-200 dark:border-emerald-800/40 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors cursor-pointer"
             >
               <CheckCircle className="h-4 w-4" />
-              <span className="hidden sm:inline">Approve</span>
-            </button>
+              Approve
+            </motion.button>
           )}
 
-          {isActive && (
-            <button
-              onClick={handleClose}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border border-gray-200 dark:border-white/[0.08] text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
+          {isPending && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setStatusDialog({ open: true, status: "REJECTED" })}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border border-red-200 dark:border-red-800/40 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
             >
-              <Ban className="h-4 w-4" />
-              <span className="hidden sm:inline">Close Lead</span>
-            </button>
+              <XCircle className="h-4 w-4" />
+              Reject
+            </motion.button>
           )}
 
-          <button
+          {isRejected && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setStatusDialog({ open: true, status: "APPROVED" })}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border border-emerald-200 dark:border-emerald-800/40 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors cursor-pointer"
+            >
+              <CheckCircle className="h-4 w-4" />
+              Approve
+            </motion.button>
+          )}
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
             onClick={() => setDeleteDialog(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-red-500 border border-red-200 dark:border-red-800/50 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
           >
             <Trash2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Delete</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setActiveTab("edit");
-              router.replace(`/trade-leads/${id}?tab=edit`);
-            }}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer shadow-lg shadow-[#0F69B0]/25"
-            style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
-          >
-            <Edit2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Edit</span>
-          </button>
+            Delete
+          </motion.button>
         </div>
       </PageHeader>
 
-      <div className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden">
-        <div className="flex items-center gap-1 p-3 sm:p-4 border-b border-gray-50 dark:border-white/[0.04] overflow-x-auto scrollbar-thin">
-          <div className="flex items-center gap-2 mr-4 shrink-0">
-            <div
-              className="h-8 w-8 rounded-lg flex items-center justify-center text-lg"
-              style={{ background: typeConfig.bg }}
-            >
-              {typeConfig.icon}
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-foreground truncate max-w-[120px]">
-                {lead.title}
-              </p>
-              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                <StatusBadge status={lead.status} />
-                <span
-                  className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                  style={{ background: typeConfig.bg, color: typeConfig.text }}
-                >
-                  {typeConfig.label}
-                </span>
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden flex flex-col items-center text-center"
+        >
+          <div
+            className="h-24 w-full relative"
+            style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
+          >
+            <div className="absolute inset-0">
+              <div
+                className="absolute -top-8 -right-8 w-28 h-28 rounded-full"
+                style={{ background: "rgba(255,255,255,0.08)" }}
+              />
+              <div
+                className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full"
+                style={{ background: "rgba(255,255,255,0.06)" }}
+              />
             </div>
           </div>
 
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  router.replace(
-                    tab.id === "edit"
-                      ? `/trade-leads/${id}?tab=edit`
-                      : `/trade-leads/${id}`
-                  );
-                }}
+          <div className="-mt-8 mb-3 relative z-10">
+            <div
+              className="h-16 w-16 rounded-full flex items-center justify-center shadow-xl ring-[3px] ring-white dark:ring-[#0f1420]"
+              style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
+            >
+              <Package className="h-7 w-7 text-white" />
+            </div>
+          </div>
+
+          <div className="px-5 pb-5 w-full">
+            <h3 className="text-base font-black text-foreground mb-1">
+              {lead.productName || "Trade Lead"}
+            </h3>
+
+            {lead.categoryName && (
+              <p className="text-[11px] text-muted-foreground font-medium mb-3">
+                {lead.categoryName}
+              </p>
+            )}
+
+            <div className="flex items-center justify-center gap-2 flex-wrap mb-3">
+              <span
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0",
-                  activeTab === tab.id
-                    ? "bg-[#0F69B0] text-white shadow-md shadow-[#0F69B0]/25"
-                    : "text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] hover:text-foreground"
+                  "inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1 rounded-full",
+                  status.bg,
+                  status.text
                 )}
               >
-                <Icon className="h-3.5 w-3.5" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="p-4 sm:p-5">
-          <AnimatePresence mode="wait">
-            {activeTab === "overview" && (
-              <motion.div
-                key="overview"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
+                <span className={cn("h-1.5 w-1.5 rounded-full", status.dot)} />
+                {status.label}
+              </span>
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1 rounded-full",
+                  urgency.bg,
+                  urgency.text
+                )}
               >
-                <TradeLeadDetails lead={lead} />
-              </motion.div>
-            )}
+                <span className={cn("h-1.5 w-1.5 rounded-full", urgency.dot)} />
+                {urgency.label}
+              </span>
+            </div>
 
-            {activeTab === "edit" && (
-              <motion.div
-                key="edit"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
-              >
-                <TradeLeadForm
-                  initialData={lead}
-                  onSubmit={handleUpdate}
-                  onCancel={() => {
-                    setActiveTab("overview");
-                    router.replace(`/trade-leads/${id}`);
-                  }}
-                  isLoading={isSaving}
-                />
-              </motion.div>
+            <div className="flex items-center justify-center gap-1.5 text-sm font-black text-foreground">
+              <DollarSign className="h-4 w-4 text-[#0F69B0]" />
+              AFN {Number(lead.minBudget).toLocaleString()} – {Number(lead.maxBudget).toLocaleString()}
+            </div>
+
+            <div className="flex items-center justify-center gap-1.5 mt-2 text-xs text-muted-foreground font-medium">
+              <MapPin className="h-3.5 w-3.5" />
+              {lead.location || "No location"}
+            </div>
+
+            <div className="flex items-center justify-center gap-1.5 mt-1.5 text-xs text-muted-foreground font-medium">
+              <Package className="h-3.5 w-3.5" />
+              {lead.quantity} {lead.unit}
+            </div>
+
+            {(lead.requestedUnlockCount > 0 || lead.unlockedCount > 0) && (
+              <div className="mt-4 pt-3 border-t border-gray-100 dark:border-white/[0.06]">
+                <div className="flex items-center justify-center gap-4 text-[11px] font-bold">
+                  <span className="text-muted-foreground">
+                    Unlock Requests:{" "}
+                    <span className="text-foreground">{lead.requestedUnlockCount}</span>
+                  </span>
+                  <span className="text-muted-foreground">
+                    Unlocked:{" "}
+                    <span className="text-foreground">{lead.unlockedCount}</span>
+                  </span>
+                </div>
+              </div>
             )}
-          </AnimatePresence>
-        </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="lg:col-span-2 space-y-5"
+        >
+          <div className="rounded-2xl p-5 bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)]">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="h-8 w-8 rounded-lg bg-[#0F69B0]/10 flex items-center justify-center shrink-0">
+                <Package className="h-4 w-4 text-[#0F69B0]" />
+              </div>
+              <h3 className="text-sm font-black text-foreground">Trade Lead Information</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {detailFields.map((field) => {
+                const FieldIcon = field.icon;
+                return (
+                  <div
+                    key={field.label}
+                    className="flex items-start gap-3 p-3 rounded-xl border border-gray-100 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02]"
+                  >
+                    <div
+                      className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0"
+                      style={{ background: "rgba(15,105,176,0.08)" }}
+                    >
+                      <FieldIcon className="h-3.5 w-3.5 text-[#0F69B0]" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">
+                        {field.label}
+                      </p>
+                      <p className="text-xs font-bold text-foreground break-all">
+                        {field.value || "—"}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {lead.detailDescription && (
+            <div className="rounded-2xl p-5 bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)]">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-8 w-8 rounded-lg bg-[#0F69B0]/10 flex items-center justify-center shrink-0">
+                  <FileText className="h-4 w-4 text-[#0F69B0]" />
+                </div>
+                <h3 className="text-sm font-black text-foreground">Description</h3>
+              </div>
+              <p className="text-sm text-muted-foreground font-medium leading-relaxed">
+                {lead.detailDescription}
+              </p>
+            </div>
+          )}
+
+          {attachmentUrl && (
+            <div className="rounded-2xl p-5 bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)]">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-8 w-8 rounded-lg bg-[#0F69B0]/10 flex items-center justify-center shrink-0">
+                  <FileText className="h-4 w-4 text-[#0F69B0]" />
+                </div>
+                <h3 className="text-sm font-black text-foreground">Attachment</h3>
+              </div>
+              <a
+                href={attachmentUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 p-3 rounded-xl border border-[#0F69B0]/20 bg-[#0F69B0]/[0.03] hover:bg-[#0F69B0]/[0.06] transition-colors cursor-pointer"
+              >
+                <FileText className="h-5 w-5 text-[#0F69B0]" />
+                <span className="text-sm font-bold text-[#0F69B0]">View Attachment</span>
+              </a>
+            </div>
+          )}
+
+          <div className="rounded-2xl p-5 bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)]">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="h-8 w-8 rounded-lg bg-[#0F69B0]/10 flex items-center justify-center shrink-0">
+                <User className="h-4 w-4 text-[#0F69B0]" />
+              </div>
+              <h3 className="text-sm font-black text-foreground">Posted By</h3>
+            </div>
+            <div className="flex items-center gap-3">
+              <div
+                className="h-12 w-12 rounded-full flex items-center justify-center text-sm font-black text-white shadow-lg"
+                style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
+              >
+                {getInitials(lead.createdByName)}
+              </div>
+              <div>
+                <p className="text-sm font-black text-foreground">{lead.createdByName || "—"}</p>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <Mail className="h-3 w-3 text-muted-foreground/50" />
+                  <p className="text-xs text-muted-foreground font-medium">
+                    {lead.createdByEmail || "—"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
       </div>
 
       <ConfirmDialog
@@ -297,10 +416,25 @@ export default function TradeLeadDetailPage() {
         onClose={() => setDeleteDialog(false)}
         onConfirm={handleDelete}
         title="Delete Trade Lead"
-        description={`Are you sure you want to delete "${lead.title}"? This cannot be undone.`}
+        description="Are you sure you want to delete this trade lead? This cannot be undone."
         confirmLabel="Delete"
         isLoading={isDeleting}
         variant="danger"
+      />
+
+      <ConfirmDialog
+        open={statusDialog.open}
+        onClose={() => setStatusDialog({ open: false, status: null })}
+        onConfirm={handleStatusConfirm}
+        title={statusDialog.status === "APPROVED" ? "Approve Trade Lead" : "Reject Trade Lead"}
+        description={
+          statusDialog.status === "APPROVED"
+            ? "Are you sure you want to approve this trade lead? It will become visible to sellers."
+            : "Are you sure you want to reject this trade lead?"
+        }
+        confirmLabel={statusDialog.status === "APPROVED" ? "Approve" : "Reject"}
+        isLoading={isUpdating}
+        variant={statusDialog.status === "APPROVED" ? "primary" : "danger"}
       />
     </div>
   );

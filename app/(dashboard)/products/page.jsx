@@ -1,372 +1,348 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { motion } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import {
-  Plus, Package, CheckCircle, Clock,
-  AlertTriangle, XCircle, List, Grid3X3,
-  LayoutGrid,
+  Package, CheckCircle, Clock,
+  AlertTriangle, List, Grid3X3,
+  LayoutGrid, X, RefreshCw,
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import ProductTable from "@/components/products/ProductTable";
 import ProductCard from "@/components/products/ProductCard";
-import ProductFilter from "@/components/products/ProductFilters";
+import SearchInput from "@/components/common/SearchInput";
 import StatsCard from "@/components/common/StatCard";
 import Pagination from "@/components/common/Pagination";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import EmptyState from "@/components/common/EmptyState";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
-import ExportButton from "@/components/common/ExportButton";
+import FilterDropdown from "@/components/common/FilterDropdown";
 import {
-  fetchProducts, removeProduct, editProduct,
-  approveProduct, rejectProduct,
+  fetchProducts,
+  fetchProductStats,
+  deleteProduct,
+  archiveProduct,
+  unarchiveProduct,
+  toggleProductStatus,
 } from "@/store/actions/productsActions";
-import { dummyProductStats } from "@/data/dummyProducts";
-import { useSearch } from "@/hooks/useSearch";
-import { useFilter } from "@/hooks/useFilter";
-import { usePagination } from "@/hooks/usePagination";
-import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
+import { cn } from "@/lib/utils";
 
-const mainTabs = [
+const TABS = [
   { id: "all", label: "All Products", icon: LayoutGrid },
-  { id: "approved", label: "Approved", icon: CheckCircle },
-  { id: "pending", label: "Pending", icon: Clock },
-  { id: "reported", label: "Reported", icon: AlertTriangle },
-  { id: "rejected", label: "Rejected", icon: XCircle },
+  { id: "active", label: "Active", icon: CheckCircle },
+  { id: "archived", label: "Archived", icon: Clock },
 ];
+
+const STOCK_OPTIONS = [
+  { value: "all", label: "All Stock" },
+  { value: "inStock", label: "In Stock" },
+  { value: "lowStock", label: "Low Stock" },
+  { value: "outOfStock", label: "Out of Stock" },
+];
+
+const SORT_OPTIONS = [
+  { value: "createdAt_desc", label: "Newest First" },
+  { value: "createdAt_asc", label: "Oldest First" },
+  { value: "sellingPrice_desc", label: "Price: High to Low" },
+  { value: "sellingPrice_asc", label: "Price: Low to High" },
+  { value: "stock_asc", label: "Stock: Low to High" },
+  { value: "stock_desc", label: "Stock: High to Low" },
+];
+
+const DEBOUNCE_DELAY = 500;
+const PAGE_LIMIT = 10;
 
 export default function ProductsPage() {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { products, isLoading } = useSelector((state) => state.products);
+  const { products, isLoading, pagination, stats } = useSelector(
+    (state) => state.products
+  );
+
   const [activeTab, setActiveTab] = useState("all");
   const [viewMode, setViewMode] = useState("table");
-  const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState("newest");
-  const [deleteDialog, setDeleteDialog] = useState({ open: false, product: null });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [stockFilter, setStockFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("createdAt_desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, item: null });
+  const [archiveDialog, setArchiveDialog] = useState({ open: false, item: null, action: null });
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isActioning, setIsActioning] = useState(false);
+
+  const searchDebounceRef = useRef(null);
+  const hasFetchedRef = useRef(false);
+
+  const buildParams = useCallback((page, search, tab, stock, sort) => {
+    const params = { page, limit: PAGE_LIMIT };
+    if (search?.trim()) params.search = search.trim();
+    if (tab === "active") params.isArchived = false;
+    else if (tab === "archived") params.isArchived = true;
+    if (stock === "outOfStock") params.stock = "outOfStock";
+    else if (stock === "lowStock") params.stock = "lowStock";
+    else if (stock === "inStock") params.stock = "inStock";
+    if (sort) {
+      const [field, order] = sort.split("_");
+      params.sortBy = field;
+      params.sortOrder = order;
+    }
+    return params;
+  }, []);
 
   useEffect(() => {
-    dispatch(fetchProducts());
-  }, [dispatch]);
-
-  const safeProducts = Array.isArray(products) ? products.filter(Boolean) : [];
-
-  const tabFiltered = useMemo(() => {
-    if (activeTab === "all") return safeProducts;
-    return safeProducts.filter((p) => p.status === activeTab);
-  }, [safeProducts, activeTab]);
-
-  const tabCounts = useMemo(() => ({
-    all: safeProducts.length,
-    approved: safeProducts.filter((p) => p.status === "approved").length,
-    pending: safeProducts.filter((p) => p.status === "pending").length,
-    reported: safeProducts.filter((p) => p.status === "reported").length,
-    rejected: safeProducts.filter((p) => p.status === "rejected").length,
-  }), [safeProducts]);
-
-  const { query, setQuery, results: searched } = useSearch(tabFiltered, [
-    "name", "slug", "brand", "sku", "category", "seller",
-  ]);
-
-  const { filters, filteredData: filtered, updateFilter, resetFilters } = useFilter(searched, {
-    status: "all", category: "all", stock: "all", featured: "all",
-  });
-
-  const sorted = useMemo(() => {
-    const arr = [...filtered];
-    switch (sortBy) {
-      case "newest": return arr.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      case "oldest": return arr.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-      case "priceHigh": return arr.sort((a, b) => b.price - a.price);
-      case "priceLow": return arr.sort((a, b) => a.price - b.price);
-      case "rating": return arr.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-      case "sold": return arr.sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0));
-      default: return arr;
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
+    if (!products || products.length === 0) {
+      dispatch(fetchProducts(buildParams(1, "", "all", "all", "createdAt_desc")));
     }
-  }, [filtered, sortBy]);
+    if (!stats) dispatch(fetchProductStats());
+  }, []);
 
-  const stockFiltered = useMemo(() => {
-    if (!filters.stock || filters.stock === "all") return sorted;
-    if (filters.stock === "outOfStock") return sorted.filter((p) => p.stock === 0);
-    if (filters.stock === "lowStock") return sorted.filter((p) => p.stock > 0 && p.stock <= (p.lowStockThreshold || 10));
-    if (filters.stock === "inStock") return sorted.filter((p) => p.stock > (p.lowStockThreshold || 10));
-    return sorted;
-  }, [sorted, filters.stock]);
+  useEffect(() => {
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, []);
 
-  const hasActiveFilters =
-    filters.status !== "all" ||
-    filters.category !== "all" ||
-    filters.stock !== "all" ||
-    filters.featured !== "all" ||
-    query.trim() !== "";
+  const triggerFetch = useCallback((page, search, tab, stock, sort) => {
+    dispatch(fetchProducts(buildParams(page, search, tab, stock, sort)));
+  }, [dispatch, buildParams]);
 
-  const itemsPerPage = viewMode === "grid" ? 12 : 10;
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setSearchQuery("");
+    setCurrentPage(1);
+    triggerFetch(1, "", tab, stockFilter, sortBy);
+  };
 
-  const {
-    currentPage, totalPages, paginatedData,
-    goToPage, from, to, total,
-  } = usePagination(stockFiltered, itemsPerPage);
+  const handleSearchChange = (val) => {
+    setSearchQuery(val);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setCurrentPage(1);
+      triggerFetch(1, val, activeTab, stockFilter, sortBy);
+    }, DEBOUNCE_DELAY);
+  };
 
-  const handleDelete = async () => {
-    const id = deleteDialog?.product?.id;
-    if (!id) { setDeleteDialog({ open: false, product: null }); return; }
+  const handleStockFilterChange = (val) => {
+    setStockFilter(val);
+    setCurrentPage(1);
+    triggerFetch(1, searchQuery, activeTab, val, sortBy);
+  };
+
+  const handleSortChange = (val) => {
+    setSortBy(val);
+    setCurrentPage(1);
+    triggerFetch(1, searchQuery, activeTab, stockFilter, val);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    triggerFetch(page, searchQuery, activeTab, stockFilter, sortBy);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setCurrentPage(1);
+    triggerFetch(1, "", activeTab, stockFilter, sortBy);
+  };
+
+  const handleRefresh = () => {
+    triggerFetch(currentPage, searchQuery, activeTab, stockFilter, sortBy);
+  };
+
+  const handleDeleteConfirm = async () => {
+    const { item } = deleteDialog;
+    if (!item?.id) { setDeleteDialog({ open: false, item: null }); return; }
     setIsDeleting(true);
     try {
-      const res = await dispatch(removeProduct(id));
-      if (res?.success) toast.success("Product deleted");
-      else toast.error("Failed to delete");
-    } catch { toast.error("Something went wrong"); }
-    finally { setIsDeleting(false); setDeleteDialog({ open: false, product: null }); }
+      const res = await dispatch(deleteProduct(item.id));
+      if (res?.success) {
+        toast.success("Product deleted");
+      } else {
+        toast.error(res?.message || "Failed to delete");
+      }
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialog({ open: false, item: null });
+    }
   };
 
-  const handleApprove = async (product) => {
-    if (!product?.id) return;
-    const res = await dispatch(approveProduct(product.id));
-    if (res?.success) toast.success(`${product.name} approved`);
-    else toast.error("Failed to approve");
+  const handleArchiveConfirm = async () => {
+    const { item, action } = archiveDialog;
+    if (!item?.id) { setArchiveDialog({ open: false, item: null, action: null }); return; }
+    setIsActioning(true);
+    try {
+      const fn = action === "archive" ? archiveProduct : unarchiveProduct;
+      const res = await dispatch(fn(item.id));
+      if (res?.success) {
+        toast.success(action === "archive" ? "Product archived" : "Product unarchived");
+      } else {
+        toast.error(res?.message || "Action failed");
+      }
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setIsActioning(false);
+      setArchiveDialog({ open: false, item: null, action: null });
+    }
   };
 
-  const handleReject = async (product) => {
-    if (!product?.id) return;
-    const res = await dispatch(rejectProduct(product.id));
-    if (res?.success) toast.success(`${product.name} rejected`);
-    else toast.error("Failed to reject");
+  const handleToggleStatus = async (product) => {
+    const res = await dispatch(toggleProductStatus(product.id));
+    if (res?.success) toast.success("Status updated");
+    else toast.error(res?.message || "Failed to update status");
   };
 
-  const handleToggleFeatured = async (product) => {
-    if (!product?.id) return;
-    await dispatch(editProduct(product.id, { ...product, featured: !product.featured }));
-    toast.success(`${!product.featured ? "Featured" : "Unfeatured"} successfully`);
+  const safeProducts = Array.isArray(products) ? products : [];
+
+  const filteredProducts = (() => {
+    if (activeTab === "active") return safeProducts.filter((p) => !p.isArchived);
+    if (activeTab === "archived") return safeProducts.filter((p) => p.isArchived);
+    return safeProducts;
+  })();
+
+  const totalPages = pagination?.totalPages || 1;
+  const total = pagination?.total || filteredProducts.length;
+  const from = total === 0 ? 0 : (currentPage - 1) * PAGE_LIMIT + 1;
+  const to = Math.min(currentPage * PAGE_LIMIT, total);
+
+  const allCount = safeProducts.length;
+  const activeCount = safeProducts.filter((p) => !p.isArchived).length;
+  const archivedCount = safeProducts.filter((p) => p.isArchived).length;
+  const tabCounts = { all: allCount, active: activeCount, archived: archivedCount };
+
+  const totalFromStats = stats?.total ?? total;
+  const activeFromStats = stats?.active ?? activeCount;
+  const archivedFromStats = stats?.archived ?? archivedCount;
+  const pendingFromStats = stats?.pending ?? 0;
+
+  const commonProps = {
+    onView: (p) => router.push(`/products/${p.slug || p.id}`),
+    onDelete: (p) => setDeleteDialog({ open: true, item: p }),
+    onArchive: (p) => setArchiveDialog({ open: true, item: p, action: "archive" }),
+    onUnarchive: (p) => setArchiveDialog({ open: true, item: p, action: "unarchive" }),
+    onToggleStatus: handleToggleStatus,
   };
-
-  const handleView = (p) => { if (p?.id) router.push(`/products/${p.id}`); };
-  const handleEdit = (p) => { if (p?.id) router.push(`/products/${p.id}`); };
-  const handleDeleteOpen = (p) => { if (p?.id) setDeleteDialog({ open: true, product: p }); };
-
-  const stats = dummyProductStats || {};
 
   return (
     <div className="space-y-5">
       <Breadcrumb />
-
       <PageHeader
         title="Products"
         description="Manage all products across the marketplace"
-      >
-        <div className="flex items-center gap-2 flex-wrap justify-end">
-          <ExportButton onExport={(fmt) => toast.success(`Exporting as ${fmt}`)} />
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => router.push("/products/add")}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer shadow-lg shadow-[#0F69B0]/25 whitespace-nowrap"
-            style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
-          >
-            <Plus className="h-4 w-4" />
-            Add Product
-          </motion.button>
-        </div>
-      </PageHeader>
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatsCard
-          title="Total Products"
-          value={stats.totalProducts || 0}
-          icon={Package}
-          color="rgba(15,105,176,0.08)"
-          index={0}
-        />
-        <StatsCard
-          title="Approved"
-          value={stats.approvedProducts || 0}
-          icon={CheckCircle}
-          color="rgba(16,185,129,0.08)"
-          index={1}
-        />
-        <StatsCard
-          title="Pending Review"
-          value={stats.pendingProducts || 0}
-          icon={Clock}
-          color="rgba(245,158,11,0.08)"
-          index={2}
-        />
-        <StatsCard
-          title="Reported"
-          value={stats.reportedProducts || 0}
-          icon={AlertTriangle}
-          color="rgba(239,68,68,0.08)"
-          index={3}
-        />
+        <StatsCard title="Total" value={totalFromStats} icon={Package} color="rgba(15,105,176,0.08)" index={0} />
+        <StatsCard title="Active" value={activeFromStats} icon={CheckCircle} color="rgba(16,185,129,0.08)" index={1} />
+        <StatsCard title="Archived" value={archivedFromStats} icon={Clock} color="rgba(245,158,11,0.08)" index={2} />
+        <StatsCard title="Pending Approval" value={pendingFromStats} icon={AlertTriangle} color="rgba(239,68,68,0.08)" index={3} />
       </div>
 
       <div className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden">
-        <div className="border-b border-gray-100 dark:border-white/[0.06]">
-          <div className="flex items-center overflow-x-auto scrollbar-thin">
-            {mainTabs.map((tab) => {
-              const Icon = tab.icon;
-              const count = tabCounts[tab.id];
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id);
-                    setQuery("");
-                    resetFilters();
-                    goToPage(1);
-                  }}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-4 text-xs font-bold transition-all cursor-pointer whitespace-nowrap border-b-2",
-                    activeTab === tab.id
-                      ? "border-[#0F69B0] text-[#0F69B0] bg-[#0F69B0]/[0.04]"
-                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-gray-50 dark:hover:bg-white/[0.03]"
-                  )}
-                >
-                  <Icon className="h-3.5 w-3.5 shrink-0" />
-                  {tab.label}
-                  <span
-                    className={cn(
-                      "px-1.5 py-0.5 rounded-full text-[10px] font-black",
-                      activeTab === tab.id
-                        ? "bg-[#0F69B0] text-white"
-                        : "bg-gray-100 dark:bg-white/[0.08] text-muted-foreground"
-                    )}
-                  >
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-
-            <div className="ml-auto flex items-center gap-1 px-3 shrink-0 border-l border-gray-100 dark:border-white/[0.06]">
+        <div className="flex items-center gap-0 border-b border-gray-100 dark:border-white/[0.06] overflow-x-auto scrollbar-thin">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            return (
               <button
-                onClick={() => setViewMode("table")}
-                title="Table view"
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
                 className={cn(
-                  "h-9 w-9 flex items-center justify-center rounded-xl transition-colors cursor-pointer",
-                  viewMode === "table"
-                    ? "bg-[#0F69B0] text-white"
-                    : "text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04]"
+                  "flex items-center gap-2 px-5 py-4 text-xs font-bold transition-all cursor-pointer whitespace-nowrap border-b-2",
+                  activeTab === tab.id
+                    ? "border-[#0F69B0] text-[#0F69B0] bg-[#0F69B0]/[0.04]"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:bg-gray-50 dark:hover:bg-white/[0.03]"
                 )}
               >
-                <List className="h-4 w-4" />
+                <Icon className="h-3.5 w-3.5" />
+                {tab.label}
+                <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-black", activeTab === tab.id ? "bg-[#0F69B0] text-white" : "bg-gray-100 dark:bg-white/[0.08] text-muted-foreground")}>
+                  {tabCounts[tab.id]}
+                </span>
               </button>
-              <button
-                onClick={() => setViewMode("grid")}
-                title="Grid view"
-                className={cn(
-                  "h-9 w-9 flex items-center justify-center rounded-xl transition-colors cursor-pointer",
-                  viewMode === "grid"
-                    ? "bg-[#0F69B0] text-white"
-                    : "text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04]"
-                )}
-              >
-                <Grid3X3 className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
+            );
+          })}
         </div>
 
         <div className="p-4 border-b border-gray-50 dark:border-white/[0.04]">
-          <ProductFilter
-            query={query}
-            onQueryChange={(v) => { setQuery(v); goToPage(1); }}
-            filters={filters}
-            onFilterChange={(k, v) => { updateFilter(k, v); goToPage(1); }}
-            onResetFilters={() => { resetFilters(); setQuery(""); goToPage(1); }}
-            hasActiveFilters={hasActiveFilters}
-            showFilters={showFilters}
-            onToggleFilters={() => setShowFilters(!showFilters)}
-            sortBy={sortBy}
-            onSortChange={(v) => { setSortBy(v); goToPage(1); }}
-            resultCount={stockFiltered.length}
-          />
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex-1 min-w-[180px]">
+              <SearchInput value={searchQuery} onChange={handleSearchChange} placeholder="Search products, SKU, brand..." />
+            </div>
+            <FilterDropdown label="Stock" value={stockFilter} options={STOCK_OPTIONS} onChange={handleStockFilterChange} />
+            <FilterDropdown label="Sort" value={sortBy} options={SORT_OPTIONS} onChange={handleSortChange} />
+            {searchQuery && (
+              <button onClick={handleClearSearch} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40">
+                <X className="h-3.5 w-3.5" />Clear
+              </button>
+            )}
+            <button onClick={handleRefresh} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer border border-gray-200 dark:border-white/[0.08]" title="Refresh">
+              <RefreshCw className="h-3.5 w-3.5" />
+            </button>
+            <div className="flex items-center border border-gray-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
+              <button onClick={() => setViewMode("table")} className={cn("h-9 w-9 flex items-center justify-center transition-colors cursor-pointer", viewMode === "table" ? "bg-[#0F69B0] text-white" : "text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04]")}>
+                <List className="h-4 w-4" />
+              </button>
+              <button onClick={() => setViewMode("grid")} className={cn("h-9 w-9 flex items-center justify-center transition-colors cursor-pointer", viewMode === "grid" ? "bg-[#0F69B0] text-white" : "text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04]")}>
+                <Grid3X3 className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="text-[11px] text-muted-foreground font-medium">
+              {filteredProducts.length} result{filteredProducts.length !== 1 ? "s" : ""}
+            </p>
+          </div>
         </div>
 
         <div className="p-4">
           {isLoading ? (
             <LoadingSpinner size="lg" text="Loading products..." className="py-16" />
-          ) : stockFiltered.length === 0 ? (
+          ) : filteredProducts.length === 0 ? (
             <EmptyState
               icon={Package}
               title="No products found"
               description={
-                hasActiveFilters
-                  ? "Try adjusting your search or filters"
-                  : "Add your first product to get started"
+                searchQuery
+                  ? "Try adjusting your search"
+                  : activeTab === "archived"
+                  ? "No archived products"
+                  : activeTab === "active"
+                  ? "No active products"
+                  : "No products yet. Products are created by sellers."
               }
               action={
-                <div className="flex items-center gap-3 flex-wrap justify-center">
-                  {hasActiveFilters && (
-                    <button
-                      onClick={() => { resetFilters(); setQuery(""); goToPage(1); }}
-                      className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
-                    >
-                      Clear Filters
-                    </button>
-                  )}
+                searchQuery ? (
                   <button
-                    onClick={() => router.push("/products/add")}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer"
-                    style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
+                    onClick={handleClearSearch}
+                    className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
                   >
-                    <Plus className="h-4 w-4" />
-                    Add Product
+                    Clear Search
                   </button>
-                </div>
+                ) : null
               }
             />
           ) : viewMode === "grid" ? (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {paginatedData.map((product, i) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    index={i}
-                    onView={handleView}
-                    onEdit={handleEdit}
-                    onDelete={handleDeleteOpen}
-                    onApprove={handleApprove}
-                    onReject={handleReject}
-                  />
+                {filteredProducts.map((product, i) => (
+                  <ProductCard key={product.id} product={product} index={i} {...commonProps} />
                 ))}
               </div>
               <div className="mt-5 border-t border-gray-50 dark:border-white/[0.04] pt-4">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={goToPage}
-                  from={from}
-                  to={to}
-                  total={total}
-                />
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} from={from} to={to} total={total} />
               </div>
             </>
           ) : (
             <>
-              <ProductTable
-                products={paginatedData}
-                onView={handleView}
-                onEdit={handleEdit}
-                onDelete={handleDeleteOpen}
-                onApprove={handleApprove}
-                onReject={handleReject}
-                onToggleFeatured={handleToggleFeatured}
-              />
+              <ProductTable products={filteredProducts} {...commonProps} />
               <div className="mt-5 border-t border-gray-50 dark:border-white/[0.04] pt-4">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={goToPage}
-                  from={from}
-                  to={to}
-                  total={total}
-                />
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} from={from} to={to} total={total} />
               </div>
             </>
           )}
@@ -375,17 +351,24 @@ export default function ProductsPage() {
 
       <ConfirmDialog
         open={deleteDialog.open}
-        onClose={() => setDeleteDialog({ open: false, product: null })}
-        onConfirm={handleDelete}
+        onClose={() => setDeleteDialog({ open: false, item: null })}
+        onConfirm={handleDeleteConfirm}
         title="Delete Product"
-        description={
-          deleteDialog.product
-            ? `Are you sure you want to delete "${deleteDialog.product.name}"? This cannot be undone.`
-            : "Are you sure?"
-        }
-        confirmLabel="Delete Product"
+        description={deleteDialog.item ? `Are you sure you want to delete "${deleteDialog.item.name}"? This cannot be undone.` : "Are you sure?"}
+        confirmLabel="Delete"
         isLoading={isDeleting}
         variant="danger"
+      />
+
+      <ConfirmDialog
+        open={archiveDialog.open}
+        onClose={() => setArchiveDialog({ open: false, item: null, action: null })}
+        onConfirm={handleArchiveConfirm}
+        title={archiveDialog.action === "archive" ? "Archive Product" : "Unarchive Product"}
+        description={archiveDialog.item ? `Are you sure you want to ${archiveDialog.action} "${archiveDialog.item.name}"?` : "Are you sure?"}
+        confirmLabel={archiveDialog.action === "archive" ? "Archive" : "Unarchive"}
+        isLoading={isActioning}
+        variant={archiveDialog.action === "archive" ? "warning" : "primary"}
       />
     </div>
   );

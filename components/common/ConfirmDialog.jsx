@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, X } from "lucide-react";
+import { AlertTriangle, X, Loader2 } from "lucide-react";
 
 export default function ConfirmDialog({
   open,
@@ -30,20 +30,25 @@ export default function ConfirmDialog({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
-            onClick={onClose}
+            onClick={!isLoading ? onClose : undefined}
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-sm"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-sm px-4"
           >
             <div className="bg-white dark:bg-[#0f1420] rounded-2xl shadow-2xl border border-gray-100 dark:border-white/[0.08] p-6">
               <div className="flex items-start justify-between mb-4">
                 <div
                   className="h-11 w-11 rounded-xl flex items-center justify-center"
-                  style={{ background: variant === "danger" ? "rgba(239,68,68,0.1)" : "rgba(15,105,176,0.1)" }}
+                  style={{
+                    background:
+                      variant === "danger"
+                        ? "rgba(239,68,68,0.1)"
+                        : "rgba(15,105,176,0.1)",
+                  }}
                 >
                   <AlertTriangle
                     className="h-5 w-5"
@@ -51,27 +56,39 @@ export default function ConfirmDialog({
                   />
                 </div>
                 <button
-                  onClick={onClose}
-                  className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
+                  onClick={!isLoading ? onClose : undefined}
+                  disabled={isLoading}
+                  className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <X className="h-4 w-4 text-muted-foreground" />
                 </button>
               </div>
+
               <h3 className="text-base font-black text-foreground mb-2">{title}</h3>
               <p className="text-sm text-muted-foreground font-medium mb-6">{description}</p>
+
               <div className="flex items-center gap-3">
                 <button
-                  onClick={onClose}
-                  className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
+                  onClick={!isLoading ? onClose : undefined}
+                  disabled={isLoading}
+                  className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {cancelLabel}
                 </button>
+
                 <button
                   onClick={onConfirm}
                   disabled={isLoading}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-all cursor-pointer shadow-lg ${color.bg} ${color.hover} ${color.shadow} disabled:opacity-60 disabled:cursor-not-allowed`}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-all cursor-pointer shadow-lg ${color.bg} ${color.hover} ${color.shadow} disabled:opacity-80 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
                 >
-                  {isLoading ? "Processing..." : confirmLabel}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                      <span>{confirmLabel}</span>
+                    </>
+                  ) : (
+                    <span>{confirmLabel}</span>
+                  )}
                 </button>
               </div>
             </div>

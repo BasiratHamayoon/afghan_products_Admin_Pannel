@@ -1,43 +1,43 @@
 import { configureStore } from "@reduxjs/toolkit";
 import authSlice from "./slices/authSlice";
 import usersSlice from "./slices/usersSlice";
-import sellersSlice from "./slices/sellersSlice";
 import verificationsSlice from "./slices/verificationsSlice";
 import productsSlice from "./slices/productsSlice";
 import categoriesSlice from "./slices/categoriesSlice";
+import subCategoriesSlice from "./slices/subCategoriesSlice";
+import productTypesSlice from "./slices/productTypesSlice";
+import sectionsSlice from "./slices/sectionsSlice";
+import reviewsSlice from "./slices/reviewsSlice";
+import businessesSlice from "./slices/businessesSlice";
+import contactUsReducer from "@/store/slices/contactUsSlice";
 import tradeLeadsSlice from "./slices/tradeLeadsSlice";
-import paymentsSlice from "./slices/paymentsSlice";
-import walletsSlice from "./slices/walletsSlice";
-import investmentsSlice from "./slices/investmentsSlice";
-import consultingSlice from "./slices/consultingSlice";
-import contentSlice from "./slices/contentSlice";
-import adsSlice from "./slices/adsSlice";
-import disputesSlice from "./slices/disputesSlice";
 import settingsSlice from "./slices/settingsSlice";
-import notificationsSlice from "./slices/notificationsSlice";
 import sidebarSlice from "./slices/sidebarSlice";
 import uiSlice from "./slices/uiSlice";
+import dashboardReducer from "@/store/slices/dashboardSlice";
+import selectReducer from "@/store/slices/selectSlice";
+import ordersReducer from "@/store/slices/ordersSlice";
 
 export const store = configureStore({
   reducer: {
     auth: authSlice,
     users: usersSlice,
-    sellers: sellersSlice,
     verifications: verificationsSlice,
     products: productsSlice,
     categories: categoriesSlice,
+    select: selectReducer,
+    subCategories: subCategoriesSlice,
+    productTypes: productTypesSlice,
+    sections: sectionsSlice,
+    contactUs: contactUsReducer,
+    dashboard: dashboardReducer,
+    reviews: reviewsSlice,
+    businesses: businessesSlice,
     tradeLeads: tradeLeadsSlice,
-    payments: paymentsSlice,
-    wallets: walletsSlice,
-    investments: investmentsSlice,
-    consulting: consultingSlice,
-    content: contentSlice,
-    ads: adsSlice,
-    disputes: disputesSlice,
     settings: settingsSlice,
-    notifications: notificationsSlice,
     sidebar: sidebarSlice,
     ui: uiSlice,
+    orders: ordersReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({ serializableCheck: false }),

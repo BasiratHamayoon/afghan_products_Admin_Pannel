@@ -1,67 +1,50 @@
 "use client";
 
 import { motion } from "framer-motion";
-import {
-  Edit2, Trash2, Eye, CheckCircle, AlertTriangle,
-  Shield, ShoppingBag, Package, Star, MapPin,
-  ToggleLeft, ToggleRight, Ban,
-} from "lucide-react";
-import { formatCurrency, getInitials } from "@/lib/formatters";
-import { formatDate } from "@/lib/helpers";
+import { Eye, Trash2, ShoppingBag, Package, Shield, ToggleLeft, ToggleRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const roleConfig = {
-  seller: { label: "Seller", bg: "rgba(15,105,176,0.1)", text: "#0F69B0", icon: ShoppingBag },
-  buyer: { label: "Buyer", bg: "rgba(124,58,237,0.1)", text: "#7c3aed", icon: Package },
-  admin: { label: "Admin", bg: "rgba(16,185,129,0.1)", text: "#10b981", icon: Shield },
+  SELLER: { label: "Seller", bg: "rgba(15,105,176,0.1)", text: "#0F69B0", gradient: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)", icon: ShoppingBag },
+  BUYER: { label: "Buyer", bg: "rgba(15,105,176,0.06)", text: "#1a82d4", gradient: "linear-gradient(135deg, #1a82d4 0%, #0F69B0 100%)", icon: Package },
+  ADMIN: { label: "Admin", bg: "rgba(10,79,133,0.1)", text: "#0A4F85", gradient: "linear-gradient(135deg, #0A4F85 0%, #0F69B0 100%)", icon: Shield },
 };
 
 const statusConfig = {
-  active: { bg: "rgba(16,185,129,0.1)", text: "#10b981" },
-  suspended: { bg: "rgba(245,158,11,0.1)", text: "#f59e0b" },
-  pending: { bg: "rgba(99,102,241,0.1)", text: "#6366f1" },
-  banned: { bg: "rgba(239,68,68,0.1)", text: "#ef4444" },
+  ACTIVE: { label: "Active", bg: "rgba(16,185,129,0.1)", text: "#10b981", dot: "bg-emerald-500" },
+  BLOCKED: { label: "Blocked", bg: "rgba(245,158,11,0.1)", text: "#f59e0b", dot: "bg-amber-500" },
+  INACTIVE: { label: "Inactive", bg: "rgba(107,114,128,0.1)", text: "#6b7280", dot: "bg-gray-400" },
 };
 
-const levelColors = {
-  bronze: { bg: "rgba(180,83,9,0.1)", text: "#b45309" },
-  silver: { bg: "rgba(107,114,128,0.1)", text: "#6b7280" },
-  gold: { bg: "rgba(245,158,11,0.1)", text: "#d97706" },
-  platinum: { bg: "rgba(99,102,241,0.1)", text: "#6366f1" },
-  admin: { bg: "rgba(16,185,129,0.1)", text: "#10b981" },
-};
+function getInitials(name) {
+  if (!name) return "?";
+  return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+}
 
-export default function UserTable({
-  users = [],
-  onView,
-  onEdit,
-  onDelete,
-  onSuspend,
-  onVerify,
-  onBan,
-}) {
+export default function UserTable({ users = [], onView, onDelete, onSuspend }) {
+  const safeUsers = Array.isArray(users) ? users.filter(Boolean) : [];
+  if (safeUsers.length === 0) return null;
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
           <tr style={{ borderBottom: "2px solid rgba(15,105,176,0.06)" }}>
-            {["User", "Role", "Status", "Location", "Stats", "Level", "Joined", "Actions"].map((h) => (
-              <th
-                key={h}
-                className="text-left py-3.5 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 whitespace-nowrap"
-              >
+            {["User", "Role", "Status", "Business", "Actions"].map((h) => (
+              <th key={h} className="text-left py-3.5 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 whitespace-nowrap">
                 {h}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {users.map((user, i) => {
+          {safeUsers.map((user, i) => {
             if (!user?.id) return null;
-            const role = roleConfig[user.role] || roleConfig.buyer;
+            const role = roleConfig[user.role] || roleConfig.BUYER;
             const RoleIcon = role.icon;
-            const status = statusConfig[user.status] || statusConfig.active;
-            const level = levelColors[user.level] || levelColors.bronze;
+            const userStatus = (user.status || "ACTIVE").toUpperCase();
+            const status = statusConfig[userStatus] || statusConfig.ACTIVE;
+            const isBlocked = userStatus === "BLOCKED";
 
             return (
               <motion.tr
@@ -69,193 +52,60 @@ export default function UserTable({
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.035 }}
-                className="border-b border-gray-50 dark:border-white/[0.03] last:border-0 hover:bg-gray-50/50 dark:hover:bg-white/[0.015] transition-colors group"
+                className="border-b border-gray-50 dark:border-white/[0.03] last:border-0 hover:bg-gray-50/50 dark:hover:bg-white/[0.015] transition-colors"
               >
                 <td className="py-4 px-4">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="relative shrink-0">
-                      {user.avatar ? (
-                        <img
-                          src={user.avatar}
-                          alt={user.name}
-                          className="h-10 w-10 rounded-xl object-cover border border-gray-100 dark:border-white/[0.08]"
-                        />
-                      ) : (
-                        <div
-                          className="h-10 w-10 rounded-xl flex items-center justify-center text-xs font-black text-white"
-                          style={{ background: `linear-gradient(135deg, ${role.text} 0%, ${role.text}cc 100%)` }}
-                        >
-                          {getInitials(user.name)}
-                        </div>
-                      )}
-                      {user.verified && (
-                        <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-[#0F69B0] flex items-center justify-center">
-                          <CheckCircle className="h-2.5 w-2.5 text-white fill-white" />
-                        </div>
-                      )}
+                    <div
+                      className="h-10 w-10 rounded-full flex items-center justify-center text-xs font-black text-white shrink-0 shadow-[0_2px_8px_rgba(15,105,176,0.2)]"
+                      style={{ background: role.gradient }}
+                    >
+                      {getInitials(user.name)}
                     </div>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-xs font-bold text-foreground truncate max-w-[150px]">{user.name}</p>
-                        {user.banned && <Ban className="h-3 w-3 text-red-500 shrink-0" />}
-                      </div>
-                      <p className="text-[10px] text-muted-foreground font-medium mt-0.5 truncate max-w-[150px]">{user.email}</p>
-                      {user.phone && <p className="text-[10px] text-muted-foreground font-medium mt-0.5">{user.phone}</p>}
-                      {user.reportCount > 0 && (
-                        <p className="text-[10px] text-red-500 font-bold mt-0.5 flex items-center gap-1">
-                          <AlertTriangle className="h-2.5 w-2.5" />
-                          {user.reportCount} reports
-                        </p>
-                      )}
+                      <p className="text-xs font-bold text-foreground truncate max-w-[180px]">{user.name}</p>
+                      <p className="text-[10px] text-muted-foreground font-medium mt-0.5 truncate max-w-[180px]">{user.email}</p>
                     </div>
                   </div>
                 </td>
 
                 <td className="py-4 px-4">
-                  <span
-                    className="text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 w-fit whitespace-nowrap"
-                    style={{ background: role.bg, color: role.text }}
-                  >
+                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1 whitespace-nowrap" style={{ background: role.bg, color: role.text }}>
                     <RoleIcon className="h-2.5 w-2.5" />
                     {role.label}
                   </span>
-                  {user.business?.name && (
-                    <p className="text-[10px] text-muted-foreground font-medium mt-1 truncate max-w-[120px]">
-                      {user.business.name}
-                    </p>
-                  )}
                 </td>
 
                 <td className="py-4 px-4">
-                  <span
-                    className="text-[10px] font-bold px-2.5 py-1 rounded-full capitalize whitespace-nowrap"
-                    style={{ background: status.bg, color: status.text }}
-                  >
-                    {user.status}
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg whitespace-nowrap" style={{ background: status.bg, color: status.text }}>
+                    <span className={cn("h-1.5 w-1.5 rounded-full", status.dot)} />
+                    {status.label}
                   </span>
-                  {!user.verified && (
-                    <p className="text-[10px] text-orange-500 font-semibold mt-0.5">Unverified</p>
-                  )}
                 </td>
 
                 <td className="py-4 px-4">
-                  {user.address?.city ? (
-                    <div className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3 text-muted-foreground/50 shrink-0" />
-                      <div>
-                        <p className="text-xs font-semibold text-foreground whitespace-nowrap">{user.address.city}</p>
-                        <p className="text-[10px] text-muted-foreground whitespace-nowrap">{user.address.province}</p>
-                      </div>
-                    </div>
+                  {user.hasBusiness ? (
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-[#0F69B0]/10 text-[#0F69B0]">
+                      <ShoppingBag className="h-3 w-3" />Yes
+                    </span>
                   ) : (
                     <span className="text-xs text-muted-foreground">—</span>
                   )}
                 </td>
 
                 <td className="py-4 px-4">
-                  {user.role === "seller" ? (
-                    <div className="space-y-0.5">
-                      <p className="text-xs font-semibold text-foreground whitespace-nowrap">
-                        {user.stats?.totalProducts || 0} products
-                      </p>
-                      <p className="text-[10px] text-muted-foreground whitespace-nowrap">
-                        {user.stats?.totalOrders || 0} orders
-                      </p>
-                      <div className="flex items-center gap-1">
-                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                        <span className="text-xs font-bold text-foreground">{user.stats?.rating || 0}</span>
-                      </div>
-                    </div>
-                  ) : user.role === "buyer" ? (
-                    <div className="space-y-0.5">
-                      <p className="text-xs font-semground text-foreground whitespace-nowrap">
-                        {user.stats?.totalOrders || 0} orders
-                      </p>
-                      <p className="text-[10px] text-muted-foreground whitespace-nowrap">
-                        {user.stats?.completionRate || 0}% complete
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">—</p>
-                  )}
-                </td>
-
-                <td className="py-4 px-4">
-                  <span
-                    className="text-[10px] font-bold px-2 py-0.5 rounded-full capitalize whitespace-nowrap"
-                    style={{ background: level.bg, color: level.text }}
-                  >
-                    ★ {user.level}
-                  </span>
-                </td>
-
-                <td className="py-4 px-4">
-                  <p className="text-xs text-muted-foreground font-medium whitespace-nowrap">
-                    {formatDate(user.joinedAt)}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground/60 font-medium whitespace-nowrap mt-0.5">
-                    Last: {formatDate(user.lastActive)}
-                  </p>
-                </td>
-
-                <td className="py-4 px-4">
-                  <div className="flex items-center gap-1 transition-opacity">
-                    <button
-                      onClick={() => onView?.(user)}
-                      className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer"
-                      title="View"
-                    >
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => onView?.(user)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer" title="View">
                       <Eye className="h-3.5 w-3.5" />
                     </button>
                     <button
-                      onClick={() => onEdit?.(user)}
-                      className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer"
-                      title="Edit"
-                    >
-                      <Edit2 className="h-3.5 w-3.5" />
-                    </button>
-                    {!user.verified && (
-                      <button
-                        onClick={() => onVerify?.(user)}
-                        className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-green-50 dark:hover:bg-green-900/20 text-muted-foreground hover:text-green-600 transition-all cursor-pointer"
-                        title="Verify"
-                      >
-                        <CheckCircle className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                    <button
                       onClick={() => onSuspend?.(user)}
-                      className={cn(
-                        "h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer",
-                        user.status === "suspended"
-                          ? "hover:bg-green-50 dark:hover:bg-green-900/20 text-muted-foreground hover:text-green-600"
-                          : "hover:bg-orange-50 dark:hover:bg-orange-900/20 text-muted-foreground hover:text-orange-500"
-                      )}
-                      title={user.status === "suspended" ? "Activate" : "Suspend"}
+                      className={cn("h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer", isBlocked ? "hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600" : "hover:bg-amber-50 dark:hover:bg-amber-900/20 text-muted-foreground hover:text-amber-600")}
+                      title={isBlocked ? "Activate" : "Block"}
                     >
-                      {user.status === "suspended" ? (
-                        <ToggleRight className="h-3.5 w-3.5" />
-                      ) : (
-                        <ToggleLeft className="h-3.5 w-3.5" />
-                      )}
+                      {isBlocked ? <ToggleRight className="h-3.5 w-3.5" /> : <ToggleLeft className="h-3.5 w-3.5" />}
                     </button>
-                    <button
-                      onClick={() => onBan?.(user)}
-                      className={cn(
-                        "h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer",
-                        user.banned
-                          ? "hover:bg-green-50 dark:hover:bg-green-900/20 text-red-500 hover:text-green-600"
-                          : "hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500"
-                      )}
-                      title={user.banned ? "Unban" : "Ban"}
-                    >
-                      <Ban className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={() => onDelete?.(user)}
-                      className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500 transition-all cursor-pointer"
-                      title="Delete"
-                    >
+                    <button onClick={() => onDelete?.(user)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500 transition-all cursor-pointer" title="Delete">
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
