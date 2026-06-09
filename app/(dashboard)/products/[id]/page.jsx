@@ -148,7 +148,7 @@ export default function ProductDetailPage() {
 
   const handleToggleStatus = async () => {
     if (!product?.id) return;
-    const res = await dispatch(toggleProductStatus(product.id));
+    const res = await dispatch(toggleProductStatus(product.id, product.status));
     if (res?.success) {
       toast.success("Status updated");
     } else {

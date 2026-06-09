@@ -5,6 +5,7 @@ const initialState = {
   isMobileOpen: false,
   activeMenu: "dashboard",
   openSubmenus: [],
+  fetchedPages: [],
 };
 
 const sidebarSlice = createSlice({
@@ -37,6 +38,14 @@ const sidebarSlice = createSlice({
     closeAllSubmenus: (state) => {
       state.openSubmenus = [];
     },
+    markPageFetched: (state, action) => {
+      if (!state.fetchedPages.includes(action.payload)) {
+        state.fetchedPages.push(action.payload);
+      }
+    },
+    clearFetchedPages: (state) => {
+      state.fetchedPages = [];
+    },
   },
 });
 
@@ -48,5 +57,7 @@ export const {
   setActiveMenu,
   toggleSubmenu,
   closeAllSubmenus,
+  markPageFetched,
+  clearFetchedPages,
 } = sidebarSlice.actions;
 export default sidebarSlice.reducer;

@@ -21,23 +21,25 @@ const normalizeProduct = (item) => {
     id: item._id || item.id,
     name: item.name || "",
     slug: item.slug || "",
-    categoryId: item.categoryId?._id || item.categoryId?.id || item.categoryId,
-    subCategoryId: item.subCategoryId?._id || item.subCategoryId?.id || item.subCategoryId,
-    productTypeId: item.productTypeId?._id || item.productTypeId?.id || item.productTypeId,
-    categoryName: item.categoryId?.name || item.categoryName || "",
-    subCategoryName: item.subCategoryId?.name || item.subCategoryName || "",
-    productTypeName: item.productTypeId?.name || item.productTypeName || "",
+    categoryId: item.categoryId?._id || item.categoryId?.id || item.category?._id || item.category?.id || item.categoryId || item.category,
+    subCategoryId: item.subCategoryId?._id || item.subCategoryId?.id || item.subCategory?._id || item.subCategory?.id || item.subCategoryId || item.subCategory,
+    productTypeId: item.productTypeId?._id || item.productTypeId?.id || item.productType?._id || item.productType?.id || item.productTypeId || item.productType,
+    categoryName: item.categoryId?.name || item.category?.name || item.categoryName || "",
+    subCategoryName: item.subCategoryId?.name || item.subCategory?.name || item.subCategoryName || "",
+    productTypeName: item.productTypeId?.name || item.productType?.name || item.productTypeName || "",
     sellerName: item.sellerId
       ? `${item.sellerId.firstName || ""} ${item.sellerId.lastName || ""}`.trim()
       : item.sellerName || "",
     sellerEmail: item.sellerId?.email || item.sellerEmail || "",
     isActive: item.isActive ?? true,
     isArchived: item.isArchived ?? false,
+    status: item.status || "PENDING",
     stock: item.stock ?? 0,
     sellingPrice: item.sellingPrice ?? 0,
     images: item.images || [],
   };
 };
+
 
 let _listFetchInProgress = false;
 let _statsFetchInProgress = false;
@@ -207,20 +209,32 @@ export const editProduct = (id, data) => async (dispatch) => {
   }
 };
 
-export const toggleProductStatus = (id) => async (dispatch) => {
+export const toggleProductStatus = (id, currentStatus) => async (dispatch) => {
+  const nextStatus = currentStatus === "APPROVED" ? "PENDING" : "APPROVED";
+
+  dispatch(toggleProductStatusInList({ id, status: nextStatus }));
+
   try {
-    const res = await axiosInstance.patch(`/products/${id}/toggle_status`);
-    const raw = res.data?.data || res.data?.product || res.data;
+    const res = await axiosInstance.patch(
+      `/products/${id}/toggle_status`,
+      { status: nextStatus },
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+    const raw = res.data?.product || res.data?.data?.product || res.data?.data || res.data;
+
     if (raw && (raw._id || raw.id)) {
       const normalized = normalizeProduct(raw);
-      dispatch(updateProductInList(normalized));
-      dispatch(setSelectedProduct(normalized));
-      if (normalized?.slug) clearProductSlugCache(normalized.slug);
-    } else {
-      dispatch(toggleProductStatusInList(id));
+      const finalStatus = normalized.status === currentStatus ? nextStatus : normalized.status;
+      const corrected = { ...normalized, status: finalStatus };
+      dispatch(updateProductInList(corrected));
+      dispatch(setSelectedProduct(corrected));
+      if (corrected?.slug) clearProductSlugCache(corrected.slug);
     }
+
     return { success: true };
   } catch (err) {
+    dispatch(toggleProductStatusInList({ id, status: currentStatus }));
     return { success: false, message: err.response?.data?.message || err.message || "Failed to toggle" };
   }
 };

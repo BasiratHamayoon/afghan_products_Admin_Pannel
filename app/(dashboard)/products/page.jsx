@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { motion } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import {
@@ -71,8 +70,10 @@ export default function ProductsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, item: null });
   const [archiveDialog, setArchiveDialog] = useState({ open: false, item: null, action: null });
+  const [statusDialog, setStatusDialog] = useState({ open: false, item: null });
   const [isDeleting, setIsDeleting] = useState(false);
   const [isActioning, setIsActioning] = useState(false);
+  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
 
   const searchDebounceRef = useRef(null);
   const hasFetchedRef = useRef(false);
@@ -194,10 +195,23 @@ export default function ProductsPage() {
     }
   };
 
-  const handleToggleStatus = async (product) => {
-    const res = await dispatch(toggleProductStatus(product.id));
-    if (res?.success) toast.success("Status updated");
-    else toast.error(res?.message || "Failed to update status");
+  const handleStatusConfirm = async () => {
+    const { item } = statusDialog;
+    if (!item?.id) { setStatusDialog({ open: false, item: null }); return; }
+    setIsTogglingStatus(true);
+    try {
+      const res = await dispatch(toggleProductStatus(item.id, item.status));
+      if (res?.success) {
+        toast.success("Status updated");
+      } else {
+        toast.error(res?.message || "Failed to update status");
+      }
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setIsTogglingStatus(false);
+      setStatusDialog({ open: false, item: null });
+    }
   };
 
   const safeProducts = Array.isArray(products) ? products : [];
@@ -228,7 +242,7 @@ export default function ProductsPage() {
     onDelete: (p) => setDeleteDialog({ open: true, item: p }),
     onArchive: (p) => setArchiveDialog({ open: true, item: p, action: "archive" }),
     onUnarchive: (p) => setArchiveDialog({ open: true, item: p, action: "unarchive" }),
-    onToggleStatus: handleToggleStatus,
+    onToggleStatus: (p) => setStatusDialog({ open: true, item: p }),
   };
 
   return (
@@ -369,6 +383,23 @@ export default function ProductsPage() {
         confirmLabel={archiveDialog.action === "archive" ? "Archive" : "Unarchive"}
         isLoading={isActioning}
         variant={archiveDialog.action === "archive" ? "warning" : "primary"}
+      />
+
+      <ConfirmDialog
+      open={statusDialog.open}
+      onClose={() => setStatusDialog({ open: false, item: null })}
+      onConfirm={handleStatusConfirm}
+      title="Change Approval Status"
+      description={
+        statusDialog.item
+          ? `Are you sure you want to ${statusDialog.item.status === "APPROVED" ? "set to Pending" : "Approve"} "${statusDialog.item.name}"?`
+          : "Are you sure?"
+      }
+      confirmLabel={
+        statusDialog.item?.status === "APPROVED" ? "Set Pending" : "Approve"
+      }
+      isLoading={isTogglingStatus}
+      variant={statusDialog.item?.status === "APPROVED" ? "warning" : "primary"}
       />
     </div>
   );

@@ -68,14 +68,15 @@ const productsSlice = createSlice({
       }
     },
     toggleProductStatusInList: (state, action) => {
-      const index = state.products.findIndex((p) => p.id === action.payload);
+      const { id, status } = action.payload;
+      const index = state.products.findIndex((p) => p.id === id);
       if (index !== -1) {
-        state.products[index].isActive = !state.products[index].isActive;
+        state.products[index].status = status;
       }
-      if (state.selectedProduct?.id === action.payload) {
+      if (state.selectedProduct?.id === id) {
         state.selectedProduct = {
           ...state.selectedProduct,
-          isActive: !state.selectedProduct.isActive,
+          status,
         };
       }
     },

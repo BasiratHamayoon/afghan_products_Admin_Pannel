@@ -10,7 +10,7 @@ import { sidebarMenuItems } from "@/config/sidebarConfig";
 import { toggleSubmenu } from "@/store/slices/sidebarSlice";
 import { logoutUser } from "@/store/actions/authActions";
 import { ChevronDown, LogOut } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -25,8 +25,12 @@ export default function Sidebar() {
   const { isCollapsed, openSubmenus } = useSelector((state) => state.sidebar);
   const [logoutDialog, setLogoutDialog] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const submenuInitRef = useRef(false);
 
   useEffect(() => {
+    if (submenuInitRef.current) return;
+    submenuInitRef.current = true;
+
     sidebarMenuItems.forEach((item) => {
       if (item.submenu) {
         const isAnySubActive = item.submenu.some(
@@ -57,14 +61,14 @@ export default function Sidebar() {
     }
   }, [dispatch, router, isLoggingOut]);
 
-  const isItemActive = (item) => {
+  const isItemActive = useCallback((item) => {
     if (item.submenu) {
       return item.submenu.some(
         (sub) => pathname === sub.href || pathname.startsWith(sub.href + "/")
       );
     }
     return pathname === item.href || pathname.startsWith(item.href + "/");
-  };
+  }, [pathname]);
 
   return (
     <>
@@ -79,7 +83,8 @@ export default function Sidebar() {
           boxShadow: "2px 0 24px rgba(15,105,176,0.06)",
         }}
       >
-        <div className="hidden dark:block absolute inset-0 pointer-events-none z-0"
+        <div
+          className="hidden dark:block absolute inset-0 pointer-events-none z-0"
           style={{ background: "linear-gradient(180deg, #0a0d18 0%, #080b14 100%)" }}
         />
 
