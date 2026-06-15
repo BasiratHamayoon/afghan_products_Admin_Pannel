@@ -1,11 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Eye, Mail } from "lucide-react";
+import {
+  Eye, Mail, Reply, Archive, ArchiveRestore,
+} from "lucide-react";
 import { formatDate } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 
-const statusConfig = {
+export const statusConfig = {
   UNREAD: { label: "Unread", bg: "bg-blue-500/10", text: "text-blue-600", dot: "bg-blue-500" },
   READ: { label: "Read", bg: "bg-gray-500/10", text: "text-gray-500", dot: "bg-gray-400" },
   REPLIED: { label: "Replied", bg: "bg-emerald-500/10", text: "text-emerald-600", dot: "bg-emerald-500" },
@@ -16,7 +18,13 @@ function getInitials(name) {
   return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 }
 
-export default function ContactMessagesTable({ messages = [], onView }) {
+export default function ContactMessagesTable({
+  messages = [],
+  onView,
+  onReply,
+  onArchive,
+  onUnarchive,
+}) {
   const safeMessages = Array.isArray(messages) ? messages.filter(Boolean) : [];
   if (safeMessages.length === 0) return null;
 
@@ -26,10 +34,7 @@ export default function ContactMessagesTable({ messages = [], onView }) {
         <thead>
           <tr style={{ borderBottom: "2px solid rgba(15,105,176,0.06)" }}>
             {["Sender", "Subject", "Message", "Status", "Date", "Actions"].map((h) => (
-              <th
-                key={h}
-                className="text-left py-3.5 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 whitespace-nowrap"
-              >
+              <th key={h} className="text-left py-3.5 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 whitespace-nowrap">
                 {h}
               </th>
             ))}
@@ -88,10 +93,17 @@ export default function ContactMessagesTable({ messages = [], onView }) {
                 </td>
 
                 <td className="py-4 px-4">
-                  <span className={cn("inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg whitespace-nowrap", status.bg, status.text)}>
-                    <span className={cn("h-1.5 w-1.5 rounded-full", status.dot)} />
-                    {status.label}
-                  </span>
+                  <div className="flex flex-col gap-1">
+                    <span className={cn("inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg whitespace-nowrap w-fit", status.bg, status.text)}>
+                      <span className={cn("h-1.5 w-1.5 rounded-full", status.dot)} />
+                      {status.label}
+                    </span>
+                    {msg.isArchived && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 w-fit">
+                        Archived
+                      </span>
+                    )}
+                  </div>
                 </td>
 
                 <td className="py-4 px-4">
@@ -101,13 +113,39 @@ export default function ContactMessagesTable({ messages = [], onView }) {
                 </td>
 
                 <td className="py-4 px-4">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onView?.(msg); }}
-                    className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer"
-                    title="View Message"
-                  >
-                    <Eye className="h-3.5 w-3.5" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onView?.(msg); }}
+                      className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer"
+                      title="View"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onReply?.(msg); }}
+                      className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-muted-foreground hover:text-emerald-600 transition-all cursor-pointer"
+                      title="Reply"
+                    >
+                      <Reply className="h-3.5 w-3.5" />
+                    </button>
+                    {msg.isArchived ? (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onUnarchive?.(msg); }}
+                        className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-blue-50 dark:hover:bg-blue-900/20 text-muted-foreground hover:text-blue-600 transition-all cursor-pointer"
+                        title="Unarchive"
+                      >
+                        <ArchiveRestore className="h-3.5 w-3.5" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onArchive?.(msg); }}
+                        className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-amber-50 dark:hover:bg-amber-900/20 text-muted-foreground hover:text-amber-600 transition-all cursor-pointer"
+                        title="Archive"
+                      >
+                        <Archive className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </td>
               </motion.tr>
             );

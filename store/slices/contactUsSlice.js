@@ -31,6 +31,50 @@ const contactUsSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    updateMessageInList: (state, action) => {
+      const updated = action.payload;
+      if (!updated?.id) return;
+      const idx = state.messages.findIndex((m) => m.id === updated.id);
+      if (idx !== -1) {
+        state.messages[idx] = { ...state.messages[idx], ...updated };
+      }
+    },
+    markMessageViewed: (state, action) => {
+      const id = action.payload;
+      const idx = state.messages.findIndex((m) => m.id === id);
+      if (idx !== -1) {
+        state.messages[idx] = {
+          ...state.messages[idx],
+          status: state.messages[idx].status === "UNREAD" ? "READ" : state.messages[idx].status,
+          isViewed: true,
+        };
+      }
+    },
+    markMessageReplied: (state, action) => {
+      const id = action.payload;
+      const idx = state.messages.findIndex((m) => m.id === id);
+      if (idx !== -1) {
+        state.messages[idx] = { ...state.messages[idx], status: "REPLIED" };
+      }
+    },
+    archiveMessageInList: (state, action) => {
+      const id = action.payload;
+      const idx = state.messages.findIndex((m) => m.id === id);
+      if (idx !== -1) {
+        state.messages[idx] = { ...state.messages[idx], isArchived: true };
+      }
+    },
+    unarchiveMessageInList: (state, action) => {
+      const id = action.payload;
+      const idx = state.messages.findIndex((m) => m.id === id);
+      if (idx !== -1) {
+        state.messages[idx] = { ...state.messages[idx], isArchived: false };
+      }
+    },
+    removeMessageFromList: (state, action) => {
+      state.messages = state.messages.filter((m) => m.id !== action.payload);
+      state.pagination.total = Math.max(0, state.pagination.total - 1);
+    },
   },
 });
 
@@ -40,6 +84,12 @@ export const {
   setPaginationMeta,
   setError,
   clearError,
+  updateMessageInList,
+  markMessageViewed,
+  markMessageReplied,
+  archiveMessageInList,
+  unarchiveMessageInList,
+  removeMessageFromList,
 } = contactUsSlice.actions;
 
 export default contactUsSlice.reducer;

@@ -17,6 +17,9 @@ import uiSlice from "./slices/uiSlice";
 import dashboardReducer from "@/store/slices/dashboardSlice";
 import selectReducer from "@/store/slices/selectSlice";
 import ordersReducer from "@/store/slices/ordersSlice";
+import aboutReducer from "@/store/slices/aboutSlice";
+import tradeShowsReducer from "@/store/slices/tradeShowsSlice";
+import helpCenterReducer from "@/store/slices/helpCenterSlice";
 
 export const store = configureStore({
   reducer: {
@@ -38,6 +41,9 @@ export const store = configureStore({
     sidebar: sidebarSlice,
     ui: uiSlice,
     orders: ordersReducer,
+    about: aboutReducer,
+    tradeShows: tradeShowsReducer,
+    helpCenter: helpCenterReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({ serializableCheck: false }),
