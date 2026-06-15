@@ -3,7 +3,7 @@ import {
   FolderTree, TrendingUp, Settings, FolderOpen,
   Layers, Tag, LayoutGrid, Star, Unlock, List,
   ShoppingCart, MessageCircle, Info, CalendarDays,
-  HelpCircle,
+  HelpCircle, Image,
 } from "lucide-react";
 
 export const sidebarMenuItems = [
@@ -20,6 +20,7 @@ export const sidebarMenuItems = [
     ],
   },
   { id: "sections", label: "Section Management", icon: LayoutGrid, href: "/sections" },
+  { id: "banners", label: "Banners", icon: Image, href: "/banners" },
   { id: "reviews", label: "Reviews", icon: Star, href: "/reviews" },
   {
     id: "trade-leads", label: "Trade Leads", icon: TrendingUp, href: "/trade-leads",
