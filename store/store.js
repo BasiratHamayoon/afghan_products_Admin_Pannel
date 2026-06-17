@@ -21,6 +21,7 @@ import aboutReducer from "@/store/slices/aboutSlice";
 import tradeShowsReducer from "@/store/slices/tradeShowsSlice";
 import helpCenterReducer from "@/store/slices/helpCenterSlice";
 import bannersReducer from "@/store/slices/bannersSlice";
+import successStoriesReducer from "@/store/slices/successStoriesSlice";
 
 export const store = configureStore({
   reducer: {
@@ -46,6 +47,7 @@ export const store = configureStore({
     tradeShows: tradeShowsReducer,
     helpCenter: helpCenterReducer,
     banners: bannersReducer,
+    successStories: successStoriesReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({ serializableCheck: false }),
