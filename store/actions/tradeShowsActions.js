@@ -17,7 +17,7 @@ const normalizeTradeShow = (item) => {
     id: item._id || item.id,
     title: item.title || "",
     description: item.description || "",
-    image: item.image || null,
+    image: item.image || "",
     gallery: Array.isArray(item.gallery) ? item.gallery : [],
     country: item.country || "",
     city: item.city || "",
@@ -177,12 +177,10 @@ export const fetchTradeShowCities = (country) => async () => {
   }
 };
 
-// ─── Create (JSON — no multipart) ─────────────────────────────────────────────
+// ─── Create (JSON) ────────────────────────────────────────────────────────────
 export const createTradeShow = (payload) => async (dispatch) => {
   try {
-    const res = await axiosInstance.post(BASE, payload, {
-      headers: { "Content-Type": "application/json" },
-    });
+    const res = await axiosInstance.post(BASE, payload);
     const raw = res.data?.tradeShow || res.data?.data || res.data;
     const normalized = normalizeTradeShow(raw);
     if (normalized) dispatch(addTradeShow(normalized));
@@ -195,14 +193,10 @@ export const createTradeShow = (payload) => async (dispatch) => {
   }
 };
 
-// ─── Update (JSON — no multipart) ─────────────────────────────────────────────
+// ─── Update (JSON) ────────────────────────────────────────────────────────────
 export const updateTradeShow = (id, payload) => async (dispatch) => {
   try {
-    const res = await axiosInstance.patch(
-      `${BASE}/${id}`,
-      payload,
-      { headers: { "Content-Type": "application/json" } }
-    );
+    const res = await axiosInstance.patch(`${BASE}/${id}`, payload);
     const raw = res.data?.tradeShow || res.data?.data || res.data;
     const normalized = normalizeTradeShow(raw);
     if (normalized) dispatch(updateTradeShowInList(normalized));

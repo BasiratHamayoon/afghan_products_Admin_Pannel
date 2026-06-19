@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Save, X, Loader2 } from "lucide-react";
+import { Save, X, Loader2, Plus, Trash2, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function TradeShowForm({
@@ -15,9 +15,12 @@ export default function TradeShowForm({
     initialData && typeof initialData === "object" ? initialData : {};
 
   const [title, setTitle] = useState(safe.title || "");
-  const [description, setDescription] = useState(
-    safe.description || ""
+  const [description, setDescription] = useState(safe.description || "");
+  const [image, setImage] = useState(safe.image || "");
+  const [gallery, setGallery] = useState(
+    Array.isArray(safe.gallery) ? safe.gallery : []
   );
+  const [galleryInput, setGalleryInput] = useState("");
   const [country, setCountry] = useState(safe.country || "");
   const [city, setCity] = useState(safe.city || "");
   const [venue, setVenue] = useState(safe.venue || "");
@@ -44,14 +47,29 @@ export default function TradeShowForm({
   const [tagsInput, setTagsInput] = useState(
     Array.isArray(safe.tags) ? safe.tags.join(", ") : ""
   );
-  const [isFeatured, setIsFeatured] = useState(
-    safe.isFeatured ?? false
-  );
+  const [isFeatured, setIsFeatured] = useState(safe.isFeatured ?? false);
   const [isActive, setIsActive] = useState(safe.isActive ?? true);
   const [errors, setErrors] = useState({});
 
   const clearErr = (key) => {
     if (errors[key]) setErrors((p) => ({ ...p, [key]: "" }));
+  };
+
+  const handleAddGalleryItem = () => {
+    if (!galleryInput.trim()) return;
+    setGallery((prev) => [...prev, galleryInput.trim()]);
+    setGalleryInput("");
+  };
+
+  const handleRemoveGalleryItem = (index) => {
+    setGallery((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleGalleryKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddGalleryItem();
+    }
   };
 
   const handleSubmit = (e) => {
@@ -81,21 +99,22 @@ export default function TradeShowForm({
       .map((t) => t.trim())
       .filter(Boolean);
 
-    // Send as JSON — backend uses validateBody(tradeShowSchema)
     const payload = {
       title: title.trim(),
       description: description.trim(),
+      image: image.trim() || null,
+      gallery,
       country: country.trim(),
       city: city.trim(),
-      venue: venue.trim(),
-      address: address.trim(),
+      venue: venue.trim() || null,
+      address: address.trim() || null,
       startDate,
       endDate,
-      organizer: organizer.trim(),
-      organizerEmail: organizerEmail.trim(),
-      organizerPhone: organizerPhone.trim(),
-      website: website.trim(),
-      category: category.trim(),
+      organizer: organizer.trim() || null,
+      organizerEmail: organizerEmail.trim() || null,
+      organizerPhone: organizerPhone.trim() || null,
+      website: website.trim() || null,
+      category: category.trim() || null,
       tags,
       isFeatured,
       isActive,
@@ -119,7 +138,7 @@ export default function TradeShowForm({
       onSubmit={handleSubmit}
       className="space-y-8"
     >
-      {/* ─── Basic Info ──────────────────────────────────────────── */}
+      {/* ─── Basic Info ──────────────────────────────────────── */}
       <div>
         <h3 className="text-xs font-black text-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-[#0F69B0]" />
@@ -195,7 +214,127 @@ export default function TradeShowForm({
         </div>
       </div>
 
-      {/* ─── Location ────────────────────────────────────────────── */}
+      {/* ─── Image & Gallery ─────────────────────────────────── */}
+      <div>
+        <h3 className="text-xs font-black text-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+          Image & Gallery
+        </h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Cover Image URL */}
+          <div className="space-y-1.5 lg:col-span-2">
+            <label className="text-xs font-bold text-foreground uppercase tracking-widest">
+              Cover Image URL
+            </label>
+            <input
+              type="text"
+              value={image}
+              onChange={(e) => setImage(e.target.value)}
+              placeholder="https://example.com/images/cover.jpg"
+              disabled={isLoading}
+              className={inputClass()}
+            />
+            {image && (
+              <div className="mt-2 relative w-full h-40 rounded-xl overflow-hidden border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.04]">
+                <img
+                  src={image}
+                  alt="Cover preview"
+                  className="object-cover w-full h-full"
+                  onError={(e) => {
+                    e.target.style.display = "none";
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setImage("")}
+                  disabled={isLoading}
+                  className="absolute top-2 right-2 h-7 w-7 rounded-lg bg-red-500/90 flex items-center justify-center text-white hover:bg-red-500 transition-colors cursor-pointer disabled:opacity-60"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Gallery URLs */}
+          <div className="space-y-1.5 lg:col-span-2">
+            <label className="text-xs font-bold text-foreground uppercase tracking-widest">
+              Gallery Images
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={galleryInput}
+                onChange={(e) => setGalleryInput(e.target.value)}
+                onKeyDown={handleGalleryKeyDown}
+                placeholder="Paste image URL and press Enter or click Add"
+                disabled={isLoading}
+                className={cn(inputClass(), "flex-1")}
+              />
+              <button
+                type="button"
+                onClick={handleAddGalleryItem}
+                disabled={isLoading || !galleryInput.trim()}
+                className="flex items-center gap-1.5 px-4 py-3 rounded-xl text-xs font-bold text-[#0F69B0] hover:bg-[#0F69B0]/[0.08] transition-colors cursor-pointer border border-[#0F69B0]/20 disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add
+              </button>
+            </div>
+
+            {gallery.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-3">
+                {gallery.map((url, i) => (
+                  <div
+                    key={i}
+                    className="relative group rounded-xl overflow-hidden border border-gray-100 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.04] h-28"
+                  >
+                    <img
+                      src={url}
+                      alt={`Gallery ${i + 1}`}
+                      className="object-cover w-full h-full"
+                      onError={(e) => {
+                        e.target.style.display = "none";
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveGalleryItem(i)}
+                        disabled={isLoading}
+                        className="h-8 w-8 rounded-lg bg-red-500/90 flex items-center justify-center text-white hover:bg-red-500 transition-colors cursor-pointer disabled:opacity-60"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <div className="absolute bottom-1 left-1 right-1">
+                      <p className="text-[9px] text-white bg-black/50 rounded px-1 py-0.5 truncate">
+                        {url}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {gallery.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-6 border-2 border-dashed border-gray-200 dark:border-white/[0.08] rounded-xl mt-2">
+                <ImageIcon className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                <p className="text-xs text-muted-foreground font-medium">
+                  No gallery images added yet
+                </p>
+              </div>
+            )}
+
+            <p className="text-[10px] text-muted-foreground font-medium">
+              {gallery.length} image{gallery.length !== 1 ? "s" : ""}{" "}
+              in gallery
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Location ────────────────────────────────────────── */}
       <div>
         <h3 className="text-xs font-black text-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -276,7 +415,7 @@ export default function TradeShowForm({
         </div>
       </div>
 
-      {/* ─── Dates ───────────────────────────────────────────────── */}
+      {/* ─── Dates ───────────────────────────────────────────── */}
       <div>
         <h3 className="text-xs font-black text-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
@@ -327,7 +466,7 @@ export default function TradeShowForm({
         </div>
       </div>
 
-      {/* ─── Organizer ───────────────────────────────────────────── */}
+      {/* ─── Organizer ───────────────────────────────────────── */}
       <div>
         <h3 className="text-xs font-black text-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
@@ -389,7 +528,7 @@ export default function TradeShowForm({
         </div>
       </div>
 
-      {/* ─── Settings ────────────────────────────────────────────── */}
+      {/* ─── Settings ────────────────────────────────────────── */}
       <div>
         <h3 className="text-xs font-black text-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
@@ -416,13 +555,9 @@ export default function TradeShowForm({
               />
             </button>
             <div>
-              <p className="text-sm font-bold text-foreground">
-                Active
-              </p>
+              <p className="text-sm font-bold text-foreground">Active</p>
               <p className="text-[11px] text-muted-foreground font-medium">
-                {isActive
-                  ? "Visible to users"
-                  : "Hidden from users"}
+                {isActive ? "Visible to users" : "Hidden from users"}
               </p>
             </div>
           </div>
@@ -447,9 +582,7 @@ export default function TradeShowForm({
               />
             </button>
             <div>
-              <p className="text-sm font-bold text-foreground">
-                Featured
-              </p>
+              <p className="text-sm font-bold text-foreground">Featured</p>
               <p className="text-[11px] text-muted-foreground font-medium">
                 {isFeatured
                   ? "Highlighted on homepage"
@@ -460,7 +593,7 @@ export default function TradeShowForm({
         </div>
       </div>
 
-      {/* ─── Footer ──────────────────────────────────────────────── */}
+      {/* ─── Footer ──────────────────────────────────────────── */}
       <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-white/[0.06]">
         {onCancel && (
           <button

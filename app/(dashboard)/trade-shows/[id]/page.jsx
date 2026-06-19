@@ -8,18 +8,15 @@ import {
   ArrowLeft, Edit2, Trash2, Loader2, XCircle,
   Calendar, MapPin, Globe, Mail, Phone,
   User, Tag, Star, Hash, FileText, CheckCircle,
-  ExternalLink,
+  ImageIcon,
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
-  fetchTradeShowById,
-  deleteTradeShow,
-  clearTradeShowByIdCache,
+  fetchTradeShowById, deleteTradeShow, clearTradeShowByIdCache,
 } from "@/store/actions/tradeShowsActions";
 import { formatDate } from "@/lib/helpers";
-import { getFileUrl } from "@/lib/fileUrl";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
 
@@ -45,17 +42,13 @@ function DetailContent() {
   useEffect(() => {
     if (!id || fetchedRef.current) return;
     fetchedRef.current = true;
-
     const load = async () => {
       setIsFetching(true);
       try {
         const res = await dispatch(fetchTradeShowById(id));
         if (!isMountedRef.current) return;
-        if (res?.success && res.data) {
-          setItemData(res.data);
-        } else {
-          setNotFound(true);
-        }
+        if (res?.success && res.data) setItemData(res.data);
+        else setNotFound(true);
       } catch {
         if (isMountedRef.current) setNotFound(true);
       } finally {
@@ -74,24 +67,15 @@ function DetailContent() {
         toast.success("Trade show deleted");
         clearTradeShowByIdCache(itemData.id);
         router.push("/trade-shows");
-      } else {
-        toast.error(res?.message || "Failed to delete");
-      }
-    } catch {
-      toast.error("Something went wrong");
-    } finally {
-      setIsDeleting(false);
-      setDeleteDialog(false);
-    }
+      } else toast.error(res?.message || "Failed");
+    } catch { toast.error("Something went wrong"); }
+    finally { setIsDeleting(false); setDeleteDialog(false); }
   };
 
   if (isFetching) {
     return (
       <div className="flex items-center justify-center py-32">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-[#0F69B0]" />
-          <p className="text-sm text-muted-foreground font-medium">Loading trade show...</p>
-        </div>
+        <Loader2 className="h-8 w-8 animate-spin text-[#0F69B0]" />
       </div>
     );
   }
@@ -103,15 +87,19 @@ function DetailContent() {
           <XCircle className="h-8 w-8 text-red-500" />
         </div>
         <h2 className="text-lg font-black text-foreground">Trade show not found</h2>
-        <p className="text-sm text-muted-foreground font-medium">The item does not exist or has been deleted.</p>
-        <button onClick={() => router.push("/trade-shows")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
+        <button
+          onClick={() => router.push("/trade-shows")}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer"
+          style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
+        >
           <ArrowLeft className="h-4 w-4" />Back
         </button>
       </div>
     );
   }
 
-  const imageUrl = itemData.image ? getFileUrl(itemData.image) : null;
+  const hasImage = !!itemData.image;
+  const hasGallery = itemData.gallery?.length > 0;
 
   const getStatus = () => {
     if (!itemData.isActive) return { label: "Inactive", cls: "bg-gray-500/10 text-gray-500" };
@@ -146,7 +134,7 @@ function DetailContent() {
       <Breadcrumb />
       <PageHeader title="Trade Show Detail" description={itemData.title || ""}>
         <div className="flex items-center gap-2">
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => router.push("/trade-shows")} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => router.push("/trade-shows")} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] cursor-pointer">
             <ArrowLeft className="h-4 w-4" />Back
           </motion.button>
           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => router.push(`/trade-shows/add?edit=${id}`)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer shadow-lg shadow-[#0F69B0]/25" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
@@ -158,9 +146,9 @@ function DetailContent() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Left — Image & Summary */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl p-6 bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] flex flex-col items-center text-center">
-          <div className="h-24 w-24 rounded-2xl overflow-hidden border border-gray-100 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.04] flex items-center justify-center mb-4">
-            {imageUrl ? (
-              <img src={imageUrl} alt={itemData.title} className="object-cover w-full h-full" />
+          <div className="w-full h-40 rounded-xl overflow-hidden border border-gray-100 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.04] flex items-center justify-center mb-4">
+            {hasImage ? (
+              <img src={itemData.image} alt={itemData.title} className="object-cover w-full h-full" onError={(e) => { e.target.style.display = "none"; }} />
             ) : (
               <span className="text-5xl">🎪</span>
             )}
@@ -172,9 +160,7 @@ function DetailContent() {
           </div>
 
           <div className="flex items-center gap-2 mt-4 flex-wrap justify-center">
-            <span className={cn("text-[11px] font-bold px-3 py-1 rounded-full", status.cls)}>
-              {status.label}
-            </span>
+            <span className={cn("text-[11px] font-bold px-3 py-1 rounded-full", status.cls)}>{status.label}</span>
             {itemData.isFeatured && (
               <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 flex items-center gap-1">
                 <Star className="h-3 w-3 fill-amber-500" />Featured
@@ -185,20 +171,14 @@ function DetailContent() {
           {itemData.tags?.length > 0 && (
             <div className="flex items-center gap-1.5 mt-4 flex-wrap justify-center">
               {itemData.tags.map((tag, i) => (
-                <span key={i} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/[0.06] text-muted-foreground">
-                  {tag}
-                </span>
+                <span key={i} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/[0.06] text-muted-foreground">{tag}</span>
               ))}
             </div>
           )}
 
           <div className="flex items-center gap-2 mt-5 pt-4 border-t border-gray-100 dark:border-white/[0.06] w-full justify-center flex-wrap">
-            <button onClick={() => router.push(`/trade-shows/add?edit=${id}`)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-[#0F69B0] hover:bg-[#0F69B0]/[0.08] transition-colors cursor-pointer border border-[#0F69B0]/20">
-              <Edit2 className="h-3.5 w-3.5" />Edit
-            </button>
-            <button onClick={() => setDeleteDialog(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40">
-              <Trash2 className="h-3.5 w-3.5" />Delete
-            </button>
+            <button onClick={() => router.push(`/trade-shows/add?edit=${id}`)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-[#0F69B0] hover:bg-[#0F69B0]/[0.08] cursor-pointer border border-[#0F69B0]/20"><Edit2 className="h-3.5 w-3.5" />Edit</button>
+            <button onClick={() => setDeleteDialog(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer border border-red-200 dark:border-red-800/40"><Trash2 className="h-3.5 w-3.5" />Delete</button>
           </div>
         </motion.div>
 
@@ -236,13 +216,16 @@ function DetailContent() {
           )}
 
           {/* Gallery */}
-          {itemData.gallery?.length > 0 && (
+          {hasGallery && (
             <div className="rounded-2xl p-6 bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)]">
-              <h3 className="text-sm font-black text-foreground mb-4">Gallery ({itemData.gallery.length})</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="flex items-center gap-2 mb-4">
+                <ImageIcon className="h-4 w-4 text-[#0F69B0]" />
+                <h3 className="text-sm font-black text-foreground">Gallery ({itemData.gallery.length})</h3>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {itemData.gallery.map((img, i) => (
-                  <div key={i} className="h-32 rounded-xl overflow-hidden border border-gray-100 dark:border-white/[0.08]">
-                    <img src={getFileUrl(img)} alt={`Gallery ${i + 1}`} className="object-cover w-full h-full" />
+                  <div key={i} className="h-28 rounded-xl overflow-hidden border border-gray-100 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.04]">
+                    <img src={img} alt={`Gallery ${i + 1}`} className="object-cover w-full h-full" onError={(e) => { e.target.style.display = "none"; }} />
                   </div>
                 ))}
               </div>
@@ -251,24 +234,11 @@ function DetailContent() {
         </motion.div>
       </div>
 
-      <ConfirmDialog
-        open={deleteDialog}
-        onClose={() => setDeleteDialog(false)}
-        onConfirm={handleDeleteConfirm}
-        title="Delete Trade Show"
-        description={`Are you sure you want to permanently delete "${itemData?.title}"? This cannot be undone.`}
-        confirmLabel="Delete"
-        isLoading={isDeleting}
-        variant="danger"
-      />
+      <ConfirmDialog open={deleteDialog} onClose={() => setDeleteDialog(false)} onConfirm={handleDeleteConfirm} title="Delete Trade Show" description={`Delete "${itemData?.title}"? This cannot be undone.`} confirmLabel="Delete" isLoading={isDeleting} variant="danger" />
     </div>
   );
 }
 
 export default function TradeShowDetailPage() {
-  return (
-    <Suspense fallback={null}>
-      <DetailContent />
-    </Suspense>
-  );
+  return <Suspense fallback={null}><DetailContent /></Suspense>;
 }

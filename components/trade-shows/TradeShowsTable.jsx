@@ -3,10 +3,9 @@
 import { motion } from "framer-motion";
 import {
   Eye, Edit2, Trash2, MapPin, Calendar,
-  Star,
+  Star, ImageIcon,
 } from "lucide-react";
 import { formatDate } from "@/lib/helpers";
-import { getFileUrl } from "@/lib/fileUrl";
 import { cn } from "@/lib/utils";
 
 export default function TradeShowsTable({
@@ -34,13 +33,36 @@ export default function TradeShowsTable({
   };
 
   const getStatus = (item) => {
-    if (!item.isActive) return { label: "Inactive", bg: "bg-gray-500/10", text: "text-gray-500", dot: "bg-gray-400" };
+    if (!item.isActive)
+      return {
+        label: "Inactive",
+        bg: "bg-gray-500/10",
+        text: "text-gray-500",
+        dot: "bg-gray-400",
+      };
     const now = new Date();
     const start = new Date(item.startDate);
     const end = new Date(item.endDate);
-    if (now < start) return { label: "Upcoming", bg: "bg-blue-500/10", text: "text-blue-600", dot: "bg-blue-500" };
-    if (now >= start && now <= end) return { label: "Ongoing", bg: "bg-emerald-500/10", text: "text-emerald-600", dot: "bg-emerald-500" };
-    return { label: "Ended", bg: "bg-amber-500/10", text: "text-amber-600", dot: "bg-amber-500" };
+    if (now < start)
+      return {
+        label: "Upcoming",
+        bg: "bg-blue-500/10",
+        text: "text-blue-600",
+        dot: "bg-blue-500",
+      };
+    if (now >= start && now <= end)
+      return {
+        label: "Ongoing",
+        bg: "bg-emerald-500/10",
+        text: "text-emerald-600",
+        dot: "bg-emerald-500",
+      };
+    return {
+      label: "Ended",
+      bg: "bg-amber-500/10",
+      text: "text-amber-600",
+      dot: "bg-amber-500",
+    };
   };
 
   return (
@@ -52,6 +74,7 @@ export default function TradeShowsTable({
               "Trade Show",
               "Location",
               "Dates",
+              "Image",
               "Status",
               "Featured",
               "Created",
@@ -69,8 +92,9 @@ export default function TradeShowsTable({
         <tbody>
           {safeItems.map((item, i) => {
             if (!item?.id) return null;
-            const imageUrl = item.image ? getFileUrl(item.image) : null;
             const status = getStatus(item);
+            const hasImage = !!item.image;
+            const galleryCount = item.gallery?.length || 0;
 
             return (
               <motion.tr
@@ -84,22 +108,23 @@ export default function TradeShowsTable({
                 <td className="py-4 px-4">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl overflow-hidden border border-gray-100 dark:border-white/[0.08] shrink-0 bg-gray-50 dark:bg-white/[0.04] flex items-center justify-center">
-                      {imageUrl ? (
+                      {hasImage ? (
                         <img
-                          src={imageUrl}
+                          src={item.image}
                           alt={item.title}
                           className="object-cover w-full h-full"
                           onError={(e) => {
                             e.target.style.display = "none";
                             if (e.target.nextSibling)
-                              e.target.nextSibling.style.display = "flex";
+                              e.target.nextSibling.style.display =
+                                "flex";
                           }}
                         />
                       ) : null}
                       <span
                         className="text-xl"
                         style={{
-                          display: imageUrl ? "none" : "flex",
+                          display: hasImage ? "none" : "flex",
                         }}
                       >
                         🎪
@@ -136,6 +161,21 @@ export default function TradeShowsTable({
                     <Calendar className="h-3 w-3 text-muted-foreground/50 shrink-0" />
                     <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
                       {formatDateRange(item.startDate, item.endDate)}
+                    </span>
+                  </div>
+                </td>
+
+                {/* Image info */}
+                <td className="py-4 px-4">
+                  <div className="flex items-center gap-1.5">
+                    <ImageIcon className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {hasImage ? "✓" : "—"}
+                      {galleryCount > 0 && (
+                        <span className="ml-1 text-[10px] text-[#0F69B0]">
+                          +{galleryCount}
+                        </span>
+                      )}
                     </span>
                   </div>
                 </td>
