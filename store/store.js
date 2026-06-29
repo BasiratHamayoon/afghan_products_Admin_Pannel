@@ -22,6 +22,10 @@ import tradeShowsReducer from "@/store/slices/tradeShowsSlice";
 import helpCenterReducer from "@/store/slices/helpCenterSlice";
 import bannersReducer from "@/store/slices/bannersSlice";
 import successStoriesReducer from "@/store/slices/successStoriesSlice";
+import investmentsReducer from "@/store/slices/investmentsSlice";
+import partnersReducer from "@/store/slices/partnersSlice";
+import consultancyReducer from "@/store/slices/consultancySlice";
+import adminChatReducer from "@/store/slices/adminChatSlice";
 
 export const store = configureStore({
   reducer: {
@@ -48,6 +52,10 @@ export const store = configureStore({
     helpCenter: helpCenterReducer,
     banners: bannersReducer,
     successStories: successStoriesReducer,
+    investments: investmentsReducer,
+    partners: partnersReducer,
+    consultancy: consultancyReducer,
+    adminChat: adminChatReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({ serializableCheck: false }),
