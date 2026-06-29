@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { motion } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import {
-  Unlock, RefreshCw, CheckCircle, XCircle, Mail, Link, Clock,
+  Unlock, RefreshCw, CheckCircle, XCircle, Clock,
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import Breadcrumb from "@/components/layout/Breadcrumb";
@@ -13,14 +12,12 @@ import StatsCard from "@/components/common/StatCard";
 import Pagination from "@/components/common/Pagination";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import EmptyState from "@/components/common/EmptyState";
-import ConfirmDialog from "@/components/common/ConfirmDialog";
-import {
-  fetchUnlockRequests,
-  respondToUnlockRequest,
-} from "@/store/actions/tradeLeadsActions";
-import toast from "react-hot-toast";
+import UnlockRequestsTable from "@/components/trade-leads/UnlockRequestsTable";
+import { fetchUnlockRequests } from "@/store/actions/tradeLeadsActions";
 import { formatDate } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
+import { Mail, Link } from "lucide-react";
 
 const TABS = [
   { id: "all", label: "All Requests" },
@@ -30,39 +27,61 @@ const TABS = [
 ];
 
 const statusConfig = {
-  PENDING: { label: "Pending", bg: "bg-amber-500/10", text: "text-amber-600", dot: "bg-amber-500" },
-  APPROVED: { label: "Approved", bg: "bg-emerald-500/10", text: "text-emerald-600", dot: "bg-emerald-500" },
-  REJECTED: { label: "Rejected", bg: "bg-red-500/10", text: "text-red-500", dot: "bg-red-500" },
+  PENDING: {
+    label: "Pending",
+    bg: "bg-amber-500/10",
+    text: "text-amber-600",
+    dot: "bg-amber-500",
+  },
+  APPROVED: {
+    label: "Approved",
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-600",
+    dot: "bg-emerald-500",
+  },
+  REJECTED: {
+    label: "Rejected",
+    bg: "bg-red-500/10",
+    text: "text-red-500",
+    dot: "bg-red-500",
+  },
 };
 
 const PAGE_LIMIT = 10;
 
 function getInitials(name) {
   if (!name) return "?";
-  return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 }
 
 export default function UnlockRequestsPage() {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { unlockRequests, unlockRequestsLoading, unlockPagination } = useSelector(
-    (state) => state.tradeLeads
-  );
+  const { unlockRequests, unlockRequestsLoading, unlockPagination } =
+    useSelector((state) => state.tradeLeads);
 
   const [activeTab, setActiveTab] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [respondDialog, setRespondDialog] = useState({ open: false, request: null, status: null });
-  const [isResponding, setIsResponding] = useState(false);
 
   const hasFetched = useRef(false);
 
-  const triggerFetch = useCallback((page, status) => {
-    dispatch(fetchUnlockRequests({
-      page,
-      limit: PAGE_LIMIT,
-      status: status !== "all" ? status : undefined,
-    }));
-  }, [dispatch]);
+  const triggerFetch = useCallback(
+    (page, status) => {
+      dispatch(
+        fetchUnlockRequests({
+          page,
+          limit: PAGE_LIMIT,
+          status: status !== "all" ? status : undefined,
+        })
+      );
+    },
+    [dispatch]
+  );
 
   useEffect(() => {
     if (hasFetched.current) return;
@@ -70,47 +89,34 @@ export default function UnlockRequestsPage() {
     triggerFetch(1, "all");
   }, [triggerFetch]);
 
-  const handleTabChange = useCallback((tab) => {
-    setActiveTab(tab);
-    setCurrentPage(1);
-    triggerFetch(1, tab);
-  }, [triggerFetch]);
+  const handleTabChange = useCallback(
+    (tab) => {
+      setActiveTab(tab);
+      setCurrentPage(1);
+      triggerFetch(1, tab);
+    },
+    [triggerFetch]
+  );
 
-  const handlePageChange = useCallback((page) => {
-    setCurrentPage(page);
-    triggerFetch(page, activeTab);
-  }, [activeTab, triggerFetch]);
+  const handlePageChange = useCallback(
+    (page) => {
+      setCurrentPage(page);
+      triggerFetch(page, activeTab);
+    },
+    [activeTab, triggerFetch]
+  );
 
   const handleRefresh = useCallback(() => {
     triggerFetch(currentPage, activeTab);
   }, [currentPage, activeTab, triggerFetch]);
 
-  const handleRespondConfirm = async () => {
-    const { request, status } = respondDialog;
-    if (!request?.id || !status) {
-      setRespondDialog({ open: false, request: null, status: null });
-      return;
-    }
-    setIsResponding(true);
-    try {
-      const res = await dispatch(respondToUnlockRequest(request.id, status));
-      if (res?.success) {
-        toast.success(status === "APPROVED" ? "Unlock request approved" : "Unlock request rejected");
-      } else {
-        toast.error(res?.message || "Failed to respond");
-      }
-    } catch {
-      toast.error("Something went wrong");
-    } finally {
-      setIsResponding(false);
-      setRespondDialog({ open: false, request: null, status: null });
-    }
-  };
-
-  const safeRequests = Array.isArray(unlockRequests) ? unlockRequests.filter(Boolean) : [];
+  const safeRequests = Array.isArray(unlockRequests)
+    ? unlockRequests.filter(Boolean)
+    : [];
   const total = unlockPagination?.total || safeRequests.length;
   const totalPages = unlockPagination?.totalPages || 1;
-  const from = total === 0 ? 0 : (currentPage - 1) * PAGE_LIMIT + 1;
+  const from =
+    total === 0 ? 0 : (currentPage - 1) * PAGE_LIMIT + 1;
   const to = Math.min(currentPage * PAGE_LIMIT, total);
 
   const tabCounts = {
@@ -125,14 +131,38 @@ export default function UnlockRequestsPage() {
       <Breadcrumb />
       <PageHeader
         title="Unlock Requests"
-        description="Manage seller requests to unlock trade lead contact details"
+        description="View seller requests to unlock trade lead contact details"
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatsCard title="Total Requests" value={total} icon={Unlock} color="rgba(15,105,176,0.08)" index={0} />
-        <StatsCard title="Pending" value={tabCounts.PENDING} icon={Clock} color="rgba(245,158,11,0.08)" index={1} />
-        <StatsCard title="Approved" value={tabCounts.APPROVED} icon={CheckCircle} color="rgba(16,185,129,0.08)" index={2} />
-        <StatsCard title="Rejected" value={tabCounts.REJECTED} icon={XCircle} color="rgba(239,68,68,0.08)" index={3} />
+        <StatsCard
+          title="Total Requests"
+          value={total}
+          icon={Unlock}
+          color="rgba(15,105,176,0.08)"
+          index={0}
+        />
+        <StatsCard
+          title="Pending"
+          value={tabCounts.PENDING}
+          icon={Clock}
+          color="rgba(245,158,11,0.08)"
+          index={1}
+        />
+        <StatsCard
+          title="Approved"
+          value={tabCounts.APPROVED}
+          icon={CheckCircle}
+          color="rgba(16,185,129,0.08)"
+          index={2}
+        />
+        <StatsCard
+          title="Rejected"
+          value={tabCounts.REJECTED}
+          icon={XCircle}
+          color="rgba(239,68,68,0.08)"
+          index={3}
+        />
       </div>
 
       <div className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden">
@@ -174,14 +204,19 @@ export default function UnlockRequestsPage() {
               Refresh
             </button>
             <p className="text-[11px] text-muted-foreground font-medium">
-              {safeRequests.length} request{safeRequests.length !== 1 ? "s" : ""}
+              {safeRequests.length} request
+              {safeRequests.length !== 1 ? "s" : ""}
             </p>
           </div>
         </div>
 
         <div className="p-4">
           {unlockRequestsLoading ? (
-            <LoadingSpinner size="lg" text="Loading unlock requests..." className="py-16" />
+            <LoadingSpinner
+              size="lg"
+              text="Loading unlock requests..."
+              className="py-16"
+            />
           ) : safeRequests.length === 0 ? (
             <EmptyState
               icon={Unlock}
@@ -193,8 +228,18 @@ export default function UnlockRequestsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr style={{ borderBottom: "2px solid rgba(15,105,176,0.06)" }}>
-                      {["Seller", "Trade Lead", "Status", "Requested At", "Actions"].map((h) => (
+                    <tr
+                      style={{
+                        borderBottom:
+                          "2px solid rgba(15,105,176,0.06)",
+                      }}
+                    >
+                      {[
+                        "Seller",
+                        "Trade Lead",
+                        "Status",
+                        "Requested At",
+                      ].map((h) => (
                         <th
                           key={h}
                           className="text-left py-3.5 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 whitespace-nowrap"
@@ -207,8 +252,9 @@ export default function UnlockRequestsPage() {
                   <tbody>
                     {safeRequests.map((req, i) => {
                       if (!req?.id) return null;
-                      const sc = statusConfig[req.status] || statusConfig.PENDING;
-                      const isPending = req.status === "PENDING";
+                      const sc =
+                        statusConfig[req.status] ||
+                        statusConfig.PENDING;
 
                       return (
                         <motion.tr
@@ -222,7 +268,10 @@ export default function UnlockRequestsPage() {
                             <div className="flex items-center gap-2 min-w-0">
                               <div
                                 className="h-8 w-8 rounded-full flex items-center justify-center text-[10px] font-black text-white shrink-0"
-                                style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
+                                style={{
+                                  background:
+                                    "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)",
+                                }}
                               >
                                 {getInitials(req.sellerName)}
                               </div>
@@ -245,13 +294,18 @@ export default function UnlockRequestsPage() {
                               <Link className="h-3 w-3 text-muted-foreground/50 shrink-0" />
                               <button
                                 onClick={() =>
-                                  req.tradeLeadId && router.push(`/trade-leads/${req.tradeLeadId}`)
+                                  req.tradeLeadId &&
+                                  router.push(
+                                    `/trade-leads/${req.tradeLeadId}`
+                                  )
                                 }
                                 className="text-xs font-medium text-[#0F69B0] hover:underline cursor-pointer truncate max-w-[150px]"
                               >
                                 {req.tradeLeadProduct ||
                                   (req.tradeLeadId
-                                    ? req.tradeLeadId.toString().slice(0, 12) + "..."
+                                    ? req.tradeLeadId
+                                        .toString()
+                                        .slice(0, 12) + "..."
                                     : "—")}
                               </button>
                             </div>
@@ -265,7 +319,12 @@ export default function UnlockRequestsPage() {
                                 sc.text
                               )}
                             >
-                              <span className={cn("h-1.5 w-1.5 rounded-full", sc.dot)} />
+                              <span
+                                className={cn(
+                                  "h-1.5 w-1.5 rounded-full",
+                                  sc.dot
+                                )}
+                              />
                               {sc.label}
                             </span>
                           </td>
@@ -274,35 +333,6 @@ export default function UnlockRequestsPage() {
                             <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
                               {formatDate(req.createdAt)}
                             </span>
-                          </td>
-
-                          <td className="py-4 px-4">
-                            {isPending ? (
-                              <div className="flex items-center gap-1.5">
-                                <button
-                                  onClick={() =>
-                                    setRespondDialog({ open: true, request: req, status: "APPROVED" })
-                                  }
-                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-emerald-600 border border-emerald-200 dark:border-emerald-800/40 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors cursor-pointer whitespace-nowrap"
-                                >
-                                  <CheckCircle className="h-3.5 w-3.5" />
-                                  Approve
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    setRespondDialog({ open: true, request: req, status: "REJECTED" })
-                                  }
-                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-red-500 border border-red-200 dark:border-red-800/40 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer whitespace-nowrap"
-                                >
-                                  <XCircle className="h-3.5 w-3.5" />
-                                  Reject
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="text-[11px] text-muted-foreground font-medium">
-                                {req.status === "APPROVED" ? "✓ Approved" : "✗ Rejected"}
-                              </span>
-                            )}
                           </td>
                         </motion.tr>
                       );
@@ -325,21 +355,6 @@ export default function UnlockRequestsPage() {
           )}
         </div>
       </div>
-
-      <ConfirmDialog
-        open={respondDialog.open}
-        onClose={() => setRespondDialog({ open: false, request: null, status: null })}
-        onConfirm={handleRespondConfirm}
-        title={respondDialog.status === "APPROVED" ? "Approve Unlock Request" : "Reject Unlock Request"}
-        description={
-          respondDialog.status === "APPROVED"
-            ? "Are you sure you want to approve this unlock request? The seller will get access to the trade lead contact details."
-            : "Are you sure you want to reject this unlock request?"
-        }
-        confirmLabel={respondDialog.status === "APPROVED" ? "Approve" : "Reject"}
-        isLoading={isResponding}
-        variant={respondDialog.status === "APPROVED" ? "primary" : "danger"}
-      />
     </div>
   );
 }

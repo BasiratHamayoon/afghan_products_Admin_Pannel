@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CheckCircle, XCircle, Mail, User, Link } from "lucide-react";
+import { Mail, Link } from "lucide-react";
 import { formatDate } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 
@@ -36,11 +36,7 @@ function getInitials(name) {
     .slice(0, 2);
 }
 
-export default function UnlockRequestsTable({
-  requests = [],
-  onApprove,
-  onReject,
-}) {
+export default function UnlockRequestsTable({ requests = [] }) {
   const safeRequests = Array.isArray(requests)
     ? requests.filter(Boolean)
     : [];
@@ -56,7 +52,6 @@ export default function UnlockRequestsTable({
               "Trade Lead",
               "Request Status",
               "Requested At",
-              "Actions",
             ].map((h) => (
               <th
                 key={h}
@@ -72,7 +67,6 @@ export default function UnlockRequestsTable({
             if (!req?.id) return null;
             const status =
               statusConfig[req.status] || statusConfig.PENDING;
-            const isPending = req.status === "PENDING";
 
             return (
               <motion.tr
@@ -113,7 +107,10 @@ export default function UnlockRequestsTable({
                   <div className="flex items-center gap-1.5">
                     <Link className="h-3 w-3 text-muted-foreground/50 shrink-0" />
                     <span className="text-xs font-medium text-foreground truncate max-w-[150px]">
-                      {req.tradeLeadProduct || req.tradeLeadId?.slice(0, 12) + "..." || "—"}
+                      {req.tradeLeadProduct ||
+                        (req.tradeLeadId
+                          ? req.tradeLeadId.toString().slice(0, 12) + "..."
+                          : "—")}
                     </span>
                   </div>
                 </td>
@@ -142,32 +139,6 @@ export default function UnlockRequestsTable({
                   <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
                     {formatDate(req.createdAt)}
                   </span>
-                </td>
-
-                {/* Actions */}
-                <td className="py-4 px-4">
-                  {isPending ? (
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => onApprove?.(req)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-emerald-600 border border-emerald-200 dark:border-emerald-800/40 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors cursor-pointer whitespace-nowrap"
-                      >
-                        <CheckCircle className="h-3.5 w-3.5" />
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => onReject?.(req)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-red-500 border border-red-200 dark:border-red-800/40 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer whitespace-nowrap"
-                      >
-                        <XCircle className="h-3.5 w-3.5" />
-                        Reject
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="text-[11px] text-muted-foreground font-medium">
-                      {req.status === "APPROVED" ? "✓ Approved" : "✗ Rejected"}
-                    </span>
-                  )}
                 </td>
               </motion.tr>
             );
