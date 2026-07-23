@@ -21,6 +21,7 @@ export default function Breadcrumb() {
         href="/dashboard"
         className="text-muted-foreground hover:text-[#0F69B0] transition-colors"
         aria-label={t("breadcrumb.home")}
+        suppressHydrationWarning
       >
         <Home className="h-4 w-4" />
       </Link>
@@ -28,13 +29,14 @@ export default function Breadcrumb() {
         <div key={path} className="flex items-center gap-1.5">
           <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 breadcrumb-rtl-chevron" />
           {index === paths.length - 1 ? (
-            <span className="font-medium text-foreground capitalize">
+            <span className="font-medium text-foreground capitalize" suppressHydrationWarning>
               {path.replace(/-/g, " ")}
             </span>
           ) : (
             <Link
               href={`/${paths.slice(0, index + 1).join("/")}`}
               className="text-muted-foreground hover:text-[#0F69B0] capitalize transition-colors"
+              suppressHydrationWarning
             >
               {path.replace(/-/g, " ")}
             </Link>

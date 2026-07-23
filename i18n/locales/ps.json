@@ -124,7 +124,11 @@
     "noPendingItems": "هیڅ تمه لرونکي توکي نشته",
     "buyers": "پیرودونکي",
     "sellers": "پلورونکي",
-    "noUserData": "د دې کال لپاره هیڅ د کارونکي معلومات نشته"
+    "noUserData": "د دې کال لپاره هیڅ د کارونکي معلومات نشته",
+    "pendingOrders": "تمه لرونکي امرونه",
+    "pendingTradeLeads": "تمه لرونکي د سوداګرۍ لیدونه",
+    "pendingProducts": "تمه لرونکي محصولات",
+    "pendingSellerBusiness": "تمه لرونکي پلورونکی/سوداګري"
   },
   "stats": {
     "totalUsers": "ټول کارونکي",

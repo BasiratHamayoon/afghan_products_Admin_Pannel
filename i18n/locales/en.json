@@ -124,7 +124,11 @@
     "noPendingItems": "No pending items",
     "buyers": "Buyers",
     "sellers": "Sellers",
-    "noUserData": "No user data for"
+    "noUserData": "No user data for",
+    "pendingOrders": "Pending Orders",
+    "pendingTradeLeads": "Pending Trade Leads",
+    "pendingProducts": "Pending Products",
+    "pendingSellerBusiness": "Pending Seller/Business"
   },
   "stats": {
     "totalUsers": "Total Users",

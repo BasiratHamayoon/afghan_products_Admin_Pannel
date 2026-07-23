@@ -124,7 +124,11 @@
     "noPendingItems": "هیچ موردی در انتظار نیست",
     "buyers": "خریداران",
     "sellers": "فروشندگان",
-    "noUserData": "داده کاربری برای این سال موجود نیست"
+    "noUserData": "داده کاربری برای این سال موجود نیست",
+    "pendingOrders": "سفارشات در انتظار",
+    "pendingTradeLeads": "سرنخ‌های تجاری در انتظار",
+    "pendingProducts": "محصولات در انتظار",
+    "pendingSellerBusiness": "فروشنده/کسب‌وکار در انتظار"
   },
   "stats": {
     "totalUsers": "کل کاربران",

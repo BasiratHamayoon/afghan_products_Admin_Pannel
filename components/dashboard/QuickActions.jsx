@@ -25,6 +25,13 @@ const PENDING_ROUTES = {
   "Pending Seller/Business": "/verifications",
 };
 
+const PENDING_TRANSLATION_KEYS = {
+  "Pending Orders": "dashboard.pendingOrders",
+  "Pending Trade Leads": "dashboard.pendingTradeLeads",
+  "Pending Products": "dashboard.pendingProducts",
+  "Pending Seller/Business": "dashboard.pendingSellerBusiness",
+};
+
 function Skeleton({ className }) {
   return <div className={`rounded-xl bg-gray-100 dark:bg-white/[0.06] animate-pulse ${className}`} />;
 }
@@ -166,6 +173,8 @@ export default function QuickActions() {
             {pendingItems.map((item, i) => {
               const color = PENDING_COLORS[item.name] || "bg-gray-500";
               const route = PENDING_ROUTES[item.name] || "/dashboard";
+              const translationKey = PENDING_TRANSLATION_KEYS[item.name];
+              const displayName = translationKey ? t(translationKey) : item.name;
               return (
                 <motion.button
                   key={item.name}
@@ -176,7 +185,7 @@ export default function QuickActions() {
                   onClick={() => router.push(route)}
                   className="w-full flex items-center justify-between p-3 rounded-xl transition-all duration-200 text-sm group cursor-pointer bg-[#0F69B0]/[0.03] dark:bg-[#0F69B0]/[0.06] border border-[#0F69B0]/[0.08] dark:border-[#0F69B0]/[0.12] hover:bg-[#0F69B0]/[0.08] dark:hover:bg-[#0F69B0]/[0.12] hover:border-[#0F69B0]/20"
                 >
-                  <span className="font-semibold text-foreground text-xs">{item.name}</span>
+                  <span className="font-semibold text-foreground text-xs">{displayName}</span>
                   <div className="flex items-center gap-2">
                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black text-white ${color}`}>
                       {item.count}
