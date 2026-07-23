@@ -8,6 +8,7 @@ import { setSelectedRevenueYear } from "@/store/slices/dashboardSlice";
 import { formatCurrency } from "@/lib/formatters";
 import AreaChartComponent from "@/components/charts/AreaChartComponent";
 import DoughnutChart from "@/components/charts/DoughnutChartComponent";
+import { useTranslation } from "react-i18next";
 
 const CATEGORY_COLORS = [
   "#0F69B0", "#7c3aed", "#10b981",
@@ -56,6 +57,7 @@ function CategoryRowSkeleton() {
 
 export default function RevenueChart() {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { revenueData, revenueLoading, selectedRevenueYear, categories } = useSelector(
     (state) => state.dashboard
   );
@@ -85,9 +87,11 @@ export default function RevenueChart() {
       >
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-base font-black text-foreground">Revenue Overview</h2>
+            <h2 className="text-base font-black text-foreground">
+              {t("dashboard.revenueOverview")}
+            </h2>
             <p className="text-xs text-muted-foreground mt-0.5 font-medium">
-              Monthly revenue performance for {selectedRevenueYear}
+              {t("dashboard.revenueSubtitle")} {selectedRevenueYear}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -122,7 +126,7 @@ export default function RevenueChart() {
           />
         ) : (
           <div className="h-[260px] flex items-center justify-center text-sm text-muted-foreground font-medium">
-            No revenue data for {selectedRevenueYear}
+            {t("dashboard.noRevenueData")} {selectedRevenueYear}
           </div>
         )}
       </motion.div>
@@ -134,9 +138,11 @@ export default function RevenueChart() {
         className="rounded-2xl p-6 flex flex-col bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] dark:shadow-[0_2px_20px_rgba(0,0,0,0.2)]"
       >
         <div className="mb-4">
-          <h2 className="text-base font-black text-foreground">Categories</h2>
+          <h2 className="text-base font-black text-foreground">
+            {t("dashboard.categories")}
+          </h2>
           <p className="text-xs text-muted-foreground mt-0.5 font-medium">
-            Product distribution ({totalProducts} total)
+            {t("dashboard.categoriesSubtitle")} ({totalProducts} {t("dashboard.total")})
           </p>
         </div>
 
@@ -159,7 +165,7 @@ export default function RevenueChart() {
               innerRadius={48}
               outerRadius={75}
               centerValue={`${categories.length}`}
-              centerLabel="Categories"
+              centerLabel={t("dashboard.categories")}
             />
             <div className="space-y-2.5 mt-4">
               {categoryDistribution.map((cat) => (
@@ -169,7 +175,9 @@ export default function RevenueChart() {
                     <span className="text-xs text-muted-foreground font-medium truncate max-w-[100px]">{cat.name}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-muted-foreground font-medium">{cat.count} products</span>
+                    <span className="text-[10px] text-muted-foreground font-medium">
+                      {cat.count} {t("dashboard.products")}
+                    </span>
                     <div className="h-1 w-14 rounded-full overflow-hidden bg-gray-100 dark:bg-white/[0.06]">
                       <div className="h-full rounded-full" style={{ width: `${Math.max(cat.value, 2)}%`, backgroundColor: cat.color }} />
                     </div>
@@ -181,7 +189,7 @@ export default function RevenueChart() {
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground font-medium">
-            No category data
+            {t("dashboard.noCategoryData")}
           </div>
         )}
       </motion.div>

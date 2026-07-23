@@ -7,6 +7,7 @@ import {
   ShieldCheck, TrendingUp, ArrowUpRight, ArrowDownRight, Minus,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
+import { useTranslation } from "react-i18next";
 
 const statStyles = [
   { icon: "rgba(15,105,176,0.12)", iconColor: "#0F69B0", glow: "rgba(15,105,176,0.08)" },
@@ -36,6 +37,7 @@ function StatCardSkeleton() {
 }
 
 function StatCard({ title, value, change, changeType, icon: Icon, index }) {
+  const { t } = useTranslation();
   const isPositive = changeType === "increase";
   const isNoChange = changeType === "no_change";
   const style = statStyles[index % statStyles.length];
@@ -68,14 +70,18 @@ function StatCard({ title, value, change, changeType, icon: Icon, index }) {
         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">{title}</p>
         <p className="text-2xl font-black text-foreground tracking-tight">{value}</p>
         <p className="text-[10px] text-muted-foreground mt-1.5 font-medium">
-          {isNoChange ? "— No change from last month" : isPositive ? "↑ Increased from last month" : "↓ Decreased from last month"}
+          {isNoChange
+            ? t("stats.noChangeFromLastMonth")
+            : isPositive
+            ? t("stats.increasedFromLastMonth")
+            : t("stats.decreasedFromLastMonth")}
         </p>
       </div>
     </motion.div>
   );
 }
 
-function buildStatCards(dashboard) {
+function buildStatCards(dashboard, t) {
   if (!dashboard) return [];
   const get = (obj) => ({
     count: obj?.count ?? obj?.amount ?? 0,
@@ -91,16 +97,17 @@ function buildStatCards(dashboard) {
   const tradeLeads = get(dashboard.tradeLeads);
 
   return [
-    { id: "users", title: "Total Users", value: String(users.count), change: users.percentage, changeType: users.trend, icon: Users },
-    { id: "products", title: "Total Products", value: String(products.count), change: products.percentage, changeType: products.trend, icon: Package },
-    { id: "orders", title: "Orders", value: String(orders.count), change: orders.percentage, changeType: orders.trend, icon: ShoppingCart },
-    { id: "revenue", title: "Revenue", value: formatCurrency(revenue.count), change: revenue.percentage, changeType: revenue.trend, icon: DollarSign },
-    { id: "verifications", title: "Pending Verifications", value: String(verifications.count), change: verifications.percentage, changeType: verifications.trend, icon: ShieldCheck },
-    { id: "tradeLeads", title: "Trade Leads", value: String(tradeLeads.count), change: tradeLeads.percentage, changeType: tradeLeads.trend, icon: TrendingUp },
+    { id: "users", title: t("stats.totalUsers"), value: String(users.count), change: users.percentage, changeType: users.trend, icon: Users },
+    { id: "products", title: t("stats.totalProducts"), value: String(products.count), change: products.percentage, changeType: products.trend, icon: Package },
+    { id: "orders", title: t("stats.orders"), value: String(orders.count), change: orders.percentage, changeType: orders.trend, icon: ShoppingCart },
+    { id: "revenue", title: t("stats.revenue"), value: formatCurrency(revenue.count), change: revenue.percentage, changeType: revenue.trend, icon: DollarSign },
+    { id: "verifications", title: t("stats.pendingVerifications"), value: String(verifications.count), change: verifications.percentage, changeType: verifications.trend, icon: ShieldCheck },
+    { id: "tradeLeads", title: t("stats.tradeLeads"), value: String(tradeLeads.count), change: tradeLeads.percentage, changeType: tradeLeads.trend, icon: TrendingUp },
   ];
 }
 
 export default function DashboardStats() {
+  const { t } = useTranslation();
   const { stats, statsLoading } = useSelector((state) => state.dashboard);
 
   if (statsLoading) {
@@ -111,12 +118,12 @@ export default function DashboardStats() {
     );
   }
 
-  const statCards = buildStatCards(stats);
+  const statCards = buildStatCards(stats, t);
 
   if (statCards.length === 0) {
     return (
       <div className="rounded-2xl p-8 mb-5 bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] text-center">
-        <p className="text-sm text-muted-foreground font-medium">No stats available</p>
+        <p className="text-sm text-muted-foreground font-medium">{t("stats.noStats")}</p>
       </div>
     );
   }

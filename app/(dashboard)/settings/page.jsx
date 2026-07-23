@@ -9,25 +9,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { fetchAdminProfile } from "@/store/actions/settingsActions";
-
-const settingsNav = [
-  {
-    title: "Profile Settings",
-    description: "Update your admin name, email and profile information",
-    icon: User,
-    href: "/settings/profile",
-    color: "#0F69B0",
-    bg: "rgba(15,105,176,0.08)",
-  },
-  {
-    title: "Change Password",
-    description: "Update your account password to keep your account secure",
-    icon: Shield,
-    href: "/settings/change-password",
-    color: "#7c3aed",
-    bg: "rgba(124,58,237,0.08)",
-  },
-];
+import { useTranslation } from "react-i18next";
 
 function getInitials(firstName, lastName) {
   const first = (firstName || "").trim();
@@ -51,6 +33,7 @@ function getEmail(profile) {
 export default function SettingsPage() {
   const dispatch = useDispatch();
   const router = useRouter();
+  const { t } = useTranslation();
   const { adminProfile, isProfileLoading } = useSelector((s) => s.settings);
   const hasFetched = useRef(false);
 
@@ -65,21 +48,40 @@ export default function SettingsPage() {
   const email = getEmail(adminProfile);
   const role = (adminProfile?.role || "ADMIN").toUpperCase();
 
+  const settingsNav = [
+    {
+      title: t("settings.profileSettings"),
+      description: t("settings.profileSettingsDesc"),
+      icon: User,
+      href: "/settings/profile",
+      color: "#0F69B0",
+      bg: "rgba(15,105,176,0.08)",
+    },
+    {
+      title: t("settings.changePassword"),
+      description: t("settings.changePasswordDesc"),
+      icon: Shield,
+      href: "/settings/change-password",
+      color: "#7c3aed",
+      bg: "rgba(124,58,237,0.08)",
+    },
+  ];
+
   const profileFields = adminProfile
     ? [
-        { label: "Full Name", value: fullName, icon: User },
-        { label: "Email", value: email || "—", icon: Mail },
-        { label: "Role", value: role, icon: Shield },
+        { label: t("settings.fullName"), value: fullName, icon: User },
+        { label: t("settings.email"), value: email || "—", icon: Mail },
+        { label: t("settings.role"), value: role, icon: Shield },
       ]
     : [];
 
   return (
     <div className="space-y-5">
       <Breadcrumb />
-      <PageHeader title="Settings" description="Manage your profile and account security" />
+      <PageHeader title={t("settings.title")} description={t("settings.description")} />
 
       {isProfileLoading ? (
-        <LoadingSpinner size="lg" text="Loading profile..." className="py-16" />
+        <LoadingSpinner size="lg" text={t("settings.loadingProfile")} className="py-16" />
       ) : adminProfile ? (
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -144,12 +146,12 @@ export default function SettingsPage() {
         </motion.div>
       ) : (
         <div className="rounded-2xl p-8 bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] text-center">
-          <p className="text-sm text-muted-foreground font-medium">Failed to load profile</p>
+          <p className="text-sm text-muted-foreground font-medium">{t("settings.failedToLoadProfile")}</p>
           <button
             onClick={() => { hasFetched.current = false; dispatch(fetchAdminProfile()); }}
             className="mt-3 px-4 py-2 rounded-xl text-xs font-bold text-[#0F69B0] border border-[#0F69B0]/20 hover:bg-[#0F69B0]/5 transition-colors cursor-pointer"
           >
-            Retry
+            {t("common.retry")}
           </button>
         </div>
       )}
@@ -166,7 +168,7 @@ export default function SettingsPage() {
               whileHover={{ y: -2 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => router.push(item.href)}
-              className="text-left rounded-2xl p-5 bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] hover:border-[#0F69B0]/25 dark:hover:border-[#0F69B0]/20 hover:shadow-[0_4px_20px_rgba(15,105,176,0.1)] transition-all cursor-pointer group"
+              className="text-start rounded-2xl p-5 bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] hover:border-[#0F69B0]/25 dark:hover:border-[#0F69B0]/20 hover:shadow-[0_4px_20px_rgba(15,105,176,0.1)] transition-all cursor-pointer group"
             >
               <div className="flex items-start justify-between mb-4">
                 <div
@@ -175,7 +177,7 @@ export default function SettingsPage() {
                 >
                   <Icon className="h-5 w-5" style={{ color: item.color }} />
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-[#0F69B0] transition-colors" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-[#0F69B0] transition-colors rtl-mirror" />
               </div>
               <h3 className="text-sm font-black text-foreground mb-1">{item.title}</h3>
               <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">{item.description}</p>

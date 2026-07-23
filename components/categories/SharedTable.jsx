@@ -5,11 +5,21 @@ import { Edit2, Eye, Archive, ArchiveRestore, Trash2 } from "lucide-react";
 import { formatDate } from "@/lib/helpers";
 import { getFileUrl } from "@/lib/fileUrl";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 export default function SharedTable({ items, extraColumns, onEdit, onView, onArchive, onUnarchive, onDelete }) {
+  const { t } = useTranslation();
   const safeItems = Array.isArray(items) ? items.filter(Boolean) : [];
   const safeColumns = Array.isArray(extraColumns) ? extraColumns : [];
-  const allHeaders = ["Item", ...safeColumns.map((c) => c.label), "Description", "Sort", "Status", "Created", "Actions"];
+  const allHeaders = [
+    t("categories.item"),
+    ...safeColumns.map((c) => c.label),
+    t("categories.description"),
+    t("categories.sort"),
+    t("categories.status"),
+    t("categories.created"),
+    t("categories.actions"),
+  ];
 
   if (safeItems.length === 0) return null;
 
@@ -19,7 +29,7 @@ export default function SharedTable({ items, extraColumns, onEdit, onView, onArc
         <thead>
           <tr style={{ borderBottom: "2px solid rgba(15,105,176,0.06)" }}>
             {allHeaders.map((h) => (
-              <th key={h} className="text-left py-3.5 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">{h}</th>
+              <th key={h} className="text-start py-3.5 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">{h}</th>
             ))}
           </tr>
         </thead>
@@ -57,7 +67,7 @@ export default function SharedTable({ items, extraColumns, onEdit, onView, onArc
                 <td className="py-4 px-4">
                   <span className={cn("inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg", item.isArchived ? "bg-amber-500/10 text-amber-600" : "bg-emerald-500/10 text-emerald-600")}>
                     <span className={cn("h-1.5 w-1.5 rounded-full", item.isArchived ? "bg-amber-500" : "bg-emerald-500")} />
-                    {item.isArchived ? "Archived" : "Active"}
+                    {item.isArchived ? t("categories.archivedStatus") : t("categories.activeStatus")}
                   </span>
                 </td>
                 <td className="py-4 px-4">
@@ -65,15 +75,15 @@ export default function SharedTable({ items, extraColumns, onEdit, onView, onArc
                 </td>
                 <td className="py-4 px-4">
                   <div className="flex items-center gap-1">
-                    <button onClick={() => onView?.(item)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer" title="View"><Eye className="h-3.5 w-3.5" /></button>
-                    <button onClick={() => onEdit?.(item)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer" title="Edit"><Edit2 className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => onView?.(item)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer" title={t("categories.view")}><Eye className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => onEdit?.(item)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer" title={t("categories.edit")}><Edit2 className="h-3.5 w-3.5" /></button>
                     {item.isArchived ? (
-                      <button onClick={() => onUnarchive?.(item)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-muted-foreground hover:text-emerald-600 transition-all cursor-pointer" title="Unarchive"><ArchiveRestore className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => onUnarchive?.(item)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-muted-foreground hover:text-emerald-600 transition-all cursor-pointer" title={t("categories.unarchive")}><ArchiveRestore className="h-3.5 w-3.5" /></button>
                     ) : (
-                      <button onClick={() => onArchive?.(item)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-amber-50 dark:hover:bg-amber-900/20 text-muted-foreground hover:text-amber-600 transition-all cursor-pointer" title="Archive"><Archive className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => onArchive?.(item)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-amber-50 dark:hover:bg-amber-900/20 text-muted-foreground hover:text-amber-600 transition-all cursor-pointer" title={t("categories.archive")}><Archive className="h-3.5 w-3.5" /></button>
                     )}
                     {onDelete && (
-                      <button onClick={() => onDelete?.(item)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500 transition-all cursor-pointer" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => onDelete?.(item)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500 transition-all cursor-pointer" title={t("categories.delete")}><Trash2 className="h-3.5 w-3.5" /></button>
                     )}
                   </div>
                 </td>

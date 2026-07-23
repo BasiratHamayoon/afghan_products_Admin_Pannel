@@ -15,11 +15,13 @@ import {
   fetchProductTypeById,
 } from "@/store/actions/productTypesActions";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 function AddProductTypeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dispatch = useDispatch();
+  const { t } = useTranslation();
 
   const editId = searchParams.get("edit") || null;
   const editSlug = searchParams.get("slug") || null;
@@ -38,10 +40,7 @@ function AddProductTypeContent() {
   }, []);
 
   useEffect(() => {
-    if (!editId) {
-      setInitialData({});
-      return;
-    }
+    if (!editId) { setInitialData({}); return; }
 
     const fetchKey = `productType:${editId}`;
     if (fetchKeyRef.current === fetchKey) return;
@@ -60,12 +59,12 @@ function AddProductTypeContent() {
         if (res?.success) {
           setInitialData(res.data);
         } else {
-          toast.error("Failed to load product type");
+          toast.error(t("categories.failedToLoadProductType"));
           setInitialData({});
         }
       } catch {
         if (isMountedRef.current) {
-          toast.error("Something went wrong");
+          toast.error(t("categories.somethingWentWrong"));
           setInitialData({});
         }
       } finally {
@@ -73,7 +72,7 @@ function AddProductTypeContent() {
       }
     };
     load();
-  }, [editId, editSlug, dispatch]);
+  }, [editId, editSlug, dispatch, t]);
 
   const handleSubmit = async (formData) => {
     setIsLoading(true);
@@ -83,13 +82,13 @@ function AddProductTypeContent() {
         : await dispatch(createProductType(formData));
 
       if (res?.success) {
-        toast.success(isEditMode ? "Product type updated successfully!" : "Product type created successfully!");
+        toast.success(isEditMode ? t("categories.productTypeUpdated") : t("categories.productTypeCreated"));
         router.push("/categories/product-types");
       } else {
-        toast.error(res?.message || `Failed to ${isEditMode ? "update" : "create"} product type`);
+        toast.error(res?.message || (isEditMode ? t("categories.failedToUpdateProductType") : t("categories.failedToCreateProductType")));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(t("categories.somethingWentWrong"));
     } finally {
       setIsLoading(false);
     }
@@ -101,15 +100,15 @@ function AddProductTypeContent() {
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-[#0F69B0]" />
           <p className="text-sm text-muted-foreground font-medium">
-            {isEditMode ? "Loading product type..." : "Preparing form..."}
+            {isEditMode ? t("categories.loadingProductType") : t("categories.preparingForm")}
           </p>
         </div>
       </div>
     );
   }
 
-  const title = isEditMode ? "Edit Product Type" : "Add Product Type";
-  const desc = isEditMode ? "Update product type details" : "Create a new product type under a subcategory";
+  const title = isEditMode ? t("categories.editProductTypeTitle") : t("categories.addProductTypeTitle");
+  const desc = isEditMode ? t("categories.editProductTypeDesc") : t("categories.addProductTypeDesc");
 
   return (
     <div className="space-y-5">
@@ -121,7 +120,8 @@ function AddProductTypeContent() {
           onClick={() => router.push("/categories/product-types")}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
         >
-          <ArrowLeft className="h-4 w-4" />Back
+          <ArrowLeft className="h-4 w-4 rtl-mirror" />
+          {t("categories.back")}
         </motion.button>
       </PageHeader>
 

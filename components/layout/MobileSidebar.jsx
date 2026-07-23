@@ -14,11 +14,23 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { useTranslation } from "react-i18next";
+import { useDirection } from "@/hooks/useDirection";
+
+const EXACT_MATCH_ROUTES = ["/categories", "/trade-leads"];
+
+function isRouteActive(pathname, href) {
+  if (pathname === href) return true;
+  if (EXACT_MATCH_ROUTES.includes(href)) return pathname === href;
+  return pathname.startsWith(href + "/");
+}
 
 export default function MobileSidebar() {
   const pathname = usePathname();
   const dispatch = useDispatch();
   const router = useRouter();
+  const { t } = useTranslation();
+  const { rtl } = useDirection();
   const { isMobileOpen, openSubmenus } = useSelector((state) => state.sidebar);
   const [logoutDialog, setLogoutDialog] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -28,9 +40,9 @@ export default function MobileSidebar() {
     setIsLoggingOut(true);
     try {
       await dispatch(logoutUser());
-      toast.success("Logged out successfully!");
+      toast.success(t("logout.success"));
     } catch {
-      toast.success("Logged out successfully!");
+      toast.success(t("logout.success"));
     } finally {
       if (typeof window !== "undefined") {
         localStorage.removeItem("token");
@@ -40,7 +52,14 @@ export default function MobileSidebar() {
       dispatch(setMobileSidebarOpen(false));
       router.push("/login");
     }
-  }, [dispatch, router, isLoggingOut]);
+  }, [dispatch, router, isLoggingOut, t]);
+
+  const sidebarPositionStyle = rtl
+    ? { right: 0, left: "auto" }
+    : { left: 0, right: "auto" };
+
+  const slideInitial = rtl ? { x: 280 } : { x: -280 };
+  const slideExit = rtl ? { x: 280 } : { x: -280 };
 
   return (
     <>
@@ -57,15 +76,18 @@ export default function MobileSidebar() {
             />
 
             <motion.aside
-              initial={{ x: -280 }}
+              initial={slideInitial}
               animate={{ x: 0 }}
-              exit={{ x: -280 }}
+              exit={slideExit}
               transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-              className="fixed left-0 top-0 z-50 h-screen w-[272px] flex flex-col lg:hidden overflow-hidden"
+              className="fixed top-0 z-50 h-screen w-[272px] flex flex-col lg:hidden overflow-hidden"
               style={{
+                ...sidebarPositionStyle,
                 background: "linear-gradient(180deg, #ffffff 0%, #fafbff 100%)",
-                borderRight: "1px solid rgba(15,105,176,0.08)",
-                boxShadow: "4px 0 30px rgba(0,0,0,0.12)",
+                borderInlineEnd: "1px solid rgba(15,105,176,0.08)",
+                boxShadow: rtl
+                  ? "-4px 0 30px rgba(0,0,0,0.12)"
+                  : "4px 0 30px rgba(0,0,0,0.12)",
               }}
             >
               <div
@@ -113,7 +135,7 @@ export default function MobileSidebar() {
                       Afghan Products
                     </h1>
                     <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">
-                      Admin Portal
+                      {t("common.adminPortal")}
                     </p>
                   </div>
                 </div>
@@ -127,13 +149,19 @@ export default function MobileSidebar() {
 
               <div className="relative z-10 flex-1 overflow-y-auto py-3 scrollbar-thin">
                 <p className="px-4 mb-2 text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground/40">
-                  Navigation
+                  {t("common.navigation")}
                 </p>
                 <nav className="px-2 space-y-0.5">
                   {sidebarMenuItems.map((item) => {
-                    const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                    const isActive = (() => {
+                      if (item.submenu) {
+                        return item.submenu.some((sub) => isRouteActive(pathname, sub.href));
+                      }
+                      return isRouteActive(pathname, item.href);
+                    })();
                     const isSubmenuOpen = openSubmenus.includes(item.id);
                     const Icon = item.icon;
+                    const label = t(item.labelKey);
 
                     return (
                       <div key={item.id}>
@@ -155,7 +183,7 @@ export default function MobileSidebar() {
                               >
                                 <Icon className={cn("h-3.5 w-3.5", isActive ? "text-[#0F69B0]" : "text-muted-foreground")} />
                               </div>
-                              <span className="font-medium">{item.label}</span>
+                              <span className="font-medium">{label}</span>
                             </div>
                             <motion.div
                               animate={{ rotate: isSubmenuOpen ? 180 : 0 }}
@@ -189,7 +217,7 @@ export default function MobileSidebar() {
                             >
                               <Icon className={cn("h-3.5 w-3.5", isActive ? "text-white" : "text-muted-foreground")} />
                             </div>
-                            <span>{item.label}</span>
+                            <span>{label}</span>
                           </Link>
                         )}
 
@@ -203,11 +231,12 @@ export default function MobileSidebar() {
                               className="overflow-hidden"
                             >
                               <div
-                                className="ml-5 mt-0.5 mb-1 pl-3 py-0.5 space-y-0.5"
-                                style={{ borderLeft: "2px solid rgba(15,105,176,0.1)" }}
+                                className="ms-5 mt-0.5 mb-1 ps-3 py-0.5 space-y-0.5"
+                                style={{ borderInlineStart: "2px solid rgba(15,105,176,0.1)" }}
                               >
                                 {item.submenu.map((sub) => {
-                                  const isSubActive = pathname === sub.href;
+                                  const isSubActive = isRouteActive(pathname, sub.href);
+                                  const subLabel = t(sub.labelKey);
                                   return (
                                     <Link
                                       key={sub.id}
@@ -229,7 +258,7 @@ export default function MobileSidebar() {
                                       }
                                     >
                                       <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", isSubActive ? "bg-white" : "bg-muted-foreground/30")} />
-                                      {sub.label}
+                                      {subLabel}
                                     </Link>
                                   );
                                 })}
@@ -257,7 +286,7 @@ export default function MobileSidebar() {
                   >
                     <LogOut className="h-3.5 w-3.5" />
                   </div>
-                  <span>Sign Out</span>
+                  <span>{t("common.signOut")}</span>
                 </button>
               </div>
             </motion.aside>
@@ -269,10 +298,10 @@ export default function MobileSidebar() {
         open={logoutDialog}
         onClose={() => !isLoggingOut && setLogoutDialog(false)}
         onConfirm={performLogout}
-        title="Sign Out"
-        description="Are you sure you want to sign out? You will need to log in again to access the admin portal."
-        confirmLabel={isLoggingOut ? "Signing Out..." : "Sign Out"}
-        cancelLabel="Stay Logged In"
+        title={t("logout.title")}
+        description={t("logout.description")}
+        confirmLabel={isLoggingOut ? t("logout.signingOut") : t("logout.confirm")}
+        cancelLabel={t("logout.cancel")}
         variant="danger"
         isLoading={isLoggingOut}
       />

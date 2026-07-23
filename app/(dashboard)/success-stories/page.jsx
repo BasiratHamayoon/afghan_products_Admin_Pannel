@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
-import { Plus, Award, X, RefreshCw, CheckCircle, Clock, Star } from "lucide-react";
+import { Plus, Award, X, RefreshCw, CheckCircle, Clock } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import SuccessStoriesTable from "@/components/success-stories/SuccessStoriesTable";
@@ -17,12 +17,7 @@ import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { fetchSuccessStories, deleteSuccessStory, toggleSuccessStoryStatus } from "@/store/actions/successStoriesActions";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
-
-const TABS = [
-  { id: "all", label: "All" },
-  { id: "active", label: "Active" },
-  { id: "inactive", label: "Inactive" },
-];
+import { useTranslation } from "react-i18next";
 
 const DEBOUNCE_DELAY = 500;
 const PAGE_LIMIT = 10;
@@ -30,6 +25,7 @@ const PAGE_LIMIT = 10;
 export default function SuccessStoriesPage() {
   const dispatch = useDispatch();
   const router = useRouter();
+  const { t } = useTranslation();
   const { stories, isLoading, pagination } = useSelector((state) => state.successStories);
 
   const [activeTab, setActiveTab] = useState("all");
@@ -42,6 +38,12 @@ export default function SuccessStoriesPage() {
 
   const searchDebounceRef = useRef(null);
   const hasFetchedRef = useRef(false);
+
+  const TABS = [
+    { id: "all", label: t("successStories.all") },
+    { id: "active", label: t("successStories.active") },
+    { id: "inactive", label: t("successStories.inactive") },
+  ];
 
   const buildParams = useCallback((page, search, tab) => {
     const params = { page, limit: PAGE_LIMIT };
@@ -77,9 +79,9 @@ export default function SuccessStoriesPage() {
     setIsDeleting(true);
     try {
       const res = await dispatch(deleteSuccessStory(item.id));
-      if (res?.success) toast.success("Story deleted");
-      else toast.error(res?.message || "Failed");
-    } catch { toast.error("Something went wrong"); }
+      if (res?.success) toast.success(t("successStories.storyDeleted"));
+      else toast.error(res?.message || t("successStories.failedAction"));
+    } catch { toast.error(t("successStories.somethingWentWrong")); }
     finally { setIsDeleting(false); setDeleteDialog({ open: false, item: null }); }
   };
 
@@ -89,9 +91,9 @@ export default function SuccessStoriesPage() {
     setIsToggling(true);
     try {
       const res = await dispatch(toggleSuccessStoryStatus(item.id));
-      if (res?.success) toast.success(item.isActive ? "Deactivated" : "Activated");
-      else toast.error(res?.message || "Failed");
-    } catch { toast.error("Something went wrong"); }
+      if (res?.success) toast.success(item.isActive ? t("successStories.storyDeactivated") : t("successStories.storyActivated"));
+      else toast.error(res?.message || t("successStories.failedAction"));
+    } catch { toast.error(t("successStories.somethingWentWrong")); }
     finally { setIsToggling(false); setToggleDialog({ open: false, item: null }); }
   };
 
@@ -105,16 +107,16 @@ export default function SuccessStoriesPage() {
   return (
     <div className="space-y-5">
       <Breadcrumb />
-      <PageHeader title="Success Stories" description="Manage customer success stories and testimonials">
+      <PageHeader title={t("successStories.title")} description={t("successStories.description")}>
         <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => router.push("/success-stories/add")} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer shadow-lg shadow-[#0F69B0]/25 whitespace-nowrap" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
-          <Plus className="h-4 w-4" />Add Story
+          <Plus className="h-4 w-4" />{t("successStories.addStory")}
         </motion.button>
       </PageHeader>
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
-        <StatsCard title="Total" value={total} icon={Award} color="rgba(15,105,176,0.08)" index={0} />
-        <StatsCard title="Active" value={tabCounts.active} icon={CheckCircle} color="rgba(16,185,129,0.08)" index={1} />
-        <StatsCard title="Inactive" value={tabCounts.inactive} icon={Clock} color="rgba(107,114,128,0.08)" index={2} />
+        <StatsCard title={t("successStories.total")} value={total} icon={Award} color="rgba(15,105,176,0.08)" index={0} />
+        <StatsCard title={t("successStories.active")} value={tabCounts.active} icon={CheckCircle} color="rgba(16,185,129,0.08)" index={1} />
+        <StatsCard title={t("successStories.inactive")} value={tabCounts.inactive} icon={Clock} color="rgba(107,114,128,0.08)" index={2} />
       </div>
 
       <div className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden">
@@ -129,32 +131,77 @@ export default function SuccessStoriesPage() {
 
         <div className="p-4 border-b border-gray-50 dark:border-white/[0.04]">
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex-1 min-w-[180px]"><SearchInput value={searchQuery} onChange={handleSearchChange} placeholder="Search stories..." /></div>
-            {searchQuery && <button onClick={handleClearSearch} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40"><X className="h-3.5 w-3.5" />Clear</button>}
+            <div className="flex-1 min-w-[180px]"><SearchInput value={searchQuery} onChange={handleSearchChange} placeholder={t("successStories.searchPlaceholder")} /></div>
+            {searchQuery && (
+              <button onClick={handleClearSearch} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40">
+                <X className="h-3.5 w-3.5" />{t("successStories.clear")}
+              </button>
+            )}
             <button onClick={handleRefresh} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer border border-gray-200 dark:border-white/[0.08]" title="Refresh"><RefreshCw className="h-3.5 w-3.5" /></button>
-            <p className="text-[11px] text-muted-foreground font-medium">{safeItems.length} result{safeItems.length !== 1 ? "s" : ""}</p>
+            <p className="text-[11px] text-muted-foreground font-medium">
+              {safeItems.length} {safeItems.length !== 1 ? t("successStories.resultsPlural") : t("successStories.results")}
+            </p>
           </div>
         </div>
 
         <div className="p-4">
-          {isLoading ? <LoadingSpinner size="lg" text="Loading stories..." className="py-16" /> : safeItems.length === 0 ? (
-            <EmptyState icon={Award} title="No success stories found" description={searchQuery ? "Try adjusting your search" : "Create your first success story"} action={
-              <div className="flex items-center gap-3 flex-wrap justify-center">
-                {searchQuery && <button onClick={handleClearSearch} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] cursor-pointer">Clear Search</button>}
-                <button onClick={() => router.push("/success-stories/add")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}><Plus className="h-4 w-4" />Add Story</button>
-              </div>
-            } />
+          {isLoading ? (
+            <LoadingSpinner size="lg" text={t("successStories.loadingStories")} className="py-16" />
+          ) : safeItems.length === 0 ? (
+            <EmptyState
+              icon={Award}
+              title={t("successStories.noStoriesFound")}
+              description={searchQuery ? t("successStories.tryAdjustingSearch") : t("successStories.createFirstStory")}
+              action={
+                <div className="flex items-center gap-3 flex-wrap justify-center">
+                  {searchQuery && (
+                    <button onClick={handleClearSearch} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] cursor-pointer">
+                      {t("successStories.clearSearch")}
+                    </button>
+                  )}
+                  <button onClick={() => router.push("/success-stories/add")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
+                    <Plus className="h-4 w-4" />{t("successStories.addStory")}
+                  </button>
+                </div>
+              }
+            />
           ) : (
             <>
-              <SuccessStoriesTable items={safeItems} onView={(it) => router.push(`/success-stories/${it.id}`)} onEdit={(it) => router.push(`/success-stories/add?edit=${it.id}`)} onDelete={(it) => setDeleteDialog({ open: true, item: it })} onToggle={(it) => setToggleDialog({ open: true, item: it })} />
-              <div className="mt-4 border-t border-gray-50 dark:border-white/[0.04] pt-4"><Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} from={from} to={to} total={total} /></div>
+              <SuccessStoriesTable
+                items={safeItems}
+                onView={(it) => router.push(`/success-stories/${it.id}`)}
+                onEdit={(it) => router.push(`/success-stories/add?edit=${it.id}`)}
+                onDelete={(it) => setDeleteDialog({ open: true, item: it })}
+                onToggle={(it) => setToggleDialog({ open: true, item: it })}
+              />
+              <div className="mt-4 border-t border-gray-50 dark:border-white/[0.04] pt-4">
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} from={from} to={to} total={total} />
+              </div>
             </>
           )}
         </div>
       </div>
 
-      <ConfirmDialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, item: null })} onConfirm={handleDeleteConfirm} title="Delete Story" description={deleteDialog.item ? `Delete "${deleteDialog.item.fullName}"'s story? This cannot be undone.` : "Are you sure?"} confirmLabel="Delete" isLoading={isDeleting} variant="danger" />
-      <ConfirmDialog open={toggleDialog.open} onClose={() => setToggleDialog({ open: false, item: null })} onConfirm={handleToggleConfirm} title={toggleDialog.item?.isActive ? "Deactivate Story" : "Activate Story"} description={toggleDialog.item ? `${toggleDialog.item.isActive ? "Deactivate" : "Activate"} "${toggleDialog.item.fullName}"'s story?` : "Are you sure?"} confirmLabel={toggleDialog.item?.isActive ? "Deactivate" : "Activate"} isLoading={isToggling} variant={toggleDialog.item?.isActive ? "warning" : "primary"} />
+      <ConfirmDialog
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, item: null })}
+        onConfirm={handleDeleteConfirm}
+        title={t("successStories.deleteStory")}
+        description={deleteDialog.item ? `${t("successStories.deleteStoryDesc")} "${deleteDialog.item.fullName}"${t("successStories.deleteStorySuffix")}` : t("successStories.areYouSure")}
+        confirmLabel={t("successStories.delete")}
+        isLoading={isDeleting}
+        variant="danger"
+      />
+      <ConfirmDialog
+        open={toggleDialog.open}
+        onClose={() => setToggleDialog({ open: false, item: null })}
+        onConfirm={handleToggleConfirm}
+        title={toggleDialog.item?.isActive ? t("successStories.deactivateStory") : t("successStories.activateStory")}
+        description={toggleDialog.item ? `${toggleDialog.item.isActive ? t("successStories.deactivateDesc") : t("successStories.activateDesc")} "${toggleDialog.item.fullName}"${t("successStories.storySuffix")}` : t("successStories.areYouSure")}
+        confirmLabel={toggleDialog.item?.isActive ? t("successStories.deactivate") : t("successStories.activate")}
+        isLoading={isToggling}
+        variant={toggleDialog.item?.isActive ? "warning" : "primary"}
+      />
     </div>
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import { useSelector, useDispatch } from "react-redux";
-import { Menu, PanelLeftOpen, LogOut, Settings, ChevronRight } from "lucide-react";
+import { Menu, PanelLeftOpen, LogOut, Settings } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
 import { setMobileSidebarOpen, toggleSidebar } from "@/store/slices/sidebarSlice";
 import { logoutUser } from "@/store/actions/authActions";
 import { getInitials } from "@/lib/formatters";
@@ -11,6 +12,7 @@ import { useState, useEffect, useCallback } from "react";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 function cn(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -19,6 +21,7 @@ function cn(...classes) {
 export default function Header() {
   const dispatch = useDispatch();
   const router = useRouter();
+  const { t } = useTranslation();
   const { isCollapsed } = useSelector((state) => state.sidebar);
   const { user } = useSelector((state) => state.auth);
 
@@ -44,9 +47,9 @@ export default function Header() {
     setIsLoggingOut(true);
     try {
       await dispatch(logoutUser());
-      toast.success("Logged out successfully!");
+      toast.success(t("logout.success"));
     } catch {
-      toast.success("Logged out successfully!");
+      toast.success(t("logout.success"));
     } finally {
       if (typeof window !== "undefined") {
         localStorage.removeItem("token");
@@ -55,7 +58,7 @@ export default function Header() {
       setLogoutDialog(false);
       router.push("/login");
     }
-  }, [dispatch, router, isLoggingOut]);
+  }, [dispatch, router, isLoggingOut, t]);
 
   return (
     <>
@@ -71,6 +74,7 @@ export default function Header() {
             ? "1px solid rgba(15,105,176,0.1)"
             : "1px solid rgba(15,105,176,0.06)",
         }}
+        suppressHydrationWarning
       >
         <div className="flex items-center gap-2">
           <motion.button
@@ -90,7 +94,7 @@ export default function Header() {
               border: "1px solid rgba(15,105,176,0.1)",
               background: "rgba(15,105,176,0.04)",
             }}
-            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            suppressHydrationWarning
           >
             <span
               className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-xl"
@@ -99,7 +103,7 @@ export default function Header() {
             <motion.div
               animate={{ rotate: isCollapsed ? 0 : 180 }}
               transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-              className="relative z-10"
+              className="relative z-10 header-toggle-rtl"
             >
               <PanelLeftOpen className="h-4 w-4 text-[#0F69B0]" />
             </motion.div>
@@ -107,6 +111,7 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-2">
+          <LanguageSwitcher />
           <ThemeToggle />
 
           <div className="relative" onClick={(e) => e.stopPropagation()}>
@@ -150,7 +155,7 @@ export default function Header() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 6, scale: 0.97 }}
                   transition={{ duration: 0.18, ease: "easeOut" }}
-                  className="absolute right-0 top-12 w-56 rounded-2xl overflow-hidden z-50 bg-white dark:bg-[#0f1420]"
+                  className="absolute end-0 top-12 w-56 rounded-2xl overflow-hidden z-50 bg-white dark:bg-[#0f1420]"
                   style={{
                     border: "1px solid rgba(15,105,176,0.1)",
                     boxShadow: "0 20px 60px rgba(15,105,176,0.12), 0 4px 16px rgba(0,0,0,0.08)",
@@ -198,8 +203,12 @@ export default function Header() {
                         <Settings className="h-3.5 w-3.5 text-[#0F69B0]" />
                       </div>
                       <div>
-                        <p className="text-xs font-semibold text-foreground">Settings</p>
-                        <p className="text-[10px] text-muted-foreground">Preferences & security</p>
+                        <p className="text-xs font-semibold text-foreground" suppressHydrationWarning>
+                          {t("common.settings")}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground" suppressHydrationWarning>
+                          {t("common.preferences")}
+                        </p>
                       </div>
                     </motion.button>
                   </div>
@@ -223,8 +232,12 @@ export default function Header() {
                         <LogOut className="h-3.5 w-3.5 text-red-500" />
                       </div>
                       <div>
-                        <p className="text-xs font-semibold text-red-500">Sign Out</p>
-                        <p className="text-[10px] text-red-400/70">End your session</p>
+                        <p className="text-xs font-semibold text-red-500" suppressHydrationWarning>
+                          {t("header.signOut")}
+                        </p>
+                        <p className="text-[10px] text-red-400/70" suppressHydrationWarning>
+                          {t("header.endSession")}
+                        </p>
                       </div>
                     </motion.button>
                   </div>
@@ -239,10 +252,10 @@ export default function Header() {
         open={logoutDialog}
         onClose={() => !isLoggingOut && setLogoutDialog(false)}
         onConfirm={performLogout}
-        title="Sign Out"
-        description="Are you sure you want to sign out? You will need to log in again to access the admin portal."
-        confirmLabel={isLoggingOut ? "Signing Out..." : "Sign Out"}
-        cancelLabel="Stay Logged In"
+        title={t("logout.title")}
+        description={t("logout.description")}
+        confirmLabel={isLoggingOut ? t("logout.signingOut") : t("logout.confirm")}
+        cancelLabel={t("logout.cancel")}
         variant="danger"
         isLoading={isLoggingOut}
       />

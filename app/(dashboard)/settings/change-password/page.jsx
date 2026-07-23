@@ -10,10 +10,12 @@ import Breadcrumb from "@/components/layout/Breadcrumb";
 import { changeAdminPassword } from "@/store/actions/settingsActions";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 export default function ChangePasswordPage() {
   const dispatch = useDispatch();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -26,7 +28,7 @@ export default function ChangePasswordPage() {
 
   const fieldClass = (field) =>
     cn(
-      "w-full px-4 py-3 pr-12 rounded-xl text-sm font-medium outline-none transition-all border bg-white dark:bg-white/[0.04] text-foreground placeholder:text-muted-foreground/40 cursor-text disabled:opacity-60",
+      "w-full px-4 py-3 pe-12 rounded-xl text-sm font-medium outline-none transition-all border bg-white dark:bg-white/[0.04] text-foreground placeholder:text-muted-foreground/40 cursor-text disabled:opacity-60",
       errors[field]
         ? "border-red-400 focus:border-red-500"
         : "border-gray-200 dark:border-white/[0.08] focus:border-[#0F69B0]/40 focus:shadow-[0_0_0_3px_rgba(15,105,176,0.08)]"
@@ -35,11 +37,11 @@ export default function ChangePasswordPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const errs = {};
-    if (!currentPassword) errs.currentPassword = "Current password is required";
-    if (!newPassword) errs.newPassword = "New password is required";
-    if (newPassword && newPassword.length < 8) errs.newPassword = "Password must be at least 8 characters";
-    if (!confirmPassword) errs.confirmPassword = "Please confirm your new password";
-    if (newPassword && confirmPassword && newPassword !== confirmPassword) errs.confirmPassword = "Passwords do not match";
+    if (!currentPassword) errs.currentPassword = t("settings.currentPasswordRequired");
+    if (!newPassword) errs.newPassword = t("settings.newPasswordRequired");
+    if (newPassword && newPassword.length < 8) errs.newPassword = t("settings.passwordMinLength");
+    if (!confirmPassword) errs.confirmPassword = t("settings.confirmPasswordRequired");
+    if (newPassword && confirmPassword && newPassword !== confirmPassword) errs.confirmPassword = t("settings.passwordsDoNotMatch");
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
     setIsSaving(true);
@@ -49,16 +51,16 @@ export default function ChangePasswordPage() {
         newPassword,
       }));
       if (res?.success) {
-        toast.success("Password changed successfully");
+        toast.success(t("settings.passwordChanged"));
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
         setErrors({});
       } else {
-        toast.error(res?.message || "Failed to change password");
+        toast.error(res?.message || t("settings.passwordChangeFailed"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(t("settings.somethingWentWrong"));
     } finally {
       setIsSaving(false);
     }
@@ -81,7 +83,7 @@ export default function ChangePasswordPage() {
         <button
           type="button"
           onClick={onToggle}
-          className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer"
+          className="absolute end-4 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer"
         >
           {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>
@@ -93,14 +95,15 @@ export default function ChangePasswordPage() {
   return (
     <div className="space-y-5">
       <Breadcrumb />
-      <PageHeader title="Change Password" description="Update your account password">
+      <PageHeader title={t("settings.changePassword")} description={t("settings.changePasswordDesc")}>
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
           onClick={() => router.push("/settings")}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
         >
-          <ArrowLeft className="h-4 w-4" />Back
+          <ArrowLeft className="h-4 w-4 rtl-mirror" />
+          {t("common.back")}
         </motion.button>
       </PageHeader>
 
@@ -114,48 +117,48 @@ export default function ChangePasswordPage() {
             <Shield className="h-5 w-5 text-purple-600" />
           </div>
           <div>
-            <h2 className="text-base font-black text-foreground">Change Password</h2>
-            <p className="text-xs text-muted-foreground font-medium mt-0.5">Keep your account secure with a strong password</p>
+            <h2 className="text-base font-black text-foreground">{t("settings.changePassword")}</h2>
+            <p className="text-xs text-muted-foreground font-medium mt-0.5">{t("settings.keepAccountSecure")}</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <PasswordField
-            label="Current Password"
+            label={t("settings.currentPassword")}
             value={currentPassword}
             onChange={setCurrentPassword}
             show={showCurrent}
             onToggle={() => setShowCurrent(!showCurrent)}
             field="currentPassword"
-            placeholder="Enter current password"
+            placeholder={t("settings.enterCurrentPassword")}
             required
           />
 
           <PasswordField
-            label="New Password"
+            label={t("settings.newPassword")}
             value={newPassword}
             onChange={setNewPassword}
             show={showNew}
             onToggle={() => setShowNew(!showNew)}
             field="newPassword"
-            placeholder="Enter new password (min 8 characters)"
+            placeholder={t("settings.enterNewPassword")}
             required
           />
 
           <PasswordField
-            label="Confirm New Password"
+            label={t("settings.confirmNewPassword")}
             value={confirmPassword}
             onChange={setConfirmPassword}
             show={showConfirm}
             onToggle={() => setShowConfirm(!showConfirm)}
             field="confirmPassword"
-            placeholder="Confirm new password"
+            placeholder={t("settings.confirmNewPasswordPlaceholder")}
             required
           />
 
           <div className="p-3 rounded-xl bg-amber-500/[0.06] border border-amber-500/20">
             <p className="text-[11px] font-semibold text-amber-600">
-              After changing your password you will remain logged in. Make sure to remember your new password.
+              {t("settings.passwordChangeWarning")}
             </p>
           </div>
 
@@ -166,7 +169,7 @@ export default function ChangePasswordPage() {
               disabled={isSaving}
               className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer disabled:opacity-60"
             >
-              Cancel
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
@@ -174,7 +177,7 @@ export default function ChangePasswordPage() {
               className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all cursor-pointer shadow-lg shadow-[#0F69B0]/25 disabled:opacity-60 disabled:cursor-not-allowed"
               style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
             >
-              {isSaving ? (<><Loader2 className="h-4 w-4 animate-spin" />Changing...</>) : (<><Save className="h-4 w-4" />Change Password</>)}
+              {isSaving ? (<><Loader2 className="h-4 w-4 animate-spin" />{t("settings.changingPassword")}</>) : (<><Save className="h-4 w-4" />{t("settings.changePasswordBtn")}</>)}
             </button>
           </div>
         </form>

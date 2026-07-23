@@ -8,16 +8,10 @@ import {
 import { formatDate } from "@/lib/helpers";
 import { getFileUrl } from "@/lib/fileUrl";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
-export default function ProductTable({
-  products = [],
-  onView,
-  onEdit,
-  onDelete,
-  onArchive,
-  onUnarchive,
-  onToggleStatus,
-}) {
+export default function ProductTable({ products = [], onView, onEdit, onDelete, onArchive, onUnarchive, onToggleStatus }) {
+  const { t } = useTranslation();
   const safeProducts = Array.isArray(products) ? products.filter(Boolean) : [];
   if (safeProducts.length === 0) return null;
 
@@ -26,8 +20,17 @@ export default function ProductTable({
       <table className="w-full">
         <thead>
           <tr style={{ borderBottom: "2px solid rgba(15,105,176,0.06)" }}>
-            {["Product", "Category", "Price", "Stock", "Status", "Approval", "Created", "Actions"].map((h) => (
-              <th key={h} className="text-left py-3.5 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 whitespace-nowrap">{h}</th>
+            {[
+              t("products.product"),
+              t("products.category"),
+              t("products.price"),
+              t("products.stock"),
+              t("products.statusHeader"),
+              t("products.approval"),
+              t("products.created"),
+              t("products.actions"),
+            ].map((h) => (
+              <th key={h} className="text-start py-3.5 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 whitespace-nowrap">{h}</th>
             ))}
           </tr>
         </thead>
@@ -77,7 +80,7 @@ export default function ProductTable({
                   </p>
                   {product.purchasePrice !== undefined && (
                     <p className="text-[10px] text-muted-foreground font-medium whitespace-nowrap">
-                      Cost: AFN {Number(product.purchasePrice).toLocaleString()}
+                      {t("products.cost")}: AFN {Number(product.purchasePrice).toLocaleString()}
                     </p>
                   )}
                 </td>
@@ -85,40 +88,29 @@ export default function ProductTable({
                 <td className="py-4 px-4">
                   <span className={cn(
                     "text-xs font-bold px-2 py-0.5 rounded-lg whitespace-nowrap",
-                    isOutOfStock
-                      ? "bg-red-50 dark:bg-red-900/20 text-red-500"
-                      : isLowStock
-                      ? "bg-orange-50 dark:bg-orange-900/20 text-orange-500"
-                      : "bg-green-50 dark:bg-green-900/20 text-green-600"
+                    isOutOfStock ? "bg-red-50 dark:bg-red-900/20 text-red-500" : isLowStock ? "bg-orange-50 dark:bg-orange-900/20 text-orange-500" : "bg-green-50 dark:bg-green-900/20 text-green-600"
                   )}>
-                    {isOutOfStock ? "Out of Stock" : `${product.stock} left`}
+                    {isOutOfStock ? t("products.outOfStock") : `${product.stock} ${t("products.left")}`}
                   </span>
                 </td>
 
                 <td className="py-4 px-4">
                   <span className={cn(
                     "inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg",
-                    product.isArchived
-                      ? "bg-amber-500/10 text-amber-600"
-                      : "bg-emerald-500/10 text-emerald-600"
+                    product.isArchived ? "bg-amber-500/10 text-amber-600" : "bg-emerald-500/10 text-emerald-600"
                   )}>
                     <span className={cn("h-1.5 w-1.5 rounded-full", product.isArchived ? "bg-amber-500" : "bg-emerald-500")} />
-                    {product.isArchived ? "Archived" : "Live"}
+                    {product.isArchived ? t("products.archived") : t("products.live")}
                   </span>
                 </td>
 
                 <td className="py-4 px-4">
                   <span className={cn(
                     "inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg",
-                    isApproved
-                      ? "bg-emerald-500/10 text-emerald-600"
-                      : "bg-amber-500/10 text-amber-600"
+                    isApproved ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
                   )}>
-                    {isApproved
-                      ? <CheckCircle className="h-3 w-3" />
-                      : <Clock className="h-3 w-3" />
-                    }
-                    {isApproved ? "Approved" : "Pending"}
+                    {isApproved ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                    {isApproved ? t("products.approved") : t("products.pending")}
                   </span>
                 </td>
 
@@ -128,57 +120,29 @@ export default function ProductTable({
 
                 <td className="py-4 px-4">
                   <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => onView?.(product)}
-                      className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer"
-                      title="View"
-                    >
+                    <button onClick={() => onView?.(product)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer" title={t("products.view")}>
                       <Eye className="h-3.5 w-3.5" />
                     </button>
-                    <button
-                      onClick={() => onEdit?.(product)}
-                      className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer"
-                      title="Edit"
-                    >
+                    <button onClick={() => onEdit?.(product)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer" title={t("products.edit")}>
                       <Edit2 className="h-3.5 w-3.5" />
                     </button>
                     <button
                       onClick={() => onToggleStatus?.(product)}
-                      className={cn(
-                        "h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer",
-                        isApproved
-                          ? "hover:bg-amber-50 dark:hover:bg-amber-900/20 text-muted-foreground hover:text-amber-600"
-                          : "hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-muted-foreground hover:text-emerald-600"
-                      )}
-                      title={isApproved ? "Set Pending" : "Approve"}
+                      className={cn("h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer", isApproved ? "hover:bg-amber-50 dark:hover:bg-amber-900/20 text-muted-foreground hover:text-amber-600" : "hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-muted-foreground hover:text-emerald-600")}
+                      title={isApproved ? t("products.setPending") : t("products.approve")}
                     >
-                      {isApproved
-                        ? <Clock className="h-3.5 w-3.5" />
-                        : <CheckCircle className="h-3.5 w-3.5" />
-                      }
+                      {isApproved ? <Clock className="h-3.5 w-3.5" /> : <CheckCircle className="h-3.5 w-3.5" />}
                     </button>
                     {product.isArchived ? (
-                      <button
-                        onClick={() => onUnarchive?.(product)}
-                        className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-muted-foreground hover:text-emerald-600 transition-all cursor-pointer"
-                        title="Unarchive"
-                      >
+                      <button onClick={() => onUnarchive?.(product)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-muted-foreground hover:text-emerald-600 transition-all cursor-pointer" title={t("products.unarchive")}>
                         <ArchiveRestore className="h-3.5 w-3.5" />
                       </button>
                     ) : (
-                      <button
-                        onClick={() => onArchive?.(product)}
-                        className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-amber-50 dark:hover:bg-amber-900/20 text-muted-foreground hover:text-amber-600 transition-all cursor-pointer"
-                        title="Archive"
-                      >
+                      <button onClick={() => onArchive?.(product)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-amber-50 dark:hover:bg-amber-900/20 text-muted-foreground hover:text-amber-600 transition-all cursor-pointer" title={t("products.archive")}>
                         <Archive className="h-3.5 w-3.5" />
                       </button>
                     )}
-                    <button
-                      onClick={() => onDelete?.(product)}
-                      className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500 transition-all cursor-pointer"
-                      title="Delete"
-                    >
+                    <button onClick={() => onDelete?.(product)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500 transition-all cursor-pointer" title={t("products.delete")}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>

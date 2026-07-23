@@ -1,8 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 export default function Loading() {
+  const { t } = useTranslation();
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-6">
@@ -27,7 +30,9 @@ export default function Loading() {
           <div className="h-8 w-8 rounded-lg bg-[#0F69B0] flex items-center justify-center">
             <span className="text-white font-bold text-xs">AP</span>
           </div>
-          <span className="text-sm font-medium text-muted-foreground">Loading...</span>
+          <span className="text-sm font-medium text-muted-foreground">
+            {t("common.loading")}
+          </span>
         </motion.div>
       </div>
     </div>

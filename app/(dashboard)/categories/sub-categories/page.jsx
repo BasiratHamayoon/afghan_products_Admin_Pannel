@@ -29,12 +29,7 @@ import {
 import { loadCategoryOptions } from "@/store/actions/selectActions";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
-
-const TABS = [
-  { id: "all", label: "All" },
-  { id: "active", label: "Active" },
-  { id: "archived", label: "Archived" },
-];
+import { useTranslation } from "react-i18next";
 
 const DEBOUNCE_DELAY = 500;
 const PAGE_LIMIT = 10;
@@ -42,6 +37,7 @@ const PAGE_LIMIT = 10;
 export default function SubCategoriesPage() {
   const dispatch = useDispatch();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const { subCategories, isLoading, pagination, stats } = useSelector((state) => state.subCategories);
   const { categoryOptions: reduxCatOptions } = useSelector((state) => state.select);
@@ -59,8 +55,14 @@ export default function SubCategoriesPage() {
   const searchDebounceRef = useRef(null);
   const hasFetchedRef = useRef(false);
 
+  const TABS = [
+    { id: "all", label: t("categories.all") },
+    { id: "active", label: t("categories.active") },
+    { id: "archived", label: t("categories.archived") },
+  ];
+
   const categoryFilterOptions = [
-    { value: "all", label: "All Categories" },
+    { value: "all", label: t("categories.allCategories") },
     ...reduxCatOptions.map((c) => ({ value: c.id || c._id, label: c.name })),
   ];
 
@@ -133,21 +135,18 @@ export default function SubCategoriesPage() {
 
   const handleArchiveConfirm = async () => {
     const { item, action } = archiveDialog;
-    if (!item?.id) {
-      setArchiveDialog({ open: false, item: null, action: null });
-      return;
-    }
+    if (!item?.id) { setArchiveDialog({ open: false, item: null, action: null }); return; }
     setIsActioning(true);
     try {
       const fn = action === "archive" ? archiveSubCategoryAction : unarchiveSubCategoryAction;
       const res = await dispatch(fn(item.id));
       if (res?.success) {
-        toast.success(action === "archive" ? "Subcategory archived" : "Subcategory unarchived");
+        toast.success(action === "archive" ? t("categories.subcategoryArchived") : t("categories.subcategoryUnarchived"));
       } else {
-        toast.error(res?.message || "Action failed");
+        toast.error(res?.message || t("categories.actionFailed"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(t("categories.somethingWentWrong"));
     } finally {
       setIsActioning(false);
       setArchiveDialog({ open: false, item: null, action: null });
@@ -158,19 +157,19 @@ export default function SubCategoriesPage() {
     const { item } = deleteDialog;
     if (!item?.id || !item?.slug) {
       setDeleteDialog({ open: false, item: null });
-      toast.error("Missing data for deletion");
+      toast.error(t("categories.missingDataForDeletion"));
       return;
     }
     setIsDeleting(true);
     try {
       const res = await dispatch(deleteSubCategoryAction(item.id, item.slug));
       if (res?.success) {
-        toast.success("Subcategory deleted");
+        toast.success(t("categories.subcategoryDeleted"));
       } else {
-        toast.error(res?.message || "Failed to delete");
+        toast.error(res?.message || t("categories.failedToDelete"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(t("categories.somethingWentWrong"));
     } finally {
       setIsDeleting(false);
       setDeleteDialog({ open: false, item: null });
@@ -200,11 +199,7 @@ export default function SubCategoriesPage() {
   const archivedFromStats = stats?.archived ?? archivedCount;
 
   const commonProps = {
-    onView: (it) => {
-      if (it?.slug) {
-        router.push(`/categories/sub-categories/${it.slug}`);
-      }
-    },
+    onView: (it) => { if (it?.slug) router.push(`/categories/sub-categories/${it.slug}`); },
     onEdit: (it) => router.push(`/categories/sub-categories/add?edit=${it.id}&slug=${it.slug || ""}`),
     onArchive: (it) => setArchiveDialog({ open: true, item: it, action: "archive" }),
     onUnarchive: (it) => setArchiveDialog({ open: true, item: it, action: "unarchive" }),
@@ -214,7 +209,7 @@ export default function SubCategoriesPage() {
   return (
     <div className="space-y-5">
       <Breadcrumb />
-      <PageHeader title="Sub Categories" description="Manage all subcategories">
+      <PageHeader title={t("sidebar.subCategories")} description={t("categories.description")}>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           <motion.button
             whileHover={{ scale: 1.02 }}
@@ -224,16 +219,16 @@ export default function SubCategoriesPage() {
             style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
           >
             <Plus className="h-4 w-4" />
-            Add Subcategory
+            {t("categories.addSubcategory")}
           </motion.button>
         </div>
       </PageHeader>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatsCard title="Total" value={totalFromStats} icon={FolderTree} color="rgba(15,105,176,0.08)" index={0} />
-        <StatsCard title="Active" value={activeFromStats} icon={FolderOpen} color="rgba(16,185,129,0.08)" index={1} />
-        <StatsCard title="Archived" value={archivedFromStats} icon={Layers} color="rgba(245,158,11,0.08)" index={2} />
-        <StatsCard title="Shown" value={filteredItems.length} icon={Package} color="rgba(124,58,237,0.08)" index={3} />
+        <StatsCard title={t("categories.total")} value={totalFromStats} icon={FolderTree} color="rgba(15,105,176,0.08)" index={0} />
+        <StatsCard title={t("categories.active")} value={activeFromStats} icon={FolderOpen} color="rgba(16,185,129,0.08)" index={1} />
+        <StatsCard title={t("categories.archived")} value={archivedFromStats} icon={Layers} color="rgba(245,158,11,0.08)" index={2} />
+        <StatsCard title={t("categories.shown")} value={filteredItems.length} icon={Package} color="rgba(124,58,237,0.08)" index={3} />
       </div>
 
       <div className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden">
@@ -260,12 +255,12 @@ export default function SubCategoriesPage() {
         <div className="p-4 border-b border-gray-50 dark:border-white/[0.04]">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex-1 min-w-[180px]">
-              <SearchInput value={searchQuery} onChange={handleSearchChange} placeholder="Search subcategories..." />
+              <SearchInput value={searchQuery} onChange={handleSearchChange} placeholder={t("categories.searchSubcategoriesPlaceholder")} />
             </div>
-            <FilterDropdown label="Category" value={categoryFilter} options={categoryFilterOptions} onChange={handleCategoryFilterChange} />
+            <FilterDropdown label={t("categories.categoryField")} value={categoryFilter} options={categoryFilterOptions} onChange={handleCategoryFilterChange} />
             {searchQuery && (
               <button onClick={handleClearSearch} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40">
-                <X className="h-3.5 w-3.5" />Clear
+                <X className="h-3.5 w-3.5" />{t("categories.clear")}
               </button>
             )}
             <button onClick={handleRefresh} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer border border-gray-200 dark:border-white/[0.08]" title="Refresh">
@@ -279,27 +274,34 @@ export default function SubCategoriesPage() {
                 <Grid3X3 className="h-4 w-4" />
               </button>
             </div>
-            <p className="text-[11px] text-muted-foreground font-medium">{filteredItems.length} result{filteredItems.length !== 1 ? "s" : ""}</p>
+            <p className="text-[11px] text-muted-foreground font-medium">
+              {filteredItems.length} {filteredItems.length !== 1 ? t("categories.resultsPlural") : t("categories.results")}
+            </p>
           </div>
         </div>
 
         <div className="p-4">
           {isLoading ? (
-            <LoadingSpinner size="lg" text="Loading subcategories..." className="py-16" />
+            <LoadingSpinner size="lg" text={t("categories.loadingSubcategories")} className="py-16" />
           ) : filteredItems.length === 0 ? (
             <EmptyState
               icon={FolderTree}
-              title="No subcategories found"
-              description={searchQuery ? "Try adjusting your search" : activeTab === "archived" ? "No archived subcategories" : activeTab === "active" ? "No active subcategories" : "Create your first subcategory"}
+              title={t("categories.noSubcategoriesFound")}
+              description={
+                searchQuery ? t("categories.tryAdjustingSearch")
+                  : activeTab === "archived" ? t("categories.noArchivedSubcategories")
+                  : activeTab === "active" ? t("categories.noActiveSubcategories")
+                  : t("categories.createFirstSubcategory")
+              }
               action={
                 <div className="flex items-center gap-3 flex-wrap justify-center">
                   {searchQuery && (
                     <button onClick={handleClearSearch} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
-                      Clear Search
+                      {t("categories.clearSearch")}
                     </button>
                   )}
                   <button onClick={() => router.push("/categories/sub-categories/add")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
-                    <Plus className="h-4 w-4" />Add Subcategory
+                    <Plus className="h-4 w-4" />{t("categories.addSubcategory")}
                   </button>
                 </div>
               }
@@ -317,7 +319,7 @@ export default function SubCategoriesPage() {
             </>
           ) : (
             <>
-              <SharedTable items={filteredItems} extraColumns={[{ key: "categoryName", label: "Category" }]} {...commonProps} />
+              <SharedTable items={filteredItems} extraColumns={[{ key: "categoryName", label: t("categories.categoryField") }]} {...commonProps} />
               <div className="mt-4 border-t border-gray-50 dark:border-white/[0.04] pt-4">
                 <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} from={from} to={to} total={total} />
               </div>
@@ -330,9 +332,9 @@ export default function SubCategoriesPage() {
         open={archiveDialog.open}
         onClose={() => setArchiveDialog({ open: false, item: null, action: null })}
         onConfirm={handleArchiveConfirm}
-        title={archiveDialog.action === "archive" ? "Archive Subcategory" : "Unarchive Subcategory"}
-        description={archiveDialog.item ? `Are you sure you want to ${archiveDialog.action} "${archiveDialog.item.name}"?` : "Are you sure?"}
-        confirmLabel={archiveDialog.action === "archive" ? "Archive" : "Unarchive"}
+        title={archiveDialog.action === "archive" ? t("categories.archiveSubcategory") : t("categories.unarchiveSubcategory")}
+        description={archiveDialog.item ? `${archiveDialog.action === "archive" ? t("categories.archiveDesc") : t("categories.unarchiveDesc")} "${archiveDialog.item.name}"?` : t("categories.areYouSure")}
+        confirmLabel={archiveDialog.action === "archive" ? t("categories.archive") : t("categories.unarchive")}
         isLoading={isActioning}
         variant={archiveDialog.action === "archive" ? "warning" : "primary"}
       />
@@ -341,9 +343,9 @@ export default function SubCategoriesPage() {
         open={deleteDialog.open}
         onClose={() => setDeleteDialog({ open: false, item: null })}
         onConfirm={handleDeleteConfirm}
-        title="Delete Subcategory"
-        description={deleteDialog.item ? `Are you sure you want to permanently delete "${deleteDialog.item.name}"? This cannot be undone.` : "Are you sure?"}
-        confirmLabel="Delete"
+        title={t("categories.deleteSubcategory")}
+        description={deleteDialog.item ? `${t("categories.deleteSubcategoryDesc")} "${deleteDialog.item.name}"${t("categories.deleteSuffix")}` : t("categories.areYouSure")}
+        confirmLabel={t("categories.delete")}
         isLoading={isDeleting}
         variant="danger"
       />

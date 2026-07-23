@@ -2,14 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Mail,
-  ArrowLeft,
-  ArrowRight,
-  Loader2,
-  CheckCircle,
-  Send,
-} from "lucide-react";
+import { Mail, ArrowLeft, ArrowRight, Loader2, CheckCircle, Send } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import toast from "react-hot-toast";
@@ -17,9 +10,11 @@ import { useDispatch, useSelector } from "react-redux";
 import { forgotPassword } from "@/store/actions/authActions";
 import { clearForgotPasswordState } from "@/store/slices/authSlice";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useTranslation } from "react-i18next";
 
 export default function ForgotPasswordPage() {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { forgotPasswordLoading, forgotPasswordSuccess, forgotPasswordError } =
     useSelector((state) => state.auth);
 
@@ -40,9 +35,9 @@ export default function ForgotPasswordPage() {
 
   useEffect(() => {
     if (forgotPasswordSuccess) {
-      toast.success("Reset link sent to your email!");
+      toast.success(t("auth.emailSent"));
     }
-  }, [forgotPasswordSuccess]);
+  }, [forgotPasswordSuccess, t]);
 
   const performForgotPassword = useCallback(
     async (emailVal) => {
@@ -52,10 +47,7 @@ export default function ForgotPasswordPage() {
     [dispatch]
   );
 
-  const { debouncedCallback: debouncedForgotPassword } = useDebounce(
-    performForgotPassword,
-    300
-  );
+  const { debouncedCallback: debouncedForgotPassword } = useDebounce(performForgotPassword, 300);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -76,7 +68,6 @@ export default function ForgotPasswordPage() {
         <div className="absolute -top-20 -right-20 w-44 h-44 bg-[#0F69B0]/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-20 -left-20 w-44 h-44 bg-violet-500/12 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Header */}
         <div className="relative px-8 pt-9 pb-4 flex flex-col items-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.75 }}
@@ -113,10 +104,10 @@ export default function ForgotPasswordPage() {
                   </motion.div>
                 </div>
                 <h1 className="text-xl font-black tracking-tight bg-gradient-to-br from-gray-900 via-gray-800 to-gray-600 dark:from-white dark:via-white/90 dark:to-white/60 bg-clip-text text-transparent">
-                  Email Sent!
+                  {t("auth.emailSent")}
                 </h1>
                 <p className="text-xs text-muted-foreground font-medium">
-                  Check your inbox for the reset link
+                  {t("auth.checkInbox")}
                 </p>
               </motion.div>
             ) : (
@@ -132,25 +123,21 @@ export default function ForgotPasswordPage() {
                   </div>
                   <motion.div
                     className="absolute -inset-1.5 rounded-2xl border-2 border-[#0F69B0]/20"
-                    animate={{
-                      scale: [1, 1.12, 1],
-                      opacity: [0.5, 0, 0.5],
-                    }}
+                    animate={{ scale: [1, 1.12, 1], opacity: [0.5, 0, 0.5] }}
                     transition={{ duration: 2, repeat: Infinity }}
                   />
                 </div>
                 <h1 className="text-xl font-black tracking-tight bg-gradient-to-br from-gray-900 via-gray-800 to-gray-600 dark:from-white dark:via-white/90 dark:to-white/60 bg-clip-text text-transparent">
-                  Forgot Password?
+                  {t("auth.forgotPasswordTitle")}
                 </h1>
                 <p className="text-xs text-muted-foreground mt-1 font-medium">
-                  Enter your email to receive a reset link
+                  {t("auth.forgotPasswordSubtitle")}
                 </p>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* Content */}
         <div className="relative px-8 pb-9">
           <AnimatePresence mode="wait">
             {forgotPasswordSuccess ? (
@@ -162,19 +149,19 @@ export default function ForgotPasswordPage() {
               >
                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 rounded-xl p-3.5 text-center">
                   <p className="text-[11px] text-muted-foreground mb-1">
-                    Reset link sent to
+                    {t("auth.resetLinkSentTo")}
                   </p>
                   <p className="text-sm font-bold text-green-700 dark:text-green-400 font-mono">
                     {email}
                   </p>
                 </div>
                 <p className="text-[11px] text-center text-muted-foreground">
-                  Didn&apos;t receive it?{" "}
+                  {t("auth.didntReceive")}{" "}
                   <button
                     onClick={() => dispatch(clearForgotPasswordState())}
                     className="text-[#0F69B0] font-bold hover:underline cursor-pointer underline-offset-4"
                   >
-                    Try again
+                    {t("common.tryAgain")}
                   </button>
                 </p>
                 <Link
@@ -182,7 +169,7 @@ export default function ForgotPasswordPage() {
                   className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl border-2 border-gray-200/80 dark:border-white/10 hover:border-[#0F69B0]/35 bg-white/60 dark:bg-white/5 text-sm font-bold transition-all hover:bg-[#0F69B0]/5 cursor-pointer text-foreground"
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  Back to Sign In
+                  {t("auth.backToSignIn")}
                 </Link>
               </motion.div>
             ) : (
@@ -193,7 +180,6 @@ export default function ForgotPasswordPage() {
                 onSubmit={handleSubmit}
                 className="space-y-3"
               >
-                {/* Email Field */}
                 <div
                   className={`relative flex items-center rounded-xl border-2 transition-all duration-300 ${
                     focusedField === "email"
@@ -203,9 +189,7 @@ export default function ForgotPasswordPage() {
                 >
                   <div
                     className={`absolute left-4 transition-all duration-300 ${
-                      focusedField === "email"
-                        ? "text-[#0F69B0]"
-                        : "text-gray-400 dark:text-white/30"
+                      focusedField === "email" ? "text-[#0F69B0]" : "text-gray-400 dark:text-white/30"
                     }`}
                   >
                     <Mail className="h-4 w-4" />
@@ -216,7 +200,7 @@ export default function ForgotPasswordPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     onFocus={() => setFocusedField("email")}
                     onBlur={() => setFocusedField(null)}
-                    placeholder="Email address"
+                    placeholder={t("auth.emailAddress")}
                     className="w-full bg-transparent pl-11 pr-4 py-3.5 text-sm outline-none placeholder:text-gray-400/60 dark:placeholder:text-white/25 text-foreground cursor-text font-medium"
                     required
                     disabled={forgotPasswordLoading}
@@ -224,7 +208,6 @@ export default function ForgotPasswordPage() {
                   />
                 </div>
 
-                {/* Error */}
                 <AnimatePresence>
                   {forgotPasswordError && (
                     <motion.div
@@ -242,7 +225,6 @@ export default function ForgotPasswordPage() {
                   )}
                 </AnimatePresence>
 
-                {/* Submit Button */}
                 <motion.button
                   whileHover={{ scale: forgotPasswordLoading ? 1 : 1.015 }}
                   whileTap={{ scale: forgotPasswordLoading ? 1 : 0.97 }}
@@ -254,21 +236,17 @@ export default function ForgotPasswordPage() {
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12"
                     animate={{ x: ["-130%", "130%"] }}
-                    transition={{
-                      duration: 2.2,
-                      repeat: Infinity,
-                      repeatDelay: 2.5,
-                    }}
+                    transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 2.5 }}
                   />
                   <div className="relative flex items-center gap-2">
                     {forgotPasswordLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Sending...</span>
+                        <span>{t("auth.sending")}</span>
                       </>
                     ) : (
                       <>
-                        <span>Send Reset Link</span>
+                        <span>{t("auth.sendResetLink")}</span>
                         <ArrowRight className="h-4 w-4" />
                       </>
                     )}
@@ -280,7 +258,7 @@ export default function ForgotPasswordPage() {
                   className="flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer pt-0.5 font-semibold"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" />
-                  Back to Sign In
+                  {t("auth.backToSignIn")}
                 </Link>
               </motion.form>
             )}

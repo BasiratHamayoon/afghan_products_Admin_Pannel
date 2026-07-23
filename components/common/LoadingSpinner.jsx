@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
 
 export default function LoadingSpinner({ size = "md", className, text }) {
   const sizes = {
@@ -12,12 +11,7 @@ export default function LoadingSpinner({ size = "md", className, text }) {
 
   return (
     <div className={cn("flex flex-col items-center justify-center gap-3", className)}>
-      <div
-        className={cn(
-          "rounded-full border-[#0F69B0]/20 border-t-[#0F69B0] animate-spin",
-          sizes[size]
-        )}
-      />
+      <div className={cn("rounded-full border-[#0F69B0]/20 border-t-[#0F69B0] animate-spin", sizes[size])} />
       {text && <p className="text-sm text-muted-foreground font-medium">{text}</p>}
     </div>
   );

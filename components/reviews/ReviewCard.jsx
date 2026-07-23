@@ -4,17 +4,19 @@ import { motion } from "framer-motion";
 import { Eye, EyeOff, Trash2, Star, User, Building, Package } from "lucide-react";
 import { formatDate } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
-
-function getSubjectLabel(item) {
-  if (item.productName) return { name: item.productName, type: "Product" };
-  if (item.businessName) return { name: item.businessName, type: "Business" };
-  if (item.type === "SELLER") return { name: "Seller Review", type: "Seller" };
-  if (item.type === "PRODUCT") return { name: "Product Review", type: "Product" };
-  return { name: "—", type: "—" };
-}
+import { useTranslation } from "react-i18next";
 
 export default function ReviewCard({ item, index, onToggleVisibility, onDelete }) {
+  const { t } = useTranslation();
   if (!item) return null;
+
+  function getSubjectLabel(review) {
+    if (review.productName) return { name: review.productName, type: t("reviews.product") };
+    if (review.businessName) return { name: review.businessName, type: t("reviews.business") };
+    if (review.type === "SELLER") return { name: t("reviews.sellerReview"), type: t("reviews.seller") };
+    if (review.type === "PRODUCT") return { name: t("reviews.productReview"), type: t("reviews.product") };
+    return { name: "—", type: "—" };
+  }
 
   const subject = getSubjectLabel(item);
   const SubjectIcon = item.type === "SELLER" || item.businessName ? Building : Package;
@@ -32,48 +34,33 @@ export default function ReviewCard({ item, index, onToggleVisibility, onDelete }
             <User className="h-5 w-5 text-[#0F69B0]" />
           </div>
           <div>
-            <p className="text-sm font-black text-foreground">{item.userName || "Unknown"}</p>
+            <p className="text-sm font-black text-foreground">{item.userName || t("reviews.unknown")}</p>
             {item.userEmail && (
               <p className="text-[10px] text-muted-foreground font-medium">{item.userEmail}</p>
             )}
           </div>
         </div>
-        <span
-          className={cn(
-            "text-[10px] font-bold px-2 py-0.5 rounded-full",
-            item.isVisible
-              ? "bg-emerald-500/10 text-emerald-600"
-              : "bg-red-500/10 text-red-500"
-          )}
-        >
-          {item.isVisible ? "Visible" : "Hidden"}
+        <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full", item.isVisible ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-500")}>
+          {item.isVisible ? t("reviews.visibleStatus") : t("reviews.hiddenStatus")}
         </span>
       </div>
 
       <div className="flex items-center gap-2 mb-2">
         <div className="flex items-center gap-0.5">
           {[1, 2, 3, 4, 5].map((s) => (
-            <Star
-              key={s}
-              className={cn(
-                "h-3.5 w-3.5",
-                s <= (item.rating || 0)
-                  ? "fill-yellow-400 text-yellow-400"
-                  : "text-gray-200 dark:text-white/10"
-              )}
-            />
+            <Star key={s} className={cn("h-3.5 w-3.5", s <= (item.rating || 0) ? "fill-yellow-400 text-yellow-400" : "text-gray-200 dark:text-white/10")} />
           ))}
         </div>
         <span className="text-xs font-bold text-foreground">{item.rating || 0}/5</span>
         {item.type && (
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#0F69B0]/10 text-[#0F69B0] ml-auto">
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#0F69B0]/10 text-[#0F69B0] ms-auto">
             {item.type}
           </span>
         )}
       </div>
 
       <p className="text-xs text-muted-foreground font-medium line-clamp-3 leading-relaxed mb-3">
-        {item.comment || "No comment"}
+        {item.comment || t("reviews.noComment")}
       </p>
 
       <div className="flex items-center gap-2 mb-3">
@@ -85,26 +72,19 @@ export default function ReviewCard({ item, index, onToggleVisibility, onDelete }
       </div>
 
       <div className="flex items-center justify-between">
-        <span className="text-[10px] text-muted-foreground font-medium">
-          {formatDate(item.createdAt)}
-        </span>
+        <span className="text-[10px] text-muted-foreground font-medium">{formatDate(item.createdAt)}</span>
         <div className="flex items-center gap-1">
           <button
             onClick={() => onToggleVisibility?.(item)}
-            className={cn(
-              "h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer",
-              item.isVisible
-                ? "hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500"
-                : "hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-muted-foreground hover:text-emerald-600"
-            )}
-            title={item.isVisible ? "Hide" : "Show"}
+            className={cn("h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer", item.isVisible ? "hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500" : "hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-muted-foreground hover:text-emerald-600")}
+            title={item.isVisible ? t("reviews.hide") : t("reviews.show")}
           >
             {item.isVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
           </button>
           <button
             onClick={() => onDelete?.(item)}
             className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500 transition-all cursor-pointer"
-            title="Delete"
+            title={t("reviews.delete")}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>

@@ -5,6 +5,7 @@ import "../styles/animations.css";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import StoreProvider from "@/store/StoreProvider";
 import { Toaster } from "react-hot-toast";
+import I18nProvider from "@/i18n/I18nProvider";
 
 export default function RootLayout({ children }) {
   return (
@@ -17,32 +18,38 @@ export default function RootLayout({ children }) {
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
           rel="stylesheet"
         />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap"
+          rel="stylesheet"
+        />
       </head>
-      <body className="font-[Inter] antialiased">
-        <StoreProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem
-            disableTransitionOnChange={false}
-          >
-            {children}
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: "hsl(var(--card))",
-                  color: "hsl(var(--foreground))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "14px",
-                  fontSize: "13px",
-                  fontWeight: "500",
-                },
-              }}
-            />
-          </ThemeProvider>
-        </StoreProvider>
+      <body className="font-[Inter] antialiased" suppressHydrationWarning>
+        <I18nProvider>
+          <StoreProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="light"
+              enableSystem
+              disableTransitionOnChange={false}
+            >
+              {children}
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  duration: 4000,
+                  style: {
+                    background: "hsl(var(--card))",
+                    color: "hsl(var(--foreground))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "14px",
+                    fontSize: "13px",
+                    fontWeight: "500",
+                  },
+                }}
+              />
+            </ThemeProvider>
+          </StoreProvider>
+        </I18nProvider>
       </body>
     </html>
   );

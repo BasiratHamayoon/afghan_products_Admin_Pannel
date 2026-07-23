@@ -10,10 +10,12 @@ import Breadcrumb from "@/components/layout/Breadcrumb";
 import ProductForm from "@/components/products/ProductForm";
 import { createProduct } from "@/store/actions/productsActions";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 export default function AddProductPage() {
   const router = useRouter();
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (formData) => {
@@ -21,13 +23,13 @@ export default function AddProductPage() {
     try {
       const res = await dispatch(createProduct(formData));
       if (res?.success) {
-        toast.success("Product created successfully!");
+        toast.success(t("products.productCreated"));
         router.push("/products");
       } else {
-        toast.error(res?.message || "Failed to create product");
+        toast.error(res?.message || t("products.failedToCreate"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(t("products.somethingWentWrong"));
     } finally {
       setIsLoading(false);
     }
@@ -36,9 +38,9 @@ export default function AddProductPage() {
   return (
     <div className="space-y-5">
       <Breadcrumb />
-      <PageHeader title="Add New Product" description="Create a new product listing">
+      <PageHeader title={t("products.addNewProduct")} description={t("products.addNewProductDesc")}>
         <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => router.push("/products")} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
-          <ArrowLeft className="h-4 w-4" />Back to Products
+          <ArrowLeft className="h-4 w-4 rtl-mirror" />{t("products.back")}
         </motion.button>
       </PageHeader>
 
@@ -48,8 +50,8 @@ export default function AddProductPage() {
             <PackagePlus className="h-5 w-5 text-[#0F69B0]" />
           </div>
           <div>
-            <h2 className="text-base font-black text-foreground">Product Information</h2>
-            <p className="text-xs text-muted-foreground font-medium mt-0.5">Fill in all required details to list a new product</p>
+            <h2 className="text-base font-black text-foreground">{t("products.productInformation")}</h2>
+            <p className="text-xs text-muted-foreground font-medium mt-0.5">{t("products.fillInDetails")}</p>
           </div>
         </div>
         <ProductForm onSubmit={handleSubmit} onCancel={() => router.push("/products")} isLoading={isLoading} />

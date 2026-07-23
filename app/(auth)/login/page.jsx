@@ -8,24 +8,18 @@ import { clearError } from "@/store/slices/authSlice";
 import { loginWithEmail } from "@/store/actions/authActions";
 import { useDebounce } from "@/hooks/useDebounce";
 import {
-  Eye,
-  EyeOff,
-  Lock,
-  Mail,
-  ArrowRight,
-  Loader2,
-  ShoppingBag,
+  Eye, EyeOff, Lock, Mail, ArrowRight, Loader2, ShoppingBag,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 export default function LoginPage() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { isLoading, error, isAuthenticated } = useSelector(
-    (state) => state.auth
-  );
+  const { t } = useTranslation();
+  const { isLoading, error, isAuthenticated } = useSelector((state) => state.auth);
 
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -53,23 +47,18 @@ export default function LoginPage() {
   const performLogin = useCallback(
     async (emailVal, passwordVal) => {
       if (!emailVal || !passwordVal) return;
-
       const result = await dispatch(
         loginWithEmail({ email: emailVal, password: passwordVal })
       );
-
       if (loginWithEmail.fulfilled.match(result)) {
-        toast.success("Welcome back, Admin!");
+        toast.success(t("login.success"));
         router.push("/dashboard");
       }
     },
-    [dispatch, router]
+    [dispatch, router, t]
   );
 
-  const { debouncedCallback: debouncedLogin } = useDebounce(
-    performLogin,
-    300
-  );
+  const { debouncedCallback: debouncedLogin } = useDebounce(performLogin, 300);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -85,26 +74,18 @@ export default function LoginPage() {
       className="w-full"
     >
       <div className="relative overflow-hidden rounded-[2rem] shadow-[0_20px_80px_rgba(15,105,176,0.18)] dark:shadow-[0_20px_80px_rgba(15,105,176,0.1)]">
-        {/* Background layers */}
         <div className="absolute inset-0 bg-white/70 dark:bg-[#0a0f1e]/80 backdrop-blur-3xl" />
         <div className="absolute inset-0 bg-gradient-to-br from-[#0F69B0]/8 via-transparent to-violet-500/8" />
         <div className="absolute inset-[1px] rounded-[2rem] border border-white/70 dark:border-white/8" />
-
-        {/* Decorative blurs */}
         <div className="absolute -top-20 -right-20 w-44 h-44 bg-[#0F69B0]/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-20 -left-20 w-44 h-44 bg-violet-500/12 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute top-1/2 -right-10 w-32 h-32 bg-cyan-400/10 rounded-full blur-2xl pointer-events-none" />
 
-        {/* Header */}
         <div className="relative px-8 pt-9 pb-4 flex flex-col items-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.75, y: -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{
-              delay: 0.12,
-              duration: 0.55,
-              ease: [0.22, 1, 0.36, 1],
-            }}
+            transition={{ delay: 0.12, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
             className="mb-5"
           >
             <Image
@@ -126,22 +107,20 @@ export default function LoginPage() {
             <div className="inline-flex items-center gap-1.5 bg-gradient-to-r from-[#0F69B0]/12 to-violet-500/12 border border-[#0F69B0]/25 rounded-full px-3.5 py-1.5 mb-3">
               <ShoppingBag className="h-3 w-3 text-[#0F69B0]" />
               <span className="text-[10px] font-extrabold text-[#0F69B0] tracking-[0.15em] uppercase">
-                Store Admin
+                {t("auth.storeAdmin")}
               </span>
             </div>
             <h1 className="text-[1.6rem] font-black tracking-tight bg-gradient-to-br from-gray-900 via-gray-800 to-gray-600 dark:from-white dark:via-white/90 dark:to-white/60 bg-clip-text text-transparent leading-tight">
-              Welcome Back
+              {t("auth.welcomeBack")}
             </h1>
             <p className="text-xs text-muted-foreground mt-1 font-medium">
-              Sign in to manage your store
+              {t("auth.signInSubtitle")}
             </p>
           </motion.div>
         </div>
 
-        {/* Form */}
         <div className="relative px-8 pb-9 space-y-3.5">
           <form onSubmit={handleSubmit} className="space-y-3">
-            {/* Email Field */}
             <motion.div
               initial={{ opacity: 0, x: -18 }}
               animate={{ opacity: 1, x: 0 }}
@@ -156,9 +135,7 @@ export default function LoginPage() {
               >
                 <div
                   className={`absolute left-4 transition-all duration-300 ${
-                    focusedField === "email"
-                      ? "text-[#0F69B0]"
-                      : "text-gray-400 dark:text-white/30"
+                    focusedField === "email" ? "text-[#0F69B0]" : "text-gray-400 dark:text-white/30"
                   }`}
                 >
                   <Mail className="h-4 w-4" />
@@ -169,7 +146,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   onFocus={() => setFocusedField("email")}
                   onBlur={() => setFocusedField(null)}
-                  placeholder="Email address"
+                  placeholder={t("auth.emailAddress")}
                   className="w-full bg-transparent pl-11 pr-10 py-3.5 text-sm outline-none placeholder:text-gray-400/60 dark:placeholder:text-white/25 text-foreground cursor-text font-medium"
                   required
                   autoComplete="email"
@@ -188,7 +165,6 @@ export default function LoginPage() {
               </div>
             </motion.div>
 
-            {/* Password Field */}
             <motion.div
               initial={{ opacity: 0, x: -18 }}
               animate={{ opacity: 1, x: 0 }}
@@ -203,9 +179,7 @@ export default function LoginPage() {
               >
                 <div
                   className={`absolute left-4 transition-all duration-300 ${
-                    focusedField === "password"
-                      ? "text-[#0F69B0]"
-                      : "text-gray-400 dark:text-white/30"
+                    focusedField === "password" ? "text-[#0F69B0]" : "text-gray-400 dark:text-white/30"
                   }`}
                 >
                   <Lock className="h-4 w-4" />
@@ -216,7 +190,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   onFocus={() => setFocusedField("password")}
                   onBlur={() => setFocusedField(null)}
-                  placeholder="Password"
+                  placeholder={t("auth.password")}
                   className="w-full bg-transparent pl-11 pr-11 py-3.5 text-sm outline-none placeholder:text-gray-400/60 dark:placeholder:text-white/25 text-foreground cursor-text font-medium"
                   required
                   autoComplete="current-password"
@@ -228,16 +202,11 @@ export default function LoginPage() {
                   className="absolute right-4 text-gray-400 dark:text-white/30 hover:text-[#0F69B0] transition-colors cursor-pointer"
                   tabIndex={-1}
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </motion.div>
 
-            {/* Remember me & Forgot password */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -250,18 +219,17 @@ export default function LoginPage() {
                   className="w-3.5 h-3.5 rounded border-gray-300 accent-[#0F69B0] cursor-pointer"
                 />
                 <span className="text-[11px] text-muted-foreground group-hover:text-foreground transition-colors font-medium">
-                  Remember me
+                  {t("auth.rememberMe")}
                 </span>
               </label>
               <Link
                 href="/forgot-password"
                 className="text-[11px] font-bold text-[#0F69B0] hover:text-[#0A4F85] transition-colors cursor-pointer hover:underline underline-offset-4"
               >
-                Forgot password?
+                {t("auth.forgotPassword")}
               </Link>
             </motion.div>
 
-            {/* Error Message */}
             <AnimatePresence>
               {error && (
                 <motion.div
@@ -271,15 +239,12 @@ export default function LoginPage() {
                   className="overflow-hidden"
                 >
                   <div className="bg-red-500/8 border border-red-500/20 rounded-xl px-3.5 py-2.5">
-                    <p className="text-[11px] text-red-500 text-center font-semibold">
-                      {error}
-                    </p>
+                    <p className="text-[11px] text-red-500 text-center font-semibold">{error}</p>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Submit Button */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -297,21 +262,17 @@ export default function LoginPage() {
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12"
                   animate={{ x: ["-130%", "130%"] }}
-                  transition={{
-                    duration: 2.2,
-                    repeat: Infinity,
-                    repeatDelay: 2.5,
-                  }}
+                  transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 2.5 }}
                 />
                 <div className="relative flex items-center gap-2">
                   {isLoading ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Signing in...</span>
+                      <span>{t("auth.signingIn")}</span>
                     </>
                   ) : (
                     <>
-                      <span>Sign In</span>
+                      <span>{t("auth.signIn")}</span>
                       <motion.div
                         animate={{ x: [0, 4, 0] }}
                         transition={{ duration: 1.4, repeat: Infinity }}
@@ -327,14 +288,13 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Footer */}
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.7 }}
         className="text-center text-[10px] text-muted-foreground/70 mt-5 font-medium"
       >
-        © 2024 Afghan Products. All rights reserved.
+        {t("auth.copyright")}
       </motion.p>
     </motion.div>
   );

@@ -3,10 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
-import {
-  MessageCircle, X, Mail, RefreshCw,
-  CheckCircle, Eye, Archive,
-} from "lucide-react";
+import { MessageCircle, X, Mail, RefreshCw, CheckCircle, Eye, Archive } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import ContactMessagesTable from "@/components/contact-us/ContactMessagesTable";
@@ -16,21 +13,10 @@ import Pagination from "@/components/common/Pagination";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import EmptyState from "@/components/common/EmptyState";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
-import {
-  fetchContactMessages,
-  archiveContactMessageAction,
-  unarchiveContactMessageAction,
-} from "@/store/actions/contactUsActions";
+import { fetchContactMessages, archiveContactMessageAction, unarchiveContactMessageAction } from "@/store/actions/contactUsActions";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
-
-const TABS = [
-  { id: "all", label: "All Messages" },
-  { id: "UNREAD", label: "Unread" },
-  { id: "READ", label: "Read" },
-  { id: "REPLIED", label: "Replied" },
-  { id: "archived", label: "Archived" },
-];
+import { useTranslation } from "react-i18next";
 
 const DEBOUNCE_DELAY = 500;
 const PAGE_LIMIT = 10;
@@ -38,6 +24,7 @@ const PAGE_LIMIT = 10;
 export default function ContactUsPage() {
   const dispatch = useDispatch();
   const router = useRouter();
+  const { t } = useTranslation();
   const { messages, isLoading, pagination } = useSelector((state) => state.contactUs);
 
   const [activeTab, setActiveTab] = useState("all");
@@ -48,6 +35,14 @@ export default function ContactUsPage() {
 
   const searchDebounceRef = useRef(null);
   const hasFetched = useRef(false);
+
+  const TABS = [
+    { id: "all", label: t("contactUs.allMessages") },
+    { id: "UNREAD", label: t("contactUs.unread") },
+    { id: "READ", label: t("contactUs.read") },
+    { id: "REPLIED", label: t("contactUs.replied") },
+    { id: "archived", label: t("contactUs.archived") },
+  ];
 
   const buildParams = useCallback((page, search, tab) => {
     const params = { page, limit: PAGE_LIMIT };
@@ -119,27 +114,24 @@ export default function ContactUsPage() {
 
   const handleArchiveConfirm = useCallback(async () => {
     const { item, action } = archiveDialog;
-    if (!item?.id) {
-      setArchiveDialog({ open: false, item: null, action: null });
-      return;
-    }
+    if (!item?.id) { setArchiveDialog({ open: false, item: null, action: null }); return; }
     setIsActioning(true);
     try {
       const fn = action === "archive" ? archiveContactMessageAction : unarchiveContactMessageAction;
       const res = await dispatch(fn(item.id));
       if (res?.success) {
-        toast.success(action === "archive" ? "Message archived" : "Message unarchived");
+        toast.success(action === "archive" ? t("contactUs.messageArchived") : t("contactUs.messageUnarchived"));
         triggerFetch(currentPage, searchQuery, activeTab);
       } else {
-        toast.error(res?.message || "Action failed");
+        toast.error(res?.message || t("contactUs.actionFailed"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(t("contactUs.somethingWentWrong"));
     } finally {
       setIsActioning(false);
       setArchiveDialog({ open: false, item: null, action: null });
     }
-  }, [archiveDialog, dispatch, triggerFetch, currentPage, searchQuery, activeTab]);
+  }, [archiveDialog, dispatch, triggerFetch, currentPage, searchQuery, activeTab, t]);
 
   const safeMessages = Array.isArray(messages) ? messages.filter(Boolean) : [];
   const total = pagination?.total || safeMessages.length;
@@ -158,13 +150,13 @@ export default function ContactUsPage() {
   return (
     <div className="space-y-5">
       <Breadcrumb />
-      <PageHeader title="Contact Messages" description="View and manage all contact form submissions" />
+      <PageHeader title={t("contactUs.title")} description={t("contactUs.description")} />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatsCard title="Total Messages" value={total} icon={MessageCircle} color="rgba(15,105,176,0.08)" index={0} />
-        <StatsCard title="Unread" value={tabCounts.UNREAD} icon={Mail} color="rgba(59,130,246,0.08)" index={1} />
-        <StatsCard title="Read" value={tabCounts.READ} icon={Eye} color="rgba(245,158,11,0.08)" index={2} />
-        <StatsCard title="Replied" value={tabCounts.REPLIED} icon={CheckCircle} color="rgba(16,185,129,0.08)" index={3} />
+        <StatsCard title={t("contactUs.totalMessages")} value={total} icon={MessageCircle} color="rgba(15,105,176,0.08)" index={0} />
+        <StatsCard title={t("contactUs.unread")} value={tabCounts.UNREAD} icon={Mail} color="rgba(59,130,246,0.08)" index={1} />
+        <StatsCard title={t("contactUs.read")} value={tabCounts.READ} icon={Eye} color="rgba(245,158,11,0.08)" index={2} />
+        <StatsCard title={t("contactUs.replied")} value={tabCounts.REPLIED} icon={CheckCircle} color="rgba(16,185,129,0.08)" index={3} />
       </div>
 
       <div className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden">
@@ -173,12 +165,7 @@ export default function ContactUsPage() {
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
-              className={cn(
-                "flex items-center gap-2 px-5 py-4 text-xs font-bold transition-all cursor-pointer whitespace-nowrap border-b-2",
-                activeTab === tab.id
-                  ? "border-[#0F69B0] text-[#0F69B0] bg-[#0F69B0]/[0.04]"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-gray-50 dark:hover:bg-white/[0.03]"
-              )}
+              className={cn("flex items-center gap-2 px-5 py-4 text-xs font-bold transition-all cursor-pointer whitespace-nowrap border-b-2", activeTab === tab.id ? "border-[#0F69B0] text-[#0F69B0] bg-[#0F69B0]/[0.04]" : "border-transparent text-muted-foreground hover:text-foreground hover:bg-gray-50 dark:hover:bg-white/[0.03]")}
             >
               {tab.label}
               <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-black", activeTab === tab.id ? "bg-[#0F69B0] text-white" : "bg-gray-100 dark:bg-white/[0.08] text-muted-foreground")}>
@@ -191,45 +178,40 @@ export default function ContactUsPage() {
         <div className="p-4 border-b border-gray-50 dark:border-white/[0.04]">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex-1 min-w-[180px]">
-              <SearchInput value={searchQuery} onChange={handleSearchChange} placeholder="Search by name, email, subject..." />
+              <SearchInput value={searchQuery} onChange={handleSearchChange} placeholder={t("contactUs.searchPlaceholder")} />
             </div>
             {searchQuery && (
               <button onClick={handleClearSearch} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40">
-                <X className="h-3.5 w-3.5" />Clear
+                <X className="h-3.5 w-3.5" />{t("contactUs.clear")}
               </button>
             )}
             <button onClick={handleRefresh} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer border border-gray-200 dark:border-white/[0.08]" title="Refresh">
               <RefreshCw className="h-3.5 w-3.5" />
             </button>
             <p className="text-[11px] text-muted-foreground font-medium">
-              {safeMessages.length} result{safeMessages.length !== 1 ? "s" : ""}
+              {safeMessages.length} {safeMessages.length !== 1 ? t("contactUs.resultsPlural") : t("contactUs.results")}
             </p>
           </div>
         </div>
 
         <div className="p-4">
           {isLoading ? (
-            <LoadingSpinner size="lg" text="Loading messages..." className="py-16" />
+            <LoadingSpinner size="lg" text={t("contactUs.loadingMessages")} className="py-16" />
           ) : safeMessages.length === 0 ? (
             <EmptyState
               icon={MessageCircle}
-              title="No messages found"
+              title={t("contactUs.noMessagesFound")}
               description={
-                searchQuery
-                  ? "Try adjusting your search"
-                  : activeTab === "archived"
-                  ? "No archived messages"
-                  : activeTab === "UNREAD"
-                  ? "No unread messages"
-                  : "No contact messages yet"
+                searchQuery ? t("contactUs.tryAdjustingSearch")
+                  : activeTab === "archived" ? t("contactUs.noArchivedMessages")
+                  : activeTab === "UNREAD" ? t("contactUs.noUnreadMessages")
+                  : t("contactUs.noMessagesYet")
               }
-              action={
-                searchQuery ? (
-                  <button onClick={handleClearSearch} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
-                    Clear Search
-                  </button>
-                ) : null
-              }
+              action={searchQuery ? (
+                <button onClick={handleClearSearch} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
+                  {t("contactUs.clearSearch")}
+                </button>
+              ) : null}
             />
           ) : (
             <>
@@ -252,9 +234,9 @@ export default function ContactUsPage() {
         open={archiveDialog.open}
         onClose={() => setArchiveDialog({ open: false, item: null, action: null })}
         onConfirm={handleArchiveConfirm}
-        title={archiveDialog.action === "archive" ? "Archive Message" : "Unarchive Message"}
-        description={archiveDialog.item ? `Are you sure you want to ${archiveDialog.action} the message from "${archiveDialog.item.name}"?` : "Are you sure?"}
-        confirmLabel={archiveDialog.action === "archive" ? "Archive" : "Unarchive"}
+        title={archiveDialog.action === "archive" ? t("contactUs.archiveMessage") : t("contactUs.unarchiveMessage")}
+        description={archiveDialog.item ? `${archiveDialog.action === "archive" ? t("contactUs.archiveDesc") : t("contactUs.unarchiveDesc")} "${archiveDialog.item.name}"?` : t("contactUs.areYouSure")}
+        confirmLabel={archiveDialog.action === "archive" ? t("contactUs.archive") : t("contactUs.unarchive")}
         isLoading={isActioning}
         variant={archiveDialog.action === "archive" ? "warning" : "primary"}
       />

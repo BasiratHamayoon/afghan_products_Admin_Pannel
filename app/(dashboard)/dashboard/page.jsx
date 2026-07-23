@@ -2,8 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Download } from "lucide-react";
-import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import PageHeader from "@/components/layout/PageHeader";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import DashboardStats from "@/components/dashboard/DashboardStats";
@@ -17,6 +16,7 @@ import {
 
 export default function DashboardPage() {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { selectedRevenueYear, selectedUserYear } = useSelector((state) => state.dashboard);
   const hasFetched = useRef(false);
 
@@ -31,9 +31,10 @@ export default function DashboardPage() {
   return (
     <div>
       <Breadcrumb />
-      <PageHeader title="Dashboard" description="Welcome back! Here is your store overview.">
-      </PageHeader>
-
+      <PageHeader
+        title={t("dashboard.title")}
+        description={t("dashboard.description")}
+      />
       <DashboardStats />
       <RevenueChart />
       <QuickActions />

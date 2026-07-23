@@ -4,32 +4,19 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
-import {
-  Plus, Image, X, RefreshCw, CheckCircle,
-  Clock, Eye, Star,
-} from "lucide-react";
+import { Plus, Image, X, RefreshCw, CheckCircle, Clock } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import BannersTable from "@/components/banners/BannersTable";
 import StatsCard from "@/components/common/StatCard";
-import SearchInput from "@/components/common/SearchInput";
 import Pagination from "@/components/common/Pagination";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import EmptyState from "@/components/common/EmptyState";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
-import {
-  fetchBanners,
-  deleteBanner,
-  toggleBannerStatus,
-} from "@/store/actions/bannersActions";
+import { fetchBanners, deleteBanner, toggleBannerStatus } from "@/store/actions/bannersActions";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
-
-const TABS = [
-  { id: "all", label: "All" },
-  { id: "active", label: "Active" },
-  { id: "inactive", label: "Inactive" },
-];
+import { useTranslation } from "react-i18next";
 
 const DEBOUNCE_DELAY = 500;
 const PAGE_LIMIT = 20;
@@ -37,18 +24,23 @@ const PAGE_LIMIT = 20;
 export default function BannersPage() {
   const dispatch = useDispatch();
   const router = useRouter();
+  const { t } = useTranslation();
   const { banners, isLoading, pagination } = useSelector((state) => state.banners);
 
   const [activeTab, setActiveTab] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, item: null });
   const [toggleDialog, setToggleDialog] = useState({ open: false, item: null });
   const [isDeleting, setIsDeleting] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
 
-  const searchDebounceRef = useRef(null);
   const hasFetchedRef = useRef(false);
+
+  const TABS = [
+    { id: "all", label: t("banners.all") },
+    { id: "active", label: t("banners.active") },
+    { id: "inactive", label: t("banners.inactive") },
+  ];
 
   const buildParams = useCallback((page, tab) => {
     const params = { page, limit: PAGE_LIMIT };
@@ -62,10 +54,6 @@ export default function BannersPage() {
     hasFetchedRef.current = true;
     dispatch(fetchBanners(buildParams(1, "all")));
   }, [dispatch, buildParams]);
-
-  useEffect(() => {
-    return () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); };
-  }, []);
 
   const triggerFetch = useCallback((page, tab) => {
     dispatch(fetchBanners(buildParams(page, tab)));
@@ -90,9 +78,9 @@ export default function BannersPage() {
     setIsDeleting(true);
     try {
       const res = await dispatch(deleteBanner(item.id));
-      if (res?.success) toast.success("Banner deleted");
-      else toast.error(res?.message || "Failed to delete");
-    } catch { toast.error("Something went wrong"); }
+      if (res?.success) toast.success(t("banners.bannerDeleted"));
+      else toast.error(res?.message || t("banners.failedToDelete"));
+    } catch { toast.error(t("banners.somethingWentWrong")); }
     finally { setIsDeleting(false); setDeleteDialog({ open: false, item: null }); }
   };
 
@@ -102,9 +90,9 @@ export default function BannersPage() {
     setIsToggling(true);
     try {
       const res = await dispatch(toggleBannerStatus(item.id));
-      if (res?.success) toast.success(item.isActive ? "Banner deactivated" : "Banner activated");
-      else toast.error(res?.message || "Failed");
-    } catch { toast.error("Something went wrong"); }
+      if (res?.success) toast.success(item.isActive ? t("banners.bannerDeactivated") : t("banners.bannerActivated"));
+      else toast.error(res?.message || t("banners.somethingWentWrong"));
+    } catch { toast.error(t("banners.somethingWentWrong")); }
     finally { setIsToggling(false); setToggleDialog({ open: false, item: null }); }
   };
 
@@ -123,16 +111,16 @@ export default function BannersPage() {
   return (
     <div className="space-y-5">
       <Breadcrumb />
-      <PageHeader title="Banners" description="Manage promotional banners across the platform">
+      <PageHeader title={t("banners.title")} description={t("banners.description")}>
         <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => router.push("/banners/add")} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer shadow-lg shadow-[#0F69B0]/25 whitespace-nowrap" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
-          <Plus className="h-4 w-4" />Add Banner
+          <Plus className="h-4 w-4" />{t("banners.addBanner")}
         </motion.button>
       </PageHeader>
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
-        <StatsCard title="Total" value={total} icon={Image} color="rgba(15,105,176,0.08)" index={0} />
-        <StatsCard title="Active" value={tabCounts.active} icon={CheckCircle} color="rgba(16,185,129,0.08)" index={1} />
-        <StatsCard title="Inactive" value={tabCounts.inactive} icon={Clock} color="rgba(107,114,128,0.08)" index={2} />
+        <StatsCard title={t("banners.total")} value={total} icon={Image} color="rgba(15,105,176,0.08)" index={0} />
+        <StatsCard title={t("banners.active")} value={tabCounts.active} icon={CheckCircle} color="rgba(16,185,129,0.08)" index={1} />
+        <StatsCard title={t("banners.inactive")} value={tabCounts.inactive} icon={Clock} color="rgba(107,114,128,0.08)" index={2} />
       </div>
 
       <div className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden">
@@ -148,17 +136,21 @@ export default function BannersPage() {
         <div className="p-4 border-b border-gray-50 dark:border-white/[0.04]">
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={handleRefresh} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer border border-gray-200 dark:border-white/[0.08]" title="Refresh"><RefreshCw className="h-3.5 w-3.5" /></button>
-            <p className="text-[11px] text-muted-foreground font-medium">{safeItems.length} result{safeItems.length !== 1 ? "s" : ""}</p>
+            <p className="text-[11px] text-muted-foreground font-medium">
+              {safeItems.length} {safeItems.length !== 1 ? t("banners.resultsPlural") : t("banners.results")}
+            </p>
           </div>
         </div>
 
         <div className="p-4">
           {isLoading ? (
-            <LoadingSpinner size="lg" text="Loading banners..." className="py-16" />
+            <LoadingSpinner size="lg" text={t("banners.loadingBanners")} className="py-16" />
           ) : safeItems.length === 0 ? (
-            <EmptyState icon={Image} title="No banners found" description="Create your first banner"
+            <EmptyState icon={Image} title={t("banners.noBannersFound")} description={t("banners.createFirstBanner")}
               action={
-                <button onClick={() => router.push("/banners/add")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}><Plus className="h-4 w-4" />Add Banner</button>
+                <button onClick={() => router.push("/banners/add")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
+                  <Plus className="h-4 w-4" />{t("banners.addBanner")}
+                </button>
               }
             />
           ) : (
@@ -178,9 +170,27 @@ export default function BannersPage() {
         </div>
       </div>
 
-      <ConfirmDialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, item: null })} onConfirm={handleDeleteConfirm} title="Delete Banner" description={deleteDialog.item ? `Delete "${deleteDialog.item.title}"? This cannot be undone.` : "Are you sure?"} confirmLabel="Delete" isLoading={isDeleting} variant="danger" />
+      <ConfirmDialog
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, item: null })}
+        onConfirm={handleDeleteConfirm}
+        title={t("banners.deleteBanner")}
+        description={deleteDialog.item ? `${t("banners.deleteBannerDesc")} "${deleteDialog.item.title}"${t("banners.deleteBannerSuffix")}` : t("banners.areYouSure")}
+        confirmLabel={t("banners.delete")}
+        isLoading={isDeleting}
+        variant="danger"
+      />
 
-      <ConfirmDialog open={toggleDialog.open} onClose={() => setToggleDialog({ open: false, item: null })} onConfirm={handleToggleConfirm} title={toggleDialog.item?.isActive ? "Deactivate Banner" : "Activate Banner"} description={toggleDialog.item ? `Are you sure you want to ${toggleDialog.item.isActive ? "deactivate" : "activate"} "${toggleDialog.item.title}"?` : "Are you sure?"} confirmLabel={toggleDialog.item?.isActive ? "Deactivate" : "Activate"} isLoading={isToggling} variant={toggleDialog.item?.isActive ? "warning" : "primary"} />
+      <ConfirmDialog
+        open={toggleDialog.open}
+        onClose={() => setToggleDialog({ open: false, item: null })}
+        onConfirm={handleToggleConfirm}
+        title={toggleDialog.item?.isActive ? t("banners.deactivateBanner") : t("banners.activateBanner")}
+        description={toggleDialog.item ? `${toggleDialog.item.isActive ? t("banners.deactivateDesc") : t("banners.activateDesc")} "${toggleDialog.item.title}"?` : t("banners.areYouSure")}
+        confirmLabel={toggleDialog.item?.isActive ? t("banners.deactivate") : t("banners.activate")}
+        isLoading={isToggling}
+        variant={toggleDialog.item?.isActive ? "warning" : "primary"}
+      />
     </div>
   );
 }

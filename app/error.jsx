@@ -4,9 +4,11 @@ import { motion } from "framer-motion";
 import { useEffect } from "react";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
 
 export default function Error({ error, reset }) {
   const router = useRouter();
+  const { t } = useTranslation();
 
   useEffect(() => {
     console.error(error);
@@ -50,10 +52,14 @@ export default function Error({ error, reset }) {
           <AlertTriangle className="h-10 w-10 text-red-500" />
         </motion.div>
 
-        <h1 className="text-3xl font-bold text-foreground mb-2">Something Went Wrong</h1>
-        <p className="text-muted-foreground mb-2">An unexpected error has occurred.</p>
+        <h1 className="text-3xl font-bold text-foreground mb-2">
+          {t("errors.somethingWentWrong")}
+        </h1>
+        <p className="text-muted-foreground mb-2">
+          {t("errors.unexpectedError")}
+        </p>
         <p className="text-xs text-red-500/60 mb-8 font-mono bg-red-500/5 rounded-lg p-3 border border-red-500/10">
-          {error?.message || "Unknown error"}
+          {error?.message || t("errors.unknownError")}
         </p>
 
         <div className="flex items-center justify-center gap-4">
@@ -64,7 +70,7 @@ export default function Error({ error, reset }) {
             className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#0F69B0] text-white hover:bg-[#0A4F85] transition-colors shadow-lg shadow-[#0F69B0]/30"
           >
             <RefreshCw className="h-4 w-4" />
-            Try Again
+            {t("errors.tryAgain")}
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -73,7 +79,7 @@ export default function Error({ error, reset }) {
             className="flex items-center gap-2 px-6 py-3 rounded-xl border border-border text-foreground hover:bg-muted transition-colors"
           >
             <Home className="h-4 w-4" />
-            Dashboard
+            {t("common.dashboard")}
           </motion.button>
         </div>
       </motion.div>

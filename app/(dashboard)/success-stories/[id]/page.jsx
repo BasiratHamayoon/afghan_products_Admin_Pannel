@@ -12,14 +12,12 @@ import {
 import PageHeader from "@/components/layout/PageHeader";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
-import {
-  fetchSuccessStoryById, deleteSuccessStory,
-  toggleSuccessStoryStatus, clearStoryByIdCache,
-} from "@/store/actions/successStoriesActions";
+import { fetchSuccessStoryById, deleteSuccessStory, toggleSuccessStoryStatus, clearStoryByIdCache } from "@/store/actions/successStoriesActions";
 import { formatDate } from "@/lib/helpers";
 import { getFileUrl } from "@/lib/fileUrl";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 function RatingStars({ rating }) {
   return (
@@ -35,6 +33,7 @@ function DetailContent() {
   const router = useRouter();
   const { id } = useParams();
   const dispatch = useDispatch();
+  const { t } = useTranslation();
 
   const [itemData, setItemData] = useState(null);
   const [isFetching, setIsFetching] = useState(true);
@@ -70,9 +69,12 @@ function DetailContent() {
     setIsDeleting(true);
     try {
       const res = await dispatch(deleteSuccessStory(itemData.id));
-      if (res?.success) { toast.success("Story deleted"); clearStoryByIdCache(itemData.id); router.push("/success-stories"); }
-      else toast.error(res?.message || "Failed");
-    } catch { toast.error("Something went wrong"); }
+      if (res?.success) {
+        toast.success(t("successStories.storyDeleted"));
+        clearStoryByIdCache(itemData.id);
+        router.push("/success-stories");
+      } else toast.error(res?.message || t("successStories.failedAction"));
+    } catch { toast.error(t("successStories.somethingWentWrong")); }
     finally { setIsDeleting(false); setDeleteDialog(false); }
   };
 
@@ -82,49 +84,65 @@ function DetailContent() {
     try {
       const res = await dispatch(toggleSuccessStoryStatus(itemData.id));
       if (res?.success) {
-        toast.success(itemData.isActive ? "Deactivated" : "Activated");
+        toast.success(itemData.isActive ? t("successStories.storyDeactivated") : t("successStories.storyActivated"));
         setItemData((prev) => prev ? { ...prev, isActive: !prev.isActive } : prev);
         clearStoryByIdCache(itemData.id);
-      } else toast.error(res?.message || "Failed");
-    } catch { toast.error("Something went wrong"); }
+      } else toast.error(res?.message || t("successStories.failedAction"));
+    } catch { toast.error(t("successStories.somethingWentWrong")); }
     finally { setIsToggling(false); setToggleDialog(false); }
   };
 
-  if (isFetching) return <div className="flex items-center justify-center py-32"><Loader2 className="h-8 w-8 animate-spin text-[#0F69B0]" /></div>;
+  if (isFetching) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-[#0F69B0]" />
+          <p className="text-sm text-muted-foreground font-medium">{t("successStories.loadingStory")}</p>
+        </div>
+      </div>
+    );
+  }
 
-  if (notFound || !itemData) return (
-    <div className="flex flex-col items-center justify-center py-32 gap-4">
-      <div className="h-16 w-16 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center"><XCircle className="h-8 w-8 text-red-500" /></div>
-      <h2 className="text-lg font-black text-foreground">Story not found</h2>
-      <button onClick={() => router.push("/success-stories")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}><ArrowLeft className="h-4 w-4" />Back</button>
-    </div>
-  );
+  if (notFound || !itemData) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 gap-4">
+        <div className="h-16 w-16 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center"><XCircle className="h-8 w-8 text-red-500" /></div>
+        <h2 className="text-lg font-black text-foreground">{t("successStories.storyNotFound")}</h2>
+        <button onClick={() => router.push("/success-stories")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
+          <ArrowLeft className="h-4 w-4 rtl-mirror" />{t("successStories.back")}
+        </button>
+      </div>
+    );
+  }
 
   const imgUrl = itemData.profilePicture ? getFileUrl(itemData.profilePicture) : null;
 
   const fields = [
-    { label: "Full Name", value: itemData.fullName, icon: User },
-    { label: "Company", value: itemData.companyName, icon: Building2 },
-    { label: "Location", value: itemData.location, icon: MapPin },
-    { label: "Display Order", value: String(itemData.displayOrder ?? 0), icon: Hash },
-    { label: "Status", value: itemData.isActive ? "Active" : "Inactive", icon: Eye, isStatus: true },
-    { label: "Story Date", value: formatDate(itemData.storyDate), icon: Calendar },
-    { label: "Created", value: formatDate(itemData.createdAt), icon: Calendar },
-    { label: "Updated", value: formatDate(itemData.updatedAt), icon: Calendar },
+    { label: t("successStories.fullNameField"), value: itemData.fullName, icon: User },
+    { label: t("successStories.companyField"), value: itemData.companyName, icon: Building2 },
+    { label: t("successStories.locationField"), value: itemData.location, icon: MapPin },
+    { label: t("successStories.displayOrderField"), value: String(itemData.displayOrder ?? 0), icon: Hash },
+    { label: t("successStories.statusField"), value: itemData.isActive ? t("successStories.activeStatus") : t("successStories.inactiveStatus"), icon: Eye, isStatus: true },
+    { label: t("successStories.storyDateField"), value: formatDate(itemData.storyDate), icon: Calendar },
+    { label: t("successStories.createdField"), value: formatDate(itemData.createdAt), icon: Calendar },
+    { label: t("successStories.updatedField"), value: formatDate(itemData.updatedAt), icon: Calendar },
   ];
 
   return (
     <div className="space-y-5">
       <Breadcrumb />
-      <PageHeader title="Story Detail" description={itemData.fullName || ""}>
+      <PageHeader title={t("successStories.storyDetail")} description={itemData.fullName || ""}>
         <div className="flex items-center gap-2">
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => router.push("/success-stories")} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] cursor-pointer"><ArrowLeft className="h-4 w-4" />Back</motion.button>
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => router.push(`/success-stories/add?edit=${id}`)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer shadow-lg shadow-[#0F69B0]/25" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}><Edit2 className="h-4 w-4" />Edit</motion.button>
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => router.push("/success-stories")} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] cursor-pointer">
+            <ArrowLeft className="h-4 w-4 rtl-mirror" />{t("successStories.back")}
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => router.push(`/success-stories/add?edit=${id}`)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer shadow-lg shadow-[#0F69B0]/25" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
+            <Edit2 className="h-4 w-4" />{t("successStories.edit")}
+          </motion.button>
         </div>
       </PageHeader>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Left — Profile */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl p-6 bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] flex flex-col items-center text-center">
           <div className="h-24 w-24 rounded-full overflow-hidden border-2 border-gray-100 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.04] flex items-center justify-center mb-4">
             {imgUrl ? <img src={imgUrl} alt={itemData.fullName} className="object-cover w-full h-full" /> : <span className="text-3xl font-black text-muted-foreground">{itemData.fullName?.charAt(0) || "?"}</span>}
@@ -132,27 +150,32 @@ function DetailContent() {
           <h3 className="text-lg font-black text-foreground mb-1">{itemData.fullName}</h3>
           <p className="text-xs text-muted-foreground font-medium">{itemData.companyName}</p>
           <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground font-medium"><MapPin className="h-3.5 w-3.5" />{itemData.location}</div>
-
           <div className="mt-4"><RatingStars rating={itemData.rating} /></div>
-
           <div className="flex items-center gap-2 mt-4">
-            <span className={cn("text-[11px] font-bold px-3 py-1 rounded-full", itemData.isActive ? "bg-emerald-500/10 text-emerald-600" : "bg-gray-500/10 text-gray-500")}>{itemData.isActive ? "Active" : "Inactive"}</span>
+            <span className={cn("text-[11px] font-bold px-3 py-1 rounded-full", itemData.isActive ? "bg-emerald-500/10 text-emerald-600" : "bg-gray-500/10 text-gray-500")}>
+              {itemData.isActive ? t("successStories.activeStatus") : t("successStories.inactiveStatus")}
+            </span>
           </div>
 
           <div className="flex items-center gap-2 mt-5 pt-4 border-t border-gray-100 dark:border-white/[0.06] w-full justify-center flex-wrap">
-            <button onClick={() => router.push(`/success-stories/add?edit=${id}`)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-[#0F69B0] hover:bg-[#0F69B0]/[0.08] cursor-pointer border border-[#0F69B0]/20"><Edit2 className="h-3.5 w-3.5" />Edit</button>
-            <button onClick={() => setToggleDialog(true)} className={cn("flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer border", itemData.isActive ? "text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 border-amber-200 dark:border-amber-800/40" : "text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/40")}>
-              {itemData.isActive ? <><ToggleRight className="h-3.5 w-3.5" />Deactivate</> : <><ToggleLeft className="h-3.5 w-3.5" />Activate</>}
+            <button onClick={() => router.push(`/success-stories/add?edit=${id}`)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-[#0F69B0] hover:bg-[#0F69B0]/[0.08] cursor-pointer border border-[#0F69B0]/20">
+              <Edit2 className="h-3.5 w-3.5" />{t("successStories.edit")}
             </button>
-            <button onClick={() => setDeleteDialog(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer border border-red-200 dark:border-red-800/40"><Trash2 className="h-3.5 w-3.5" />Delete</button>
+            <button onClick={() => setToggleDialog(true)} className={cn("flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer border", itemData.isActive ? "text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 border-amber-200 dark:border-amber-800/40" : "text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/40")}>
+              {itemData.isActive
+                ? <><ToggleRight className="h-3.5 w-3.5" />{t("successStories.deactivate")}</>
+                : <><ToggleLeft className="h-3.5 w-3.5" />{t("successStories.activate")}</>
+              }
+            </button>
+            <button onClick={() => setDeleteDialog(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer border border-red-200 dark:border-red-800/40">
+              <Trash2 className="h-3.5 w-3.5" />{t("successStories.delete")}
+            </button>
           </div>
         </motion.div>
 
-        {/* Right — Details */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="lg:col-span-2 space-y-5">
-          {/* Info */}
           <div className="rounded-2xl p-6 bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)]">
-            <h3 className="text-sm font-black text-foreground mb-5">Information</h3>
+            <h3 className="text-sm font-black text-foreground mb-5">{t("successStories.information")}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {fields.map((f) => {
                 const Icon = f.icon;
@@ -173,18 +196,35 @@ function DetailContent() {
             </div>
           </div>
 
-          {/* Story */}
           <div className="rounded-2xl p-6 bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)]">
-            <h3 className="text-sm font-black text-foreground mb-4">Success Story</h3>
+            <h3 className="text-sm font-black text-foreground mb-4">{t("successStories.successStorySection")}</h3>
             <div className="p-4 rounded-xl border border-gray-100 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02]">
-              <p className="text-sm text-foreground font-medium leading-relaxed whitespace-pre-wrap">{itemData.story || "No story content."}</p>
+              <p className="text-sm text-foreground font-medium leading-relaxed whitespace-pre-wrap">{itemData.story || t("successStories.noStoryContent")}</p>
             </div>
           </div>
         </motion.div>
       </div>
 
-      <ConfirmDialog open={deleteDialog} onClose={() => setDeleteDialog(false)} onConfirm={handleDeleteConfirm} title="Delete Story" description={`Delete "${itemData?.fullName}"'s story? This cannot be undone.`} confirmLabel="Delete" isLoading={isDeleting} variant="danger" />
-      <ConfirmDialog open={toggleDialog} onClose={() => setToggleDialog(false)} onConfirm={handleToggleConfirm} title={itemData?.isActive ? "Deactivate Story" : "Activate Story"} description={`${itemData?.isActive ? "Deactivate" : "Activate"} "${itemData?.fullName}"'s story?`} confirmLabel={itemData?.isActive ? "Deactivate" : "Activate"} isLoading={isToggling} variant={itemData?.isActive ? "warning" : "primary"} />
+      <ConfirmDialog
+        open={deleteDialog}
+        onClose={() => setDeleteDialog(false)}
+        onConfirm={handleDeleteConfirm}
+        title={t("successStories.deleteStory")}
+        description={`${t("successStories.deleteStoryDesc")} "${itemData?.fullName}"${t("successStories.deleteStorySuffix")}`}
+        confirmLabel={t("successStories.delete")}
+        isLoading={isDeleting}
+        variant="danger"
+      />
+      <ConfirmDialog
+        open={toggleDialog}
+        onClose={() => setToggleDialog(false)}
+        onConfirm={handleToggleConfirm}
+        title={itemData?.isActive ? t("successStories.deactivateStory") : t("successStories.activateStory")}
+        description={`${itemData?.isActive ? t("successStories.deactivateDesc") : t("successStories.activateDesc")} "${itemData?.fullName}"${t("successStories.storySuffix")}`}
+        confirmLabel={itemData?.isActive ? t("successStories.deactivate") : t("successStories.activate")}
+        isLoading={isToggling}
+        variant={itemData?.isActive ? "warning" : "primary"}
+      />
     </div>
   );
 }

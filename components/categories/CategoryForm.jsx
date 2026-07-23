@@ -5,8 +5,10 @@ import { motion } from "framer-motion";
 import { Save, X, ImageIcon, Upload, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getFileUrl } from "@/lib/fileUrl";
+import { useTranslation } from "react-i18next";
 
 export default function CategoryForm({ initialData, onSubmit, onCancel, isLoading }) {
+  const { t } = useTranslation();
   const safe = initialData && typeof initialData === "object" ? initialData : {};
 
   const [name, setName] = useState(safe.name || "");
@@ -36,7 +38,7 @@ export default function CategoryForm({ initialData, onSubmit, onCancel, isLoadin
   const handleSubmit = (e) => {
     e.preventDefault();
     const errs = {};
-    if (!name.trim()) errs.name = "Category name is required";
+    if (!name.trim()) errs.name = t("categories.categoryNameRequired");
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
     const formData = new FormData();
@@ -54,13 +56,13 @@ export default function CategoryForm({ initialData, onSubmit, onCancel, isLoadin
         <div className="space-y-5">
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-foreground uppercase tracking-widest">
-              Category Name <span className="text-red-500">*</span>
+              {t("categories.categoryName")} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => { setName(e.target.value); if (errors.name) setErrors((p) => ({ ...p, name: "" })); }}
-              placeholder="e.g. Electronics, Clothing"
+              placeholder={t("categories.categoryNamePlaceholder")}
               disabled={isLoading}
               className={cn(
                 "w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all border bg-white dark:bg-white/[0.04] text-foreground placeholder:text-muted-foreground/40 cursor-text disabled:opacity-60",
@@ -71,11 +73,11 @@ export default function CategoryForm({ initialData, onSubmit, onCancel, isLoadin
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground uppercase tracking-widest">Description</label>
+            <label className="text-xs font-bold text-foreground uppercase tracking-widest">{t("categories.descriptionLabel")}</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe this category..."
+              placeholder={t("categories.descriptionPlaceholder")}
               rows={4}
               disabled={isLoading}
               className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.04] text-foreground placeholder:text-muted-foreground/40 cursor-text focus:border-[#0F69B0]/40 focus:shadow-[0_0_0_3px_rgba(15,105,176,0.08)] resize-none disabled:opacity-60"
@@ -83,7 +85,7 @@ export default function CategoryForm({ initialData, onSubmit, onCancel, isLoadin
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground uppercase tracking-widest">Sort Order</label>
+            <label className="text-xs font-bold text-foreground uppercase tracking-widest">{t("categories.sortOrder")}</label>
             <input
               type="number"
               value={sortOrder}
@@ -99,23 +101,20 @@ export default function CategoryForm({ initialData, onSubmit, onCancel, isLoadin
               type="button"
               onClick={() => setIsArchived(!isArchived)}
               disabled={isLoading}
-              className={cn(
-                "relative w-11 h-6 rounded-full transition-all cursor-pointer flex-shrink-0 disabled:opacity-60",
-                isArchived ? "bg-amber-500" : "bg-gray-300 dark:bg-white/20"
-              )}
+              className={cn("relative w-11 h-6 rounded-full transition-all cursor-pointer flex-shrink-0 disabled:opacity-60", isArchived ? "bg-amber-500" : "bg-gray-300 dark:bg-white/20")}
             >
               <span className={cn("absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200", isArchived ? "translate-x-5" : "translate-x-0")} />
             </button>
             <div>
-              <p className="text-sm font-bold text-foreground">Archive Category</p>
-              <p className="text-[11px] text-muted-foreground font-medium">Archived categories are hidden from the store</p>
+              <p className="text-sm font-bold text-foreground">{t("categories.archiveCategoryLabel")}</p>
+              <p className="text-[11px] text-muted-foreground font-medium">{t("categories.archiveCategoryDesc")}</p>
             </div>
           </div>
         </div>
 
         <div className="space-y-5">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground uppercase tracking-widest">Category Image</label>
+            <label className="text-xs font-bold text-foreground uppercase tracking-widest">{t("categories.categoryImage")}</label>
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" id="category-image-upload" />
             {imagePreview ? (
               <div className="relative w-full h-48 rounded-xl overflow-hidden border border-gray-200 dark:border-white/[0.08] group">
@@ -134,8 +133,8 @@ export default function CategoryForm({ initialData, onSubmit, onCancel, isLoadin
                 <div className="h-12 w-12 rounded-xl bg-gray-100 dark:bg-white/[0.06] flex items-center justify-center mb-3">
                   <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
                 </div>
-                <p className="text-sm font-bold text-muted-foreground">Click to upload image</p>
-                <p className="text-[11px] text-muted-foreground/60 font-medium mt-1">PNG, JPG, WEBP up to 10MB</p>
+                <p className="text-sm font-bold text-muted-foreground">{t("categories.clickToUpload")}</p>
+                <p className="text-[11px] text-muted-foreground/60 font-medium mt-1">{t("categories.uploadFormats")}</p>
               </label>
             )}
           </div>
@@ -145,11 +144,11 @@ export default function CategoryForm({ initialData, onSubmit, onCancel, isLoadin
       <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-white/[0.06]">
         {onCancel && (
           <button type="button" onClick={onCancel} disabled={isLoading} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
-            <X className="h-4 w-4" />Cancel
+            <X className="h-4 w-4" />{t("categories.cancel")}
           </button>
         )}
         <button type="submit" disabled={isLoading} className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all cursor-pointer shadow-lg shadow-[#0F69B0]/25 disabled:opacity-60 disabled:cursor-not-allowed" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
-          {isLoading ? (<><Loader2 className="h-4 w-4 animate-spin" />Saving...</>) : (<><Save className="h-4 w-4" />{safe.id || safe._id ? "Update Category" : "Create Category"}</>)}
+          {isLoading ? (<><Loader2 className="h-4 w-4 animate-spin" />{t("categories.saving")}</>) : (<><Save className="h-4 w-4" />{safe.id || safe._id ? t("categories.updateCategory") : t("categories.createCategory")}</>)}
         </button>
       </div>
     </motion.form>

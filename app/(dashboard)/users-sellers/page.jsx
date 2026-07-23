@@ -22,19 +22,7 @@ import FilterDropdown from "@/components/common/FilterDropdown";
 import { fetchUsers, fetchUserStats, deleteUser, updateUserStatus } from "@/store/actions/usersActions";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
-
-const TABS = [
-  { id: "all", label: "All Users", icon: LayoutGrid },
-  { id: "SELLER", label: "Sellers", icon: ShoppingBag },
-  { id: "BUYER", label: "Buyers", icon: Package },
-  { id: "ADMIN", label: "Admins", icon: Shield },
-];
-
-const STATUS_OPTIONS = [
-  { value: "all", label: "All Status" },
-  { value: "ACTIVE", label: "Active" },
-  { value: "BLOCKED", label: "Blocked" },
-];
+import { useTranslation } from "react-i18next";
 
 const DEBOUNCE_DELAY = 500;
 const PAGE_LIMIT = 10;
@@ -42,6 +30,7 @@ const PAGE_LIMIT = 10;
 export default function UsersSellersPage() {
   const dispatch = useDispatch();
   const router = useRouter();
+  const { t } = useTranslation();
   const { users, isLoading, pagination, stats } = useSelector((state) => state.users);
 
   const [activeTab, setActiveTab] = useState("all");
@@ -56,6 +45,19 @@ export default function UsersSellersPage() {
 
   const searchDebounceRef = useRef(null);
   const hasFetchedRef = useRef(false);
+
+  const TABS = [
+    { id: "all", label: t("users.allUsers"), icon: LayoutGrid },
+    { id: "SELLER", label: t("users.sellers"), icon: ShoppingBag },
+    { id: "BUYER", label: t("users.buyers"), icon: Package },
+    { id: "ADMIN", label: t("users.admins"), icon: Shield },
+  ];
+
+  const STATUS_OPTIONS = [
+    { value: "all", label: t("users.allStatus") },
+    { value: "ACTIVE", label: t("users.active") },
+    { value: "BLOCKED", label: t("users.blocked") },
+  ];
 
   const buildParams = useCallback((page, search, tab, status) => {
     const params = { page, limit: PAGE_LIMIT };
@@ -123,20 +125,17 @@ export default function UsersSellersPage() {
 
   const handleDeleteConfirm = async () => {
     const { user } = deleteDialog;
-    if (!user?.id) {
-      setDeleteDialog({ open: false, user: null });
-      return;
-    }
+    if (!user?.id) { setDeleteDialog({ open: false, user: null }); return; }
     setIsDeleting(true);
     try {
       const res = await dispatch(deleteUser(user.id));
       if (res?.success) {
-        toast.success("User deleted");
+        toast.success(t("users.userDeleted"));
       } else {
-        toast.error(res?.message || "Failed to delete");
+        toast.error(res?.message || t("users.failedToDelete"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(t("users.somethingWentWrong"));
     } finally {
       setIsDeleting(false);
       setDeleteDialog({ open: false, user: null });
@@ -145,20 +144,17 @@ export default function UsersSellersPage() {
 
   const handleStatusConfirm = async () => {
     const { user, newStatus } = statusDialog;
-    if (!user?.id || !newStatus) {
-      setStatusDialog({ open: false, user: null, newStatus: null });
-      return;
-    }
+    if (!user?.id || !newStatus) { setStatusDialog({ open: false, user: null, newStatus: null }); return; }
     setIsUpdating(true);
     try {
       const res = await dispatch(updateUserStatus(user.id, newStatus));
       if (res?.success) {
-        toast.success(newStatus === "BLOCKED" ? "User blocked" : "User activated");
+        toast.success(newStatus === "BLOCKED" ? t("users.userBlocked") : t("users.userActivated"));
       } else {
-        toast.error(res?.message || "Failed to update status");
+        toast.error(res?.message || t("users.failedToUpdateStatus"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(t("users.somethingWentWrong"));
     } finally {
       setIsUpdating(false);
       setStatusDialog({ open: false, user: null, newStatus: null });
@@ -186,12 +182,7 @@ export default function UsersSellersPage() {
   const totalBuyers = stats?.totalBuyers ?? 0;
   const totalAdmins = stats?.totalAdmins ?? 0;
 
-  const tabCounts = {
-    all: total,
-    SELLER: totalSellers,
-    BUYER: totalBuyers,
-    ADMIN: totalAdmins,
-  };
+  const tabCounts = { all: total, SELLER: totalSellers, BUYER: totalBuyers, ADMIN: totalAdmins };
 
   const commonProps = {
     onView: handleView,
@@ -202,13 +193,13 @@ export default function UsersSellersPage() {
   return (
     <div className="space-y-5">
       <Breadcrumb />
-      <PageHeader title="Users & Sellers" description="Manage all users on the platform" />
+      <PageHeader title={t("users.title")} description={t("users.description")} />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatsCard title="Total Users" value={totalFromStats} icon={Users} color="rgba(15,105,176,0.08)" index={0} />
-        <StatsCard title="Sellers" value={totalSellers} icon={ShoppingBag} color="rgba(124,58,237,0.08)" index={1} />
-        <StatsCard title="Buyers" value={totalBuyers} icon={Package} color="rgba(16,185,129,0.08)" index={2} />
-        <StatsCard title="Admins" value={totalAdmins} icon={Shield} color="rgba(245,158,11,0.08)" index={3} />
+        <StatsCard title={t("users.totalUsers")} value={totalFromStats} icon={Users} color="rgba(15,105,176,0.08)" index={0} />
+        <StatsCard title={t("users.sellers")} value={totalSellers} icon={ShoppingBag} color="rgba(124,58,237,0.08)" index={1} />
+        <StatsCard title={t("users.buyers")} value={totalBuyers} icon={Package} color="rgba(16,185,129,0.08)" index={2} />
+        <StatsCard title={t("users.admins")} value={totalAdmins} icon={Shield} color="rgba(245,158,11,0.08)" index={3} />
       </div>
 
       <div className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden">
@@ -234,7 +225,7 @@ export default function UsersSellersPage() {
               </button>
             );
           })}
-          <div className="ml-auto flex items-center gap-1 px-3 shrink-0 border-l border-gray-100 dark:border-white/[0.06]">
+          <div className="ms-auto flex items-center gap-1 px-3 shrink-0 border-s border-gray-100 dark:border-white/[0.06]">
             <button onClick={() => setViewMode("table")} className={cn("h-9 w-9 flex items-center justify-center rounded-xl transition-colors cursor-pointer", viewMode === "table" ? "bg-[#0F69B0] text-white" : "text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04]")}>
               <List className="h-4 w-4" />
             </button>
@@ -247,32 +238,35 @@ export default function UsersSellersPage() {
         <div className="p-4 border-b border-gray-50 dark:border-white/[0.04]">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex-1 min-w-[180px]">
-              <SearchInput value={searchQuery} onChange={handleSearchChange} placeholder="Search by name or email..." />
+              <SearchInput value={searchQuery} onChange={handleSearchChange} placeholder={t("users.searchPlaceholder")} />
             </div>
-            <FilterDropdown label="Status" value={statusFilter} options={STATUS_OPTIONS} onChange={handleStatusFilterChange} />
+            <FilterDropdown label={t("users.statusFilter")} value={statusFilter} options={STATUS_OPTIONS} onChange={handleStatusFilterChange} />
             {searchQuery && (
               <button onClick={handleClearSearch} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40">
-                <X className="h-3.5 w-3.5" />Clear
+                <X className="h-3.5 w-3.5" />
+                {t("users.clear")}
               </button>
             )}
             <button onClick={handleRefresh} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer border border-gray-200 dark:border-white/[0.08]" title="Refresh">
               <RefreshCw className="h-3.5 w-3.5" />
             </button>
-            <p className="text-[11px] text-muted-foreground font-medium">{total} result{total !== 1 ? "s" : ""}</p>
+            <p className="text-[11px] text-muted-foreground font-medium">
+              {total} {total !== 1 ? t("users.resultsPlural") : t("users.results")}
+            </p>
           </div>
         </div>
 
         <div className="p-4">
           {isLoading ? (
-            <LoadingSpinner size="lg" text="Loading users..." className="py-16" />
+            <LoadingSpinner size="lg" text={t("users.loadingUsers")} className="py-16" />
           ) : safeUsers.length === 0 ? (
             <EmptyState
               icon={Users}
-              title="No users found"
-              description={searchQuery ? "Try adjusting your search" : "No users yet"}
+              title={t("users.noUsersFound")}
+              description={searchQuery ? t("users.tryAdjustingSearch") : t("users.noUsersYet")}
               action={searchQuery ? (
                 <button onClick={handleClearSearch} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
-                  Clear Search
+                  {t("users.clearSearch")}
                 </button>
               ) : null}
             />
@@ -302,9 +296,9 @@ export default function UsersSellersPage() {
         open={deleteDialog.open}
         onClose={() => setDeleteDialog({ open: false, user: null })}
         onConfirm={handleDeleteConfirm}
-        title="Delete User"
-        description={deleteDialog.user ? `Are you sure you want to delete "${deleteDialog.user.name}"? This cannot be undone.` : "Are you sure?"}
-        confirmLabel="Delete"
+        title={t("users.deleteUser")}
+        description={deleteDialog.user ? `${t("users.deleteUserDesc")} "${deleteDialog.user.name}"${t("users.deleteUserSuffix")}` : t("users.areYouSure")}
+        confirmLabel={t("users.delete")}
         isLoading={isDeleting}
         variant="danger"
       />
@@ -313,9 +307,9 @@ export default function UsersSellersPage() {
         open={statusDialog.open}
         onClose={() => setStatusDialog({ open: false, user: null, newStatus: null })}
         onConfirm={handleStatusConfirm}
-        title={statusDialog.newStatus === "BLOCKED" ? "Block User" : "Activate User"}
-        description={statusDialog.user ? `Are you sure you want to ${statusDialog.newStatus === "BLOCKED" ? "block" : "activate"} "${statusDialog.user.name}"?` : "Are you sure?"}
-        confirmLabel={statusDialog.newStatus === "BLOCKED" ? "Block" : "Activate"}
+        title={statusDialog.newStatus === "BLOCKED" ? t("users.blockUser") : t("users.activateUser")}
+        description={statusDialog.user ? `${statusDialog.newStatus === "BLOCKED" ? t("users.blockUserDesc") : t("users.activateUserDesc")} "${statusDialog.user.name}"?` : t("users.areYouSure")}
+        confirmLabel={statusDialog.newStatus === "BLOCKED" ? t("users.block") : t("users.activate")}
         isLoading={isUpdating}
         variant={statusDialog.newStatus === "BLOCKED" ? "warning" : "primary"}
       />

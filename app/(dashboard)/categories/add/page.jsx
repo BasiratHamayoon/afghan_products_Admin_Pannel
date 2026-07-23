@@ -10,11 +10,13 @@ import Breadcrumb from "@/components/layout/Breadcrumb";
 import CategoryForm from "@/components/categories/CategoryForm";
 import { createCategory, editCategory, fetchCategoryById } from "@/store/actions/categoriesActions";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 function AddCategoryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dispatch = useDispatch();
+  const { t } = useTranslation();
 
   const editId = searchParams.get("edit") || null;
   const isEditMode = !!editId;
@@ -32,10 +34,7 @@ function AddCategoryContent() {
   }, []);
 
   useEffect(() => {
-    if (!editId) {
-      setInitialData({});
-      return;
-    }
+    if (!editId) { setInitialData({}); return; }
     const fetchKey = `category:${editId}`;
     if (fetchKeyRef.current === fetchKey) return;
     fetchKeyRef.current = fetchKey;
@@ -48,12 +47,12 @@ function AddCategoryContent() {
         if (res?.success) {
           setInitialData(res.data);
         } else {
-          toast.error("Failed to load category");
+          toast.error(t("categories.failedToLoadCategory"));
           setInitialData({});
         }
       } catch {
         if (isMountedRef.current) {
-          toast.error("Something went wrong");
+          toast.error(t("categories.somethingWentWrong"));
           setInitialData({});
         }
       } finally {
@@ -61,7 +60,7 @@ function AddCategoryContent() {
       }
     };
     load();
-  }, [editId, dispatch]);
+  }, [editId, dispatch, t]);
 
   const handleSubmit = async (formData) => {
     setIsLoading(true);
@@ -71,13 +70,13 @@ function AddCategoryContent() {
         : await dispatch(createCategory(formData));
 
       if (res?.success) {
-        toast.success(isEditMode ? "Category updated successfully!" : "Category created successfully!");
+        toast.success(isEditMode ? t("categories.categoryUpdated") : t("categories.categoryCreated"));
         router.push("/categories");
       } else {
-        toast.error(res?.message || `Failed to ${isEditMode ? "update" : "create"} category`);
+        toast.error(res?.message || (isEditMode ? t("categories.failedToUpdateCategory") : t("categories.failedToCreateCategory")));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(t("categories.somethingWentWrong"));
     } finally {
       setIsLoading(false);
     }
@@ -89,15 +88,15 @@ function AddCategoryContent() {
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-[#0F69B0]" />
           <p className="text-sm text-muted-foreground font-medium">
-            {isEditMode ? "Loading category..." : "Preparing form..."}
+            {isEditMode ? t("categories.loadingCategory") : t("categories.preparingForm")}
           </p>
         </div>
       </div>
     );
   }
 
-  const title = isEditMode ? "Edit Category" : "Add Category";
-  const desc = isEditMode ? "Update category details" : "Create a new top-level product category";
+  const title = isEditMode ? t("categories.editCategoryTitle") : t("categories.addCategoryTitle");
+  const desc = isEditMode ? t("categories.editCategoryDesc") : t("categories.addCategoryDesc");
 
   return (
     <div className="space-y-5">
@@ -109,8 +108,8 @@ function AddCategoryContent() {
           onClick={() => router.push("/categories")}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back
+          <ArrowLeft className="h-4 w-4 rtl-mirror" />
+          {t("categories.back")}
         </motion.button>
       </PageHeader>
 

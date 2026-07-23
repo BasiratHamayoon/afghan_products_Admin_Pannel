@@ -27,12 +27,7 @@ import {
 } from "@/store/actions/categoriesActions";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
-
-const TABS = [
-  { id: "all", label: "All" },
-  { id: "active", label: "Active" },
-  { id: "archived", label: "Archived" },
-];
+import { useTranslation } from "react-i18next";
 
 const DEBOUNCE_DELAY = 500;
 const PAGE_LIMIT = 10;
@@ -40,6 +35,7 @@ const PAGE_LIMIT = 10;
 export default function CategoriesPage() {
   const dispatch = useDispatch();
   const router = useRouter();
+  const { t } = useTranslation();
   const { categories, isLoading, pagination, stats } = useSelector((state) => state.categories);
 
   const [activeTab, setActiveTab] = useState("all");
@@ -53,6 +49,12 @@ export default function CategoriesPage() {
 
   const searchDebounceRef = useRef(null);
   const hasFetchedRef = useRef(false);
+
+  const TABS = [
+    { id: "all", label: t("categories.all") },
+    { id: "active", label: t("categories.active") },
+    { id: "archived", label: t("categories.archived") },
+  ];
 
   const buildParams = useCallback((page, search, tab) => {
     const params = { page, limit: PAGE_LIMIT };
@@ -114,21 +116,18 @@ export default function CategoriesPage() {
 
   const handleArchiveConfirm = async () => {
     const { item, action } = archiveDialog;
-    if (!item?.id) {
-      setArchiveDialog({ open: false, item: null, action: null });
-      return;
-    }
+    if (!item?.id) { setArchiveDialog({ open: false, item: null, action: null }); return; }
     setIsActioning(true);
     try {
       const fn = action === "archive" ? archiveCategoryAction : unarchiveCategoryAction;
       const res = await dispatch(fn(item.id));
       if (res?.success) {
-        toast.success(action === "archive" ? "Category archived" : "Category unarchived");
+        toast.success(action === "archive" ? t("categories.categoryArchived") : t("categories.categoryUnarchived"));
       } else {
-        toast.error(res?.message || "Action failed");
+        toast.error(res?.message || t("categories.actionFailed"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(t("categories.somethingWentWrong"));
     } finally {
       setIsActioning(false);
       setArchiveDialog({ open: false, item: null, action: null });
@@ -139,19 +138,19 @@ export default function CategoriesPage() {
     const { item } = deleteDialog;
     if (!item?.id || !item?.slug) {
       setDeleteDialog({ open: false, item: null });
-      toast.error("Missing data for deletion");
+      toast.error(t("categories.missingDataForDeletion"));
       return;
     }
     setIsDeleting(true);
     try {
       const res = await dispatch(deleteCategoryAction(item.id, item.slug));
       if (res?.success) {
-        toast.success("Category deleted");
+        toast.success(t("categories.categoryDeleted"));
       } else {
-        toast.error(res?.message || "Failed to delete");
+        toast.error(res?.message || t("categories.failedToDelete"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(t("categories.somethingWentWrong"));
     } finally {
       setIsDeleting(false);
       setDeleteDialog({ open: false, item: null });
@@ -192,7 +191,7 @@ export default function CategoriesPage() {
   return (
     <div className="space-y-5">
       <Breadcrumb />
-      <PageHeader title="Categories" description="Manage all product categories">
+      <PageHeader title={t("categories.title")} description={t("categories.description")}>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           <motion.button
             whileHover={{ scale: 1.02 }}
@@ -202,16 +201,16 @@ export default function CategoriesPage() {
             style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
           >
             <Plus className="h-4 w-4" />
-            Add Category
+            {t("categories.addCategory")}
           </motion.button>
         </div>
       </PageHeader>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatsCard title="Total" value={totalFromStats} icon={FolderOpen} color="rgba(15,105,176,0.08)" index={0} />
-        <StatsCard title="Active" value={activeFromStats} icon={TrendingUp} color="rgba(16,185,129,0.08)" index={1} />
-        <StatsCard title="Archived" value={archivedFromStats} icon={FolderTree} color="rgba(245,158,11,0.08)" index={2} />
-        <StatsCard title="Subcategories" value={subCategoryCount} icon={BarChart3} color="rgba(124,58,237,0.08)" index={3} />
+        <StatsCard title={t("categories.total")} value={totalFromStats} icon={FolderOpen} color="rgba(15,105,176,0.08)" index={0} />
+        <StatsCard title={t("categories.active")} value={activeFromStats} icon={TrendingUp} color="rgba(16,185,129,0.08)" index={1} />
+        <StatsCard title={t("categories.archived")} value={archivedFromStats} icon={FolderTree} color="rgba(245,158,11,0.08)" index={2} />
+        <StatsCard title={t("categories.subcategories")} value={subCategoryCount} icon={BarChart3} color="rgba(124,58,237,0.08)" index={3} />
       </div>
 
       <div className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden">
@@ -238,11 +237,11 @@ export default function CategoriesPage() {
         <div className="p-4 border-b border-gray-50 dark:border-white/[0.04]">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex-1 min-w-[180px]">
-              <SearchInput value={searchQuery} onChange={handleSearchChange} placeholder="Search categories..." />
+              <SearchInput value={searchQuery} onChange={handleSearchChange} placeholder={t("categories.searchPlaceholder")} />
             </div>
             {searchQuery && (
               <button onClick={handleClearSearch} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40">
-                <X className="h-3.5 w-3.5" />Clear
+                <X className="h-3.5 w-3.5" />{t("categories.clear")}
               </button>
             )}
             <button onClick={handleRefresh} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer border border-gray-200 dark:border-white/[0.08]" title="Refresh">
@@ -256,27 +255,34 @@ export default function CategoriesPage() {
                 <Grid3X3 className="h-4 w-4" />
               </button>
             </div>
-            <p className="text-[11px] text-muted-foreground font-medium">{filteredCategories.length} result{filteredCategories.length !== 1 ? "s" : ""}</p>
+            <p className="text-[11px] text-muted-foreground font-medium">
+              {filteredCategories.length} {filteredCategories.length !== 1 ? t("categories.resultsPlural") : t("categories.results")}
+            </p>
           </div>
         </div>
 
         <div className="p-4">
           {isLoading ? (
-            <LoadingSpinner size="lg" text="Loading categories..." className="py-16" />
+            <LoadingSpinner size="lg" text={t("categories.loadingCategories")} className="py-16" />
           ) : filteredCategories.length === 0 ? (
             <EmptyState
               icon={FolderOpen}
-              title="No categories found"
-              description={searchQuery ? "Try adjusting your search" : activeTab === "archived" ? "No archived categories" : activeTab === "active" ? "No active categories" : "Create your first category"}
+              title={t("categories.noCategoriesFound")}
+              description={
+                searchQuery ? t("categories.tryAdjustingSearch")
+                  : activeTab === "archived" ? t("categories.noArchivedCategories")
+                  : activeTab === "active" ? t("categories.noActiveCategories")
+                  : t("categories.createFirstCategory")
+              }
               action={
                 <div className="flex items-center gap-3 flex-wrap justify-center">
                   {searchQuery && (
                     <button onClick={handleClearSearch} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
-                      Clear Search
+                      {t("categories.clearSearch")}
                     </button>
                   )}
                   <button onClick={() => router.push("/categories/add")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
-                    <Plus className="h-4 w-4" />Add Category
+                    <Plus className="h-4 w-4" />{t("categories.addCategory")}
                   </button>
                 </div>
               }
@@ -307,9 +313,9 @@ export default function CategoriesPage() {
         open={archiveDialog.open}
         onClose={() => setArchiveDialog({ open: false, item: null, action: null })}
         onConfirm={handleArchiveConfirm}
-        title={archiveDialog.action === "archive" ? "Archive Category" : "Unarchive Category"}
-        description={archiveDialog.item ? `Are you sure you want to ${archiveDialog.action} "${archiveDialog.item.name}"?` : "Are you sure?"}
-        confirmLabel={archiveDialog.action === "archive" ? "Archive" : "Unarchive"}
+        title={archiveDialog.action === "archive" ? t("categories.archiveCategory") : t("categories.unarchiveCategory")}
+        description={archiveDialog.item ? `${archiveDialog.action === "archive" ? t("categories.archiveDesc") : t("categories.unarchiveDesc")} "${archiveDialog.item.name}"?` : t("categories.areYouSure")}
+        confirmLabel={archiveDialog.action === "archive" ? t("categories.archive") : t("categories.unarchive")}
         isLoading={isActioning}
         variant={archiveDialog.action === "archive" ? "warning" : "primary"}
       />
@@ -318,9 +324,9 @@ export default function CategoriesPage() {
         open={deleteDialog.open}
         onClose={() => setDeleteDialog({ open: false, item: null })}
         onConfirm={handleDeleteConfirm}
-        title="Delete Category"
-        description={deleteDialog.item ? `Are you sure you want to permanently delete "${deleteDialog.item.name}"? This cannot be undone.` : "Are you sure?"}
-        confirmLabel="Delete"
+        title={t("categories.deleteCategory")}
+        description={deleteDialog.item ? `${t("categories.deleteCategoryDesc")} "${deleteDialog.item.name}"${t("categories.deleteSuffix")}` : t("categories.areYouSure")}
+        confirmLabel={t("categories.delete")}
         isLoading={isDeleting}
         variant="danger"
       />

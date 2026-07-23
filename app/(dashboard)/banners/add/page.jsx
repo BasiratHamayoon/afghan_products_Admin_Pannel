@@ -10,11 +10,13 @@ import Breadcrumb from "@/components/layout/Breadcrumb";
 import BannerForm from "@/components/banners/BannerForm";
 import { createBanner, updateBanner, fetchBannerById } from "@/store/actions/bannersActions";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 function AddBannerContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const editId = searchParams.get("edit") || null;
   const isEditMode = !!editId;
 
@@ -38,12 +40,12 @@ function AddBannerContent() {
         const res = await dispatch(fetchBannerById(editId));
         if (!isMountedRef.current) return;
         if (res?.success) setInitialData(res.data);
-        else { toast.error("Failed to load banner"); setInitialData({}); }
-      } catch { if (isMountedRef.current) { toast.error("Something went wrong"); setInitialData({}); } }
+        else { toast.error(t("banners.failedToLoad")); setInitialData({}); }
+      } catch { if (isMountedRef.current) { toast.error(t("banners.somethingWentWrong")); setInitialData({}); } }
       finally { if (isMountedRef.current) setIsFetching(false); }
     };
     load();
-  }, [editId, dispatch]);
+  }, [editId, dispatch, t]);
 
   const handleSubmit = async (formData) => {
     setIsLoading(true);
@@ -52,25 +54,36 @@ function AddBannerContent() {
         ? await dispatch(updateBanner(editId, formData))
         : await dispatch(createBanner(formData));
       if (res?.success) {
-        toast.success(isEditMode ? "Banner updated!" : "Banner created!");
+        toast.success(isEditMode ? t("banners.bannerUpdated") : t("banners.bannerCreated"));
         router.push("/banners");
-      } else toast.error(res?.message || "Failed");
-    } catch { toast.error("Something went wrong"); }
+      } else toast.error(res?.message || t("banners.failedToCreate"));
+    } catch { toast.error(t("banners.somethingWentWrong")); }
     finally { setIsLoading(false); }
   };
 
   if (isFetching || initialData === null) {
-    return <div className="flex items-center justify-center py-32"><div className="flex flex-col items-center gap-3"><Loader2 className="h-8 w-8 animate-spin text-[#0F69B0]" /><p className="text-sm text-muted-foreground font-medium">{isEditMode ? "Loading banner..." : "Preparing form..."}</p></div></div>;
+    return (
+      <div className="flex items-center justify-center py-32">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-[#0F69B0]" />
+          <p className="text-sm text-muted-foreground font-medium">
+            {isEditMode ? t("banners.loadingBannerForm") : t("banners.preparingForm")}
+          </p>
+        </div>
+      </div>
+    );
   }
 
-  const title = isEditMode ? "Edit Banner" : "Add Banner";
-  const desc = isEditMode ? "Update banner details" : "Create a new promotional banner";
+  const title = isEditMode ? t("banners.editBannerTitle") : t("banners.addBannerTitle");
+  const desc = isEditMode ? t("banners.editBannerDesc") : t("banners.addBannerDesc");
 
   return (
     <div className="space-y-5">
       <Breadcrumb />
       <PageHeader title={title} description={desc}>
-        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => router.push("/banners")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"><ArrowLeft className="h-4 w-4" />Back</motion.button>
+        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => router.push("/banners")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
+          <ArrowLeft className="h-4 w-4 rtl-mirror" />{t("banners.back")}
+        </motion.button>
       </PageHeader>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden p-6">
         <div className="flex items-center gap-3 mb-6 pb-5 border-b border-gray-100 dark:border-white/[0.06]">

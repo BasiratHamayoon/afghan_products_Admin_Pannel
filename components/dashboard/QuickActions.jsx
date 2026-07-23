@@ -7,6 +7,7 @@ import { ArrowUpRight } from "lucide-react";
 import { fetchUserYearData } from "@/store/actions/dashboardActions";
 import { setSelectedUserYear } from "@/store/slices/dashboardSlice";
 import BarChartComponent from "@/components/charts/BarChartComponent";
+import { useTranslation } from "react-i18next";
 
 const YEAR_OPTIONS = [2024, 2025, 2026];
 
@@ -58,6 +59,7 @@ function QuickActionSkeleton() {
 export default function QuickActions() {
   const dispatch = useDispatch();
   const router = useRouter();
+  const { t } = useTranslation();
   const { userYearData, userYearLoading, selectedUserYear, pendingItems } = useSelector(
     (state) => state.dashboard
   );
@@ -83,9 +85,11 @@ export default function QuickActions() {
       >
         <div className="flex items-start justify-between mb-5">
           <div>
-            <h2 className="text-base font-black text-foreground">User Growth</h2>
+            <h2 className="text-base font-black text-foreground">
+              {t("dashboard.userGrowth")}
+            </h2>
             <p className="text-xs text-muted-foreground mt-0.5 font-medium">
-              Buyers vs Sellers monthly comparison ({selectedUserYear})
+              {t("dashboard.userGrowthSubtitle")} ({selectedUserYear})
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -101,11 +105,15 @@ export default function QuickActions() {
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-sm bg-[#0F69B0]" />
-                <span className="text-xs font-semibold text-muted-foreground">Buyers</span>
+                <span className="text-xs font-semibold text-muted-foreground">
+                  {t("dashboard.buyers")}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-sm bg-[#0F69B0]/25" />
-                <span className="text-xs font-semibold text-muted-foreground">Sellers</span>
+                <span className="text-xs font-semibold text-muted-foreground">
+                  {t("dashboard.sellers")}
+                </span>
               </div>
             </div>
           </div>
@@ -117,8 +125,8 @@ export default function QuickActions() {
           <BarChartComponent
             data={chartData}
             bars={[
-              { dataKey: "users", color: "#0F69B0", name: "Buyers" },
-              { dataKey: "sellers", color: "rgba(15,105,176,0.25)", name: "Sellers" },
+              { dataKey: "users", color: "#0F69B0", name: t("dashboard.buyers") },
+              { dataKey: "sellers", color: "rgba(15,105,176,0.25)", name: t("dashboard.sellers") },
             ]}
             height={240}
             xKey="month"
@@ -127,7 +135,7 @@ export default function QuickActions() {
           />
         ) : (
           <div className="h-[240px] flex items-center justify-center text-sm text-muted-foreground font-medium">
-            No user data for {selectedUserYear}
+            {t("dashboard.noUserData")} {selectedUserYear}
           </div>
         )}
       </motion.div>
@@ -139,9 +147,11 @@ export default function QuickActions() {
         className="rounded-2xl p-6 bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] dark:shadow-[0_2px_20px_rgba(0,0,0,0.2)]"
       >
         <div className="mb-5">
-          <h2 className="text-base font-black text-foreground">Quick Actions</h2>
+          <h2 className="text-base font-black text-foreground">
+            {t("dashboard.quickActions")}
+          </h2>
           <p className="text-xs text-muted-foreground mt-0.5 font-medium">
-            Pending items needing attention
+            {t("dashboard.quickActionsSubtitle")}
           </p>
         </div>
 
@@ -179,7 +189,7 @@ export default function QuickActions() {
           </div>
         ) : (
           <div className="text-center py-8 text-xs text-muted-foreground font-medium">
-            No pending items 🎉
+            {t("dashboard.noPendingItems")} 🎉
           </div>
         )}
       </motion.div>

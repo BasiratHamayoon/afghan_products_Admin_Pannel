@@ -3,9 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
-import {
-  ShoppingCart, X, Clock, CheckCircle, RefreshCw, DollarSign,
-} from "lucide-react";
+import { ShoppingCart, X, Clock, CheckCircle, RefreshCw, DollarSign } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import OrdersTable from "@/components/orders/OrdersTable";
@@ -18,15 +16,7 @@ import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { fetchOrders, deleteOrder } from "@/store/actions/ordersActions";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
-
-const TABS = [
-  { id: "all", label: "All Orders" },
-  { id: "PENDING", label: "Pending" },
-  { id: "CONFIRMED", label: "Confirmed" },
-  { id: "SHIPPED", label: "Shipped" },
-  { id: "DELIVERED", label: "Delivered" },
-  { id: "CANCELLED", label: "Cancelled" },
-];
+import { useTranslation } from "react-i18next";
 
 const DEBOUNCE_DELAY = 500;
 const PAGE_LIMIT = 10;
@@ -34,6 +24,7 @@ const PAGE_LIMIT = 10;
 export default function OrdersPage() {
   const dispatch = useDispatch();
   const router = useRouter();
+  const { t } = useTranslation();
   const { orders, isLoading, pagination } = useSelector((state) => state.orders);
 
   const [activeTab, setActiveTab] = useState("all");
@@ -44,6 +35,15 @@ export default function OrdersPage() {
 
   const searchDebounceRef = useRef(null);
   const hasFetched = useRef(false);
+
+  const TABS = [
+    { id: "all", label: t("orders.allOrders") },
+    { id: "PENDING", label: t("orders.pending") },
+    { id: "CONFIRMED", label: t("orders.confirmed") },
+    { id: "SHIPPED", label: t("orders.shipped") },
+    { id: "DELIVERED", label: t("orders.delivered") },
+    { id: "CANCELLED", label: t("orders.cancelled") },
+  ];
 
   const buildParams = useCallback((page, search, tab) => {
     const params = { page, limit: PAGE_LIMIT };
@@ -97,20 +97,17 @@ export default function OrdersPage() {
 
   const handleDeleteConfirm = async () => {
     const { order } = deleteDialog;
-    if (!order?.id) {
-      setDeleteDialog({ open: false, order: null });
-      return;
-    }
+    if (!order?.id) { setDeleteDialog({ open: false, order: null }); return; }
     setIsDeleting(true);
     try {
       const res = await dispatch(deleteOrder(order.id));
       if (res?.success) {
-        toast.success("Order deleted successfully");
+        toast.success(t("orders.orderDeletedSuccess"));
       } else {
-        toast.error(res?.message || "Failed to delete order");
+        toast.error(res?.message || t("orders.failedToDeleteOrder"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(t("orders.somethingWentWrong"));
     } finally {
       setIsDeleting(false);
       setDeleteDialog({ open: false, order: null });
@@ -139,13 +136,13 @@ export default function OrdersPage() {
   return (
     <div className="space-y-5">
       <Breadcrumb />
-      <PageHeader title="Orders" description="Manage all orders across the marketplace" />
+      <PageHeader title={t("orders.title")} description={t("orders.description")} />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatsCard title="Total Orders" value={total} icon={ShoppingCart} color="rgba(15,105,176,0.08)" index={0} />
-        <StatsCard title="Pending" value={tabCounts.PENDING} icon={Clock} color="rgba(245,158,11,0.08)" index={1} />
-        <StatsCard title="Delivered" value={tabCounts.DELIVERED} icon={CheckCircle} color="rgba(16,185,129,0.08)" index={2} />
-        <StatsCard title="Revenue (AFN)" value={Number(totalRevenue).toLocaleString()} icon={DollarSign} color="rgba(99,102,241,0.08)" index={3} />
+        <StatsCard title={t("orders.totalOrders")} value={total} icon={ShoppingCart} color="rgba(15,105,176,0.08)" index={0} />
+        <StatsCard title={t("orders.pending")} value={tabCounts.PENDING} icon={Clock} color="rgba(245,158,11,0.08)" index={1} />
+        <StatsCard title={t("orders.delivered")} value={tabCounts.DELIVERED} icon={CheckCircle} color="rgba(16,185,129,0.08)" index={2} />
+        <StatsCard title={t("orders.revenueAFN")} value={Number(totalRevenue).toLocaleString()} icon={DollarSign} color="rgba(99,102,241,0.08)" index={3} />
       </div>
 
       <div className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden">
@@ -154,22 +151,10 @@ export default function OrdersPage() {
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
-              className={cn(
-                "flex items-center gap-2 px-5 py-4 text-xs font-bold transition-all cursor-pointer whitespace-nowrap border-b-2",
-                activeTab === tab.id
-                  ? "border-[#0F69B0] text-[#0F69B0] bg-[#0F69B0]/[0.04]"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-gray-50 dark:hover:bg-white/[0.03]"
-              )}
+              className={cn("flex items-center gap-2 px-5 py-4 text-xs font-bold transition-all cursor-pointer whitespace-nowrap border-b-2", activeTab === tab.id ? "border-[#0F69B0] text-[#0F69B0] bg-[#0F69B0]/[0.04]" : "border-transparent text-muted-foreground hover:text-foreground hover:bg-gray-50 dark:hover:bg-white/[0.03]")}
             >
               {tab.label}
-              <span
-                className={cn(
-                  "px-1.5 py-0.5 rounded-full text-[10px] font-black",
-                  activeTab === tab.id
-                    ? "bg-[#0F69B0] text-white"
-                    : "bg-gray-100 dark:bg-white/[0.08] text-muted-foreground"
-                )}
-              >
+              <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-black", activeTab === tab.id ? "bg-[#0F69B0] text-white" : "bg-gray-100 dark:bg-white/[0.08] text-muted-foreground")}>
                 {tabCounts[tab.id] ?? 0}
               </span>
             </button>
@@ -179,51 +164,35 @@ export default function OrdersPage() {
         <div className="p-4 border-b border-gray-50 dark:border-white/[0.04]">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex-1 min-w-[180px]">
-              <SearchInput
-                value={searchQuery}
-                onChange={handleSearchChange}
-                placeholder="Search by order #, buyer..."
-              />
+              <SearchInput value={searchQuery} onChange={handleSearchChange} placeholder={t("orders.searchPlaceholder")} />
             </div>
             {searchQuery && (
-              <button
-                onClick={handleClearSearch}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40"
-              >
-                <X className="h-3.5 w-3.5" />Clear
+              <button onClick={handleClearSearch} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40">
+                <X className="h-3.5 w-3.5" />{t("orders.clear")}
               </button>
             )}
-            <button
-              onClick={handleRefresh}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer border border-gray-200 dark:border-white/[0.08]"
-              title="Refresh"
-            >
+            <button onClick={handleRefresh} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer border border-gray-200 dark:border-white/[0.08]" title="Refresh">
               <RefreshCw className="h-3.5 w-3.5" />
             </button>
             <p className="text-[11px] text-muted-foreground font-medium">
-              {safeOrders.length} result{safeOrders.length !== 1 ? "s" : ""}
+              {safeOrders.length} {safeOrders.length !== 1 ? t("orders.resultsPlural") : t("orders.results")}
             </p>
           </div>
         </div>
 
         <div className="p-4">
           {isLoading ? (
-            <LoadingSpinner size="lg" text="Loading orders..." className="py-16" />
+            <LoadingSpinner size="lg" text={t("orders.loadingOrders")} className="py-16" />
           ) : safeOrders.length === 0 ? (
             <EmptyState
               icon={ShoppingCart}
-              title="No orders found"
-              description={searchQuery ? "Try adjusting your search" : "No orders yet"}
-              action={
-                searchQuery ? (
-                  <button
-                    onClick={handleClearSearch}
-                    className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
-                  >
-                    Clear Search
-                  </button>
-                ) : null
-              }
+              title={t("orders.noOrdersFound")}
+              description={searchQuery ? t("orders.tryAdjustingSearch") : t("orders.noOrdersYet")}
+              action={searchQuery ? (
+                <button onClick={handleClearSearch} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
+                  {t("orders.clearSearch")}
+                </button>
+              ) : null}
             />
           ) : (
             <>
@@ -233,14 +202,7 @@ export default function OrdersPage() {
                 onDelete={(o) => setDeleteDialog({ open: true, order: o })}
               />
               <div className="mt-5 border-t border-gray-50 dark:border-white/[0.04] pt-4">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                  from={from}
-                  to={to}
-                  total={total}
-                />
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} from={from} to={to} total={total} />
               </div>
             </>
           )}
@@ -251,9 +213,9 @@ export default function OrdersPage() {
         open={deleteDialog.open}
         onClose={() => setDeleteDialog({ open: false, order: null })}
         onConfirm={handleDeleteConfirm}
-        title="Delete Order"
-        description="Are you sure you want to delete this order? Only pending orders can be deleted."
-        confirmLabel="Delete"
+        title={t("orders.deleteOrderTitle")}
+        description={t("orders.deleteOrderDesc")}
+        confirmLabel={t("orders.delete")}
         isLoading={isDeleting}
         variant="danger"
       />

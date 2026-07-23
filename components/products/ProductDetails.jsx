@@ -8,8 +8,10 @@ import ImagePreview from "@/components/common/ImagePreview";
 import StatusBadge from "@/components/common/StatusBadge";
 import AnimatedCounter from "@/components/common/AnimatedCounter";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 export default function ProductDetail({ product }) {
+  const { t } = useTranslation();
   if (!product) return null;
 
   const isOutOfStock = product.stock === 0;
@@ -19,10 +21,17 @@ export default function ProductDetail({ product }) {
     : 0;
 
   const stats = [
-    { label: "Total Views", value: product.views || 0, icon: Eye, color: "#0F69B0", bg: "rgba(15,105,176,0.1)" },
-    { label: "Units Sold", value: product.soldCount || 0, icon: ShoppingCart, color: "#10b981", bg: "rgba(16,185,129,0.1)" },
-    { label: "In Stock", value: product.stock || 0, icon: Package, color: isOutOfStock ? "#ef4444" : isLowStock ? "#f59e0b" : "#10b981", bg: isOutOfStock ? "rgba(239,68,68,0.1)" : isLowStock ? "rgba(245,158,11,0.1)" : "rgba(16,185,129,0.1)" },
-    { label: "Reviews", value: product.reviewsCount || 0, icon: Star, color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
+    { label: t("products.totalViews"), value: product.views || 0, icon: Eye, color: "#0F69B0", bg: "rgba(15,105,176,0.1)" },
+    { label: t("products.unitsSold"), value: product.soldCount || 0, icon: ShoppingCart, color: "#10b981", bg: "rgba(16,185,129,0.1)" },
+    { label: t("products.inStockStat"), value: product.stock || 0, icon: Package, color: isOutOfStock ? "#ef4444" : isLowStock ? "#f59e0b" : "#10b981", bg: isOutOfStock ? "rgba(239,68,68,0.1)" : isLowStock ? "rgba(245,158,11,0.1)" : "rgba(16,185,129,0.1)" },
+    { label: t("products.reviews"), value: product.reviewsCount || 0, icon: Star, color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
+  ];
+
+  const infoItems = [
+    { label: "SKU", value: product.sku, icon: Tag },
+    { label: t("products.brand"), value: product.brand, icon: Package },
+    { label: "Seller", value: product.seller, icon: BarChart2 },
+    { label: "Weight", value: product.weight ? `${product.weight} kg` : "N/A", icon: Truck },
   ];
 
   return (
@@ -58,10 +67,14 @@ export default function ProductDetail({ product }) {
             <h2 className="text-lg font-black text-foreground leading-tight mb-2">{product.name}</h2>
             <div className="flex items-center gap-3 flex-wrap">
               <StatusBadge status={product.status} />
-              {product.featured && <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400">★ Featured</span>}
+              {product.featured && (
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400">
+                  ★ {t("products.featured")}
+                </span>
+              )}
               {product.reportCount > 0 && (
                 <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-900/20 text-red-500">
-                  <AlertTriangle className="h-2.5 w-2.5" /> {product.reportCount} Reports
+                  <AlertTriangle className="h-2.5 w-2.5" /> {product.reportCount} {t("products.reports")}
                 </span>
               )}
             </div>
@@ -84,16 +97,11 @@ export default function ProductDetail({ product }) {
               ))}
             </div>
             <span className="text-sm font-bold text-foreground">{product.rating || 0}</span>
-            <span className="text-xs text-muted-foreground">({product.reviewsCount || 0} reviews)</span>
+            <span className="text-xs text-muted-foreground">({product.reviewsCount || 0} {t("products.reviews")})</span>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: "SKU", value: product.sku, icon: Tag },
-              { label: "Brand", value: product.brand, icon: Package },
-              { label: "Seller", value: product.seller, icon: BarChart2 },
-              { label: "Weight", value: product.weight ? `${product.weight} kg` : "N/A", icon: Truck },
-            ].map((item) => (
+            {infoItems.map((item) => (
               <div key={item.label} className="flex items-center gap-2 p-3 rounded-xl bg-gray-50/80 dark:bg-white/[0.03] border border-gray-100 dark:border-white/[0.06]">
                 <div className="h-7 w-7 rounded-lg bg-[#0F69B0]/8 flex items-center justify-center shrink-0">
                   <item.icon className="h-3.5 w-3.5 text-[#0F69B0]" />
@@ -108,7 +116,7 @@ export default function ProductDetail({ product }) {
 
           {product.tags?.length > 0 && (
             <div>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Tags</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">{t("products.tags")}</p>
               <div className="flex flex-wrap gap-1.5">
                 {product.tags.map((tag) => (
                   <span key={tag} className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[#0F69B0]/8 text-[#0F69B0]">{tag}</span>
@@ -119,14 +127,14 @@ export default function ProductDetail({ product }) {
 
           {product.description && (
             <div>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Description</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">{t("products.description")}</p>
               <p className="text-xs text-muted-foreground font-medium leading-relaxed">{product.description}</p>
             </div>
           )}
 
           <div className="pt-2 border-t border-gray-100 dark:border-white/[0.06] grid grid-cols-2 gap-2 text-xs">
             {[
-              { label: "Created", value: formatDateTime(product.createdAt), icon: Clock },
+              { label: t("products.created"), value: formatDateTime(product.createdAt), icon: Clock },
               { label: "Updated", value: formatDateTime(product.updatedAt), icon: Clock },
               product.approvedAt && { label: "Approved", value: formatDateTime(product.approvedAt), icon: CheckCircle },
             ].filter(Boolean).map((item) => (

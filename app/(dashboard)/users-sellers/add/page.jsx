@@ -10,6 +10,7 @@ import Breadcrumb from "@/components/layout/Breadcrumb";
 import { createBusiness } from "@/store/actions/businessesActions";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 const OWNERSHIP_TYPES = [
   "Sole Proprietorship",
@@ -23,6 +24,7 @@ const OWNERSHIP_TYPES = [
 export default function AddBusinessPage() {
   const router = useRouter();
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
   const [businessName, setBusinessName] = useState("");
@@ -32,20 +34,15 @@ export default function AddBusinessPage() {
   const [tin, setTin] = useState("");
   const [ownershipType, setOwnershipType] = useState("LLC");
   const [description, setDescription] = useState("");
-  const [yearOfEstablishment, setYearOfEstablishment] = useState(
-    new Date().getFullYear()
-  );
+  const [yearOfEstablishment, setYearOfEstablishment] = useState(new Date().getFullYear());
   const [errors, setErrors] = useState({});
 
   const validate = () => {
     const errs = {};
-    if (!businessName.trim()) errs.businessName = "Business name is required";
-    if (!businessEmail.trim()) errs.businessEmail = "Business email is required";
-    if (
-      businessEmail.trim() &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(businessEmail)
-    ) {
-      errs.businessEmail = "Valid email is required";
+    if (!businessName.trim()) errs.businessName = t("users.businessNameRequired");
+    if (!businessEmail.trim()) errs.businessEmail = t("users.businessEmailRequired");
+    if (businessEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(businessEmail)) {
+      errs.businessEmail = t("users.validEmailRequired");
     }
     return errs;
   };
@@ -53,10 +50,7 @@ export default function AddBusinessPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const errs = validate();
-    if (Object.keys(errs).length > 0) {
-      setErrors(errs);
-      return;
-    }
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
     setIsLoading(true);
     try {
@@ -70,20 +64,17 @@ export default function AddBusinessPage() {
         description: description.trim() || undefined,
         yearOfEstablishment: Number(yearOfEstablishment),
       };
-
-      Object.keys(payload).forEach(
-        (key) => payload[key] === undefined && delete payload[key]
-      );
+      Object.keys(payload).forEach((key) => payload[key] === undefined && delete payload[key]);
 
       const res = await dispatch(createBusiness(payload));
       if (res?.success) {
-        toast.success("Business profile created successfully!");
+        toast.success(t("users.businessCreated"));
         router.push("/verifications");
       } else {
-        toast.error(res?.message || "Failed to create business profile");
+        toast.error(res?.message || t("users.businessCreateFailed"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(t("users.somethingWentWrong"));
     } finally {
       setIsLoading(false);
     }
@@ -104,18 +95,15 @@ export default function AddBusinessPage() {
   return (
     <div className="space-y-5">
       <Breadcrumb />
-      <PageHeader
-        title="Create Business Profile"
-        description="Create a new seller business profile"
-      >
+      <PageHeader title={t("users.createBusinessProfile")} description={t("users.createBusinessDesc")}>
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
           onClick={() => router.push("/users-sellers")}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back
+          <ArrowLeft className="h-4 w-4 rtl-mirror" />
+          {t("users.back")}
         </motion.button>
       </PageHeader>
 
@@ -126,19 +114,12 @@ export default function AddBusinessPage() {
         className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden p-6"
       >
         <div className="flex items-center gap-3 mb-6 pb-5 border-b border-gray-100 dark:border-white/[0.06]">
-          <div
-            className="h-11 w-11 rounded-xl flex items-center justify-center"
-            style={{ background: "rgba(15,105,176,0.1)" }}
-          >
+          <div className="h-11 w-11 rounded-xl flex items-center justify-center" style={{ background: "rgba(15,105,176,0.1)" }}>
             <Building className="h-5 w-5 text-[#0F69B0]" />
           </div>
           <div>
-            <h2 className="text-base font-black text-foreground">
-              Business Profile
-            </h2>
-            <p className="text-xs text-muted-foreground font-medium mt-0.5">
-              Fill in the business details below
-            </p>
+            <h2 className="text-base font-black text-foreground">{t("users.createBusinessProfile")}</h2>
+            <p className="text-xs text-muted-foreground font-medium mt-0.5">{t("users.fillInBusinessDetails")}</p>
           </div>
         </div>
 
@@ -147,176 +128,63 @@ export default function AddBusinessPage() {
             <div className="space-y-5">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-foreground uppercase tracking-widest">
-                  Business Name <span className="text-red-500">*</span>
+                  {t("users.businessName")} <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  value={businessName}
-                  onChange={(e) => {
-                    setBusinessName(e.target.value);
-                    clearError("businessName");
-                  }}
-                  placeholder="e.g. Afghan Trading Co."
-                  disabled={isLoading}
-                  className={fieldClass("businessName")}
-                />
-                {errors.businessName && (
-                  <p className="text-[11px] text-red-500 font-semibold">
-                    {errors.businessName}
-                  </p>
-                )}
+                <input type="text" value={businessName} onChange={(e) => { setBusinessName(e.target.value); clearError("businessName"); }} placeholder={t("users.businessNamePlaceholder")} disabled={isLoading} className={fieldClass("businessName")} />
+                {errors.businessName && <p className="text-[11px] text-red-500 font-semibold">{errors.businessName}</p>}
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-foreground uppercase tracking-widest">
-                  Business Email <span className="text-red-500">*</span>
+                  {t("users.businessEmail")} <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="email"
-                  value={businessEmail}
-                  onChange={(e) => {
-                    setBusinessEmail(e.target.value);
-                    clearError("businessEmail");
-                  }}
-                  placeholder="e.g. contact@afghantrading.com"
-                  disabled={isLoading}
-                  className={fieldClass("businessEmail")}
-                />
-                {errors.businessEmail && (
-                  <p className="text-[11px] text-red-500 font-semibold">
-                    {errors.businessEmail}
-                  </p>
-                )}
+                <input type="email" value={businessEmail} onChange={(e) => { setBusinessEmail(e.target.value); clearError("businessEmail"); }} placeholder={t("users.businessEmailPlaceholder")} disabled={isLoading} className={fieldClass("businessEmail")} />
+                {errors.businessEmail && <p className="text-[11px] text-red-500 font-semibold">{errors.businessEmail}</p>}
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground uppercase tracking-widest">
-                  Business Phone
-                </label>
-                <input
-                  type="text"
-                  value={businessPhone}
-                  onChange={(e) => setBusinessPhone(e.target.value)}
-                  placeholder="e.g. +93 700 123 456"
-                  disabled={isLoading}
-                  className={fieldClass("businessPhone")}
-                />
+                <label className="text-xs font-bold text-foreground uppercase tracking-widest">{t("users.businessPhone")}</label>
+                <input type="text" value={businessPhone} onChange={(e) => setBusinessPhone(e.target.value)} placeholder={t("users.businessPhonePlaceholder")} disabled={isLoading} className={fieldClass("businessPhone")} />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground uppercase tracking-widest">
-                  Business Address
-                </label>
-                <input
-                  type="text"
-                  value={businessAddress}
-                  onChange={(e) => setBusinessAddress(e.target.value)}
-                  placeholder="e.g. Kabul, Afghanistan"
-                  disabled={isLoading}
-                  className={fieldClass("businessAddress")}
-                />
+                <label className="text-xs font-bold text-foreground uppercase tracking-widest">{t("users.businessAddress")}</label>
+                <input type="text" value={businessAddress} onChange={(e) => setBusinessAddress(e.target.value)} placeholder={t("users.businessAddressPlaceholder")} disabled={isLoading} className={fieldClass("businessAddress")} />
               </div>
             </div>
 
             <div className="space-y-5">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground uppercase tracking-widest">
-                  TIN (Tax Identification Number)
-                </label>
-                <input
-                  type="text"
-                  value={tin}
-                  onChange={(e) => setTin(e.target.value)}
-                  placeholder="e.g. 123456789"
-                  disabled={isLoading}
-                  className={fieldClass("tin")}
-                />
+                <label className="text-xs font-bold text-foreground uppercase tracking-widest">{t("users.tin")}</label>
+                <input type="text" value={tin} onChange={(e) => setTin(e.target.value)} placeholder={t("users.tinPlaceholder")} disabled={isLoading} className={fieldClass("tin")} />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground uppercase tracking-widest">
-                  Ownership Type
-                </label>
-                <select
-                  value={ownershipType}
-                  onChange={(e) => setOwnershipType(e.target.value)}
-                  disabled={isLoading}
-                  className={cn(
-                    fieldClass("ownershipType"),
-                    "cursor-pointer bg-white dark:bg-[#0f1420]"
-                  )}
-                >
-                  {OWNERSHIP_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
+                <label className="text-xs font-bold text-foreground uppercase tracking-widest">{t("users.ownershipType")}</label>
+                <select value={ownershipType} onChange={(e) => setOwnershipType(e.target.value)} disabled={isLoading} className={cn(fieldClass("ownershipType"), "cursor-pointer bg-white dark:bg-[#0f1420]")}>
+                  {OWNERSHIP_TYPES.map((type) => (<option key={type} value={type}>{type}</option>))}
                 </select>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground uppercase tracking-widest">
-                  Year of Establishment
-                </label>
-                <input
-                  type="number"
-                  value={yearOfEstablishment}
-                  onChange={(e) =>
-                    setYearOfEstablishment(e.target.value)
-                  }
-                  min="1900"
-                  max={new Date().getFullYear()}
-                  disabled={isLoading}
-                  className={fieldClass("yearOfEstablishment")}
-                />
+                <label className="text-xs font-bold text-foreground uppercase tracking-widest">{t("users.yearOfEstablishment")}</label>
+                <input type="number" value={yearOfEstablishment} onChange={(e) => setYearOfEstablishment(e.target.value)} min="1900" max={new Date().getFullYear()} disabled={isLoading} className={fieldClass("yearOfEstablishment")} />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground uppercase tracking-widest">
-                  Description
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="e.g. Wholesale importer and exporter of agricultural products."
-                  rows={4}
-                  disabled={isLoading}
-                  className={cn(fieldClass("description"), "resize-none")}
-                />
+                <label className="text-xs font-bold text-foreground uppercase tracking-widest">{t("users.description")}</label>
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("users.descriptionPlaceholder")} rows={4} disabled={isLoading} className={cn(fieldClass("description"), "resize-none")} />
               </div>
             </div>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-white/[0.06]">
-            <button
-              type="button"
-              onClick={() => router.push("/users-sellers")}
-              disabled={isLoading}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-            >
+            <button type="button" onClick={() => router.push("/users-sellers")} disabled={isLoading} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
               <X className="h-4 w-4" />
-              Cancel
+              {t("users.cancel")}
             </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all cursor-pointer shadow-lg shadow-[#0F69B0]/25 disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{
-                background:
-                  "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)",
-              }}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  Create Business Profile
-                </>
-              )}
+            <button type="submit" disabled={isLoading} className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all cursor-pointer shadow-lg shadow-[#0F69B0]/25 disabled:opacity-60 disabled:cursor-not-allowed" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
+              {isLoading ? (<><Loader2 className="h-4 w-4 animate-spin" />{t("users.creating")}</>) : (<><Save className="h-4 w-4" />{t("users.createBusinessBtn")}</>)}
             </button>
           </div>
         </form>

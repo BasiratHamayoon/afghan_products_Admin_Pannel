@@ -14,14 +14,26 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
+import { useDirection } from "@/hooks/useDirection";
 
 const SIDEBAR_EXPANDED = 272;
 const SIDEBAR_COLLAPSED = 72;
+
+const EXACT_MATCH_ROUTES = ["/categories", "/trade-leads"];
+
+function isRouteActive(pathname, href) {
+  if (pathname === href) return true;
+  if (EXACT_MATCH_ROUTES.includes(href)) return pathname === href;
+  return pathname.startsWith(href + "/");
+}
 
 export default function Sidebar() {
   const pathname = usePathname();
   const dispatch = useDispatch();
   const router = useRouter();
+  const { t } = useTranslation();
+  const { rtl, mounted } = useDirection();
   const { isCollapsed, openSubmenus } = useSelector((state) => state.sidebar);
   const [logoutDialog, setLogoutDialog] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -30,11 +42,10 @@ export default function Sidebar() {
   useEffect(() => {
     if (submenuInitRef.current) return;
     submenuInitRef.current = true;
-
     sidebarMenuItems.forEach((item) => {
       if (item.submenu) {
         const isAnySubActive = item.submenu.some(
-          (sub) => pathname === sub.href || pathname.startsWith(sub.href + "/")
+          (sub) => isRouteActive(pathname, sub.href)
         );
         if (isAnySubActive && !openSubmenus.includes(item.id)) {
           dispatch(toggleSubmenu(item.id));
@@ -48,9 +59,9 @@ export default function Sidebar() {
     setIsLoggingOut(true);
     try {
       await dispatch(logoutUser());
-      toast.success("Logged out successfully!");
+      toast.success(t("logout.success"));
     } catch {
-      toast.success("Logged out successfully!");
+      toast.success(t("logout.success"));
     } finally {
       if (typeof window !== "undefined") {
         localStorage.removeItem("token");
@@ -59,16 +70,26 @@ export default function Sidebar() {
       setLogoutDialog(false);
       router.push("/login");
     }
-  }, [dispatch, router, isLoggingOut]);
+  }, [dispatch, router, isLoggingOut, t]);
 
   const isItemActive = useCallback((item) => {
     if (item.submenu) {
-      return item.submenu.some(
-        (sub) => pathname === sub.href || pathname.startsWith(sub.href + "/")
-      );
+      return item.submenu.some((sub) => isRouteActive(pathname, sub.href));
     }
-    return pathname === item.href || pathname.startsWith(item.href + "/");
+    return isRouteActive(pathname, item.href);
   }, [pathname]);
+
+  const sidebarPositionStyle = mounted
+    ? rtl
+      ? { right: 0, left: "auto" }
+      : { left: 0, right: "auto" }
+    : { left: 0, right: "auto" };
+
+  const tooltipPositionStyle = mounted
+    ? rtl
+      ? { right: "calc(100% + 8px)", left: "auto" }
+      : { left: "calc(100% + 8px)", right: "auto" }
+    : { left: "calc(100% + 8px)", right: "auto" };
 
   return (
     <>
@@ -76,11 +97,14 @@ export default function Sidebar() {
         initial={false}
         animate={{ width: isCollapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED }}
         transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-        className="fixed left-0 top-0 z-40 h-screen hidden lg:flex flex-col overflow-hidden will-change-auto"
+        className="fixed top-0 z-40 h-screen hidden lg:flex flex-col overflow-hidden will-change-auto"
         style={{
+          ...sidebarPositionStyle,
           background: "linear-gradient(180deg, #ffffff 0%, #fafbff 100%)",
-          borderRight: "1px solid rgba(15,105,176,0.08)",
-          boxShadow: "2px 0 24px rgba(15,105,176,0.06)",
+          borderInlineEnd: "1px solid rgba(15,105,176,0.08)",
+          boxShadow: mounted && rtl
+            ? "-2px 0 24px rgba(15,105,176,0.06)"
+            : "2px 0 24px rgba(15,105,176,0.06)",
         }}
       >
         <div
@@ -122,7 +146,7 @@ export default function Sidebar() {
               animate={{
                 opacity: isCollapsed ? 0 : 1,
                 width: isCollapsed ? 0 : "auto",
-                x: isCollapsed ? -8 : 0,
+                x: isCollapsed ? (mounted && rtl ? 8 : -8) : 0,
               }}
               transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
               className="overflow-hidden whitespace-nowrap"
@@ -138,8 +162,11 @@ export default function Sidebar() {
               >
                 Afghan Products
               </h1>
-              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
-                Admin Portal
+              <p
+                className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5"
+                suppressHydrationWarning
+              >
+                {t("common.adminPortal")}
               </p>
             </motion.div>
           </div>
@@ -151,16 +178,20 @@ export default function Sidebar() {
             transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <p className="px-4 mb-2 text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground/40">
-              Navigation
+            <p
+              className="px-4 mb-2 text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground/40"
+              suppressHydrationWarning
+            >
+              {t("common.navigation")}
             </p>
           </motion.div>
 
-          <nav className="px-2 space-y-0.5">
+          <nav className="px-2 space-y-0.5" suppressHydrationWarning>
             {sidebarMenuItems.map((item) => {
               const isActive = isItemActive(item);
               const isSubmenuOpen = openSubmenus.includes(item.id);
               const Icon = item.icon;
+              const label = t(item.labelKey);
 
               return (
                 <div key={item.id}>
@@ -189,12 +220,16 @@ export default function Sidebar() {
                         )}
                         <Icon className="h-4 w-4 shrink-0 relative z-10" />
                       </Link>
-                      <div className="absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 opacity-0 group-hover/tip:opacity-100 pointer-events-none transition-all duration-200 z-[100]">
+                      <div
+                        className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover/tip:opacity-100 pointer-events-none transition-all duration-200 z-[100]"
+                        style={tooltipPositionStyle}
+                      >
                         <div
                           className="text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap shadow-xl"
                           style={{ background: "#111827" }}
+                          suppressHydrationWarning
                         >
-                          {item.label}
+                          {label}
                         </div>
                       </div>
                     </div>
@@ -230,12 +265,14 @@ export default function Sidebar() {
                                   )}
                                 />
                               </div>
-                              <span className="truncate font-medium">{item.label}</span>
+                              <span className="truncate font-medium" suppressHydrationWarning>
+                                {label}
+                              </span>
                             </div>
                             <motion.div
                               animate={{ rotate: isSubmenuOpen ? 180 : 0 }}
                               transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
-                              className="shrink-0 ml-1"
+                              className="shrink-0 ms-1"
                             >
                               <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/50" />
                             </motion.div>
@@ -251,15 +288,13 @@ export default function Sidebar() {
                                 className="overflow-hidden"
                               >
                                 <div
-                                  className="ml-5 mt-0.5 mb-1 pl-3 py-0.5 space-y-0.5"
-                                  style={{ borderLeft: "2px solid rgba(15,105,176,0.1)" }}
+                                  className="ms-5 mt-0.5 mb-1 ps-3 py-0.5 space-y-0.5"
+                                  style={{ borderInlineStart: "2px solid rgba(15,105,176,0.1)" }}
                                 >
                                   {item.submenu.map((sub) => {
                                     const SubIcon = sub.icon;
-                                    const isSubActive =
-                                      pathname === sub.href ||
-                                      (sub.href !== "/categories" &&
-                                        pathname.startsWith(sub.href));
+                                    const subLabel = t(sub.labelKey);
+                                    const isSubActive = isRouteActive(pathname, sub.href);
                                     return (
                                       <Link
                                         key={sub.id}
@@ -295,7 +330,7 @@ export default function Sidebar() {
                                             )}
                                           />
                                         )}
-                                        {sub.label}
+                                        <span suppressHydrationWarning>{subLabel}</span>
                                       </Link>
                                     );
                                   })}
@@ -345,9 +380,11 @@ export default function Sidebar() {
                               )}
                             />
                           </div>
-                          <span className="relative z-10 truncate">{item.label}</span>
+                          <span className="relative z-10 truncate" suppressHydrationWarning>
+                            {label}
+                          </span>
                           {isActive && (
-                            <div className="absolute right-3 z-10 w-1.5 h-1.5 rounded-full bg-white/60" />
+                            <div className="absolute end-3 z-10 w-1.5 h-1.5 rounded-full bg-white/60" />
                           )}
                         </Link>
                       )}
@@ -375,12 +412,16 @@ export default function Sidebar() {
               >
                 <LogOut className="h-4 w-4" />
               </motion.button>
-              <div className="absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 opacity-0 group-hover/tip:opacity-100 pointer-events-none transition-all duration-200 z-[100]">
+              <div
+                className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover/tip:opacity-100 pointer-events-none transition-all duration-200 z-[100]"
+                style={tooltipPositionStyle}
+              >
                 <div
                   className="text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap shadow-xl"
                   style={{ background: "#111827" }}
+                  suppressHydrationWarning
                 >
-                  Sign Out
+                  {t("common.signOut")}
                 </div>
               </div>
             </div>
@@ -399,7 +440,7 @@ export default function Sidebar() {
               >
                 <LogOut className="h-3.5 w-3.5 shrink-0" />
               </div>
-              <span>Sign Out</span>
+              <span suppressHydrationWarning>{t("common.signOut")}</span>
             </motion.button>
           )}
         </div>
@@ -409,10 +450,10 @@ export default function Sidebar() {
         open={logoutDialog}
         onClose={() => !isLoggingOut && setLogoutDialog(false)}
         onConfirm={performLogout}
-        title="Sign Out"
-        description="Are you sure you want to sign out? You will need to log in again to access the admin portal."
-        confirmLabel={isLoggingOut ? "Signing Out..." : "Sign Out"}
-        cancelLabel="Stay Logged In"
+        title={t("logout.title")}
+        description={t("logout.description")}
+        confirmLabel={isLoggingOut ? t("logout.signingOut") : t("logout.confirm")}
+        cancelLabel={t("logout.cancel")}
         variant="danger"
         isLoading={isLoggingOut}
       />

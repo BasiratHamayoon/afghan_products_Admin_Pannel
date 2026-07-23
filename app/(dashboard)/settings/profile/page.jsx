@@ -10,10 +10,12 @@ import Breadcrumb from "@/components/layout/Breadcrumb";
 import { fetchAdminProfile, updateAdminProfile } from "@/store/actions/settingsActions";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 export default function ProfileSettingsPage() {
   const dispatch = useDispatch();
   const router = useRouter();
+  const { t } = useTranslation();
   const { adminProfile, isProfileLoading } = useSelector((s) => s.settings);
 
   const [firstName, setFirstName] = useState("");
@@ -42,9 +44,9 @@ export default function ProfileSettingsPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const errs = {};
-    if (!firstName.trim()) errs.firstName = "First name is required";
-    if (!email.trim()) errs.email = "Email is required";
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = "Valid email is required";
+    if (!firstName.trim()) errs.firstName = t("settings.firstNameRequired");
+    if (!email.trim()) errs.email = t("settings.emailRequired");
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = t("settings.validEmailRequired");
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
     setIsSaving(true);
@@ -55,12 +57,12 @@ export default function ProfileSettingsPage() {
         email: email.trim(),
       }));
       if (res?.success) {
-        toast.success("Profile updated successfully");
+        toast.success(t("settings.profileUpdated"));
       } else {
-        toast.error(res?.message || "Failed to update profile");
+        toast.error(res?.message || t("settings.profileUpdateFailed"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(t("settings.somethingWentWrong"));
     } finally {
       setIsSaving(false);
     }
@@ -77,14 +79,15 @@ export default function ProfileSettingsPage() {
   return (
     <div className="space-y-5">
       <Breadcrumb />
-      <PageHeader title="Profile Settings" description="Update your admin profile information">
+      <PageHeader title={t("settings.profileSettings")} description={t("settings.profileSettingsDesc")}>
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
           onClick={() => router.push("/settings")}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
         >
-          <ArrowLeft className="h-4 w-4" />Back
+          <ArrowLeft className="h-4 w-4 rtl-mirror" />
+          {t("common.back")}
         </motion.button>
       </PageHeader>
 
@@ -98,8 +101,8 @@ export default function ProfileSettingsPage() {
             <User className="h-5 w-5 text-[#0F69B0]" />
           </div>
           <div>
-            <h2 className="text-base font-black text-foreground">Profile Information</h2>
-            <p className="text-xs text-muted-foreground font-medium mt-0.5">Update your personal details</p>
+            <h2 className="text-base font-black text-foreground">{t("settings.profileInformation")}</h2>
+            <p className="text-xs text-muted-foreground font-medium mt-0.5">{t("settings.updatePersonalDetails")}</p>
           </div>
         </div>
 
@@ -112,13 +115,13 @@ export default function ProfileSettingsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-foreground uppercase tracking-widest">
-                  First Name <span className="text-red-500">*</span>
+                  {t("settings.firstName")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={firstName}
                   onChange={(e) => { setFirstName(e.target.value); if (errors.firstName) setErrors((p) => ({ ...p, firstName: "" })); }}
-                  placeholder="Enter first name"
+                  placeholder={t("settings.enterFirstName")}
                   disabled={isSaving}
                   className={fieldClass("firstName")}
                 />
@@ -126,12 +129,12 @@ export default function ProfileSettingsPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground uppercase tracking-widest">Last Name</label>
+                <label className="text-xs font-bold text-foreground uppercase tracking-widest">{t("settings.lastName")}</label>
                 <input
                   type="text"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Enter last name"
+                  placeholder={t("settings.enterLastName")}
                   disabled={isSaving}
                   className={fieldClass("lastName")}
                 />
@@ -140,17 +143,17 @@ export default function ProfileSettingsPage() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-foreground uppercase tracking-widest">
-                Email Address <span className="text-red-500">*</span>
+                {t("settings.emailAddress")} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+                <Mail className="absolute start-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); if (errors.email) setErrors((p) => ({ ...p, email: "" })); }}
-                  placeholder="Enter email address"
+                  placeholder={t("settings.enterEmailAddress")}
                   disabled={isSaving}
-                  className={cn(fieldClass("email"), "pl-11")}
+                  className={cn(fieldClass("email"), "ps-11")}
                 />
               </div>
               {errors.email && <p className="text-[11px] text-red-500 font-semibold">{errors.email}</p>}
@@ -163,7 +166,7 @@ export default function ProfileSettingsPage() {
                 disabled={isSaving}
                 className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer disabled:opacity-60"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 type="submit"
@@ -171,7 +174,7 @@ export default function ProfileSettingsPage() {
                 className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all cursor-pointer shadow-lg shadow-[#0F69B0]/25 disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
               >
-                {isSaving ? (<><Loader2 className="h-4 w-4 animate-spin" />Saving...</>) : (<><Save className="h-4 w-4" />Save Changes</>)}
+                {isSaving ? (<><Loader2 className="h-4 w-4 animate-spin" />{t("settings.saving")}</>) : (<><Save className="h-4 w-4" />{t("settings.saveChanges")}</>)}
               </button>
             </div>
           </form>

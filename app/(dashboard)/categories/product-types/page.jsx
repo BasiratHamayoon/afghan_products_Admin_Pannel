@@ -29,12 +29,7 @@ import {
 import { loadCategoryOptions, loadSubCategoryOptions } from "@/store/actions/selectActions";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
-
-const TABS = [
-  { id: "all", label: "All" },
-  { id: "active", label: "Active" },
-  { id: "archived", label: "Archived" },
-];
+import { useTranslation } from "react-i18next";
 
 const DEBOUNCE_DELAY = 500;
 const PAGE_LIMIT = 10;
@@ -42,6 +37,7 @@ const PAGE_LIMIT = 10;
 export default function ProductTypesPage() {
   const dispatch = useDispatch();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const { productTypes, isLoading, pagination, stats } = useSelector((state) => state.productTypes);
   const { categoryOptions: reduxCatOptions, subCategoryOptions: reduxSubCatOptions } = useSelector((state) => state.select);
@@ -61,13 +57,19 @@ export default function ProductTypesPage() {
   const hasFetchedRef = useRef(false);
   const prevCategoryFilterRef = useRef("all");
 
+  const TABS = [
+    { id: "all", label: t("categories.all") },
+    { id: "active", label: t("categories.active") },
+    { id: "archived", label: t("categories.archived") },
+  ];
+
   const categoryFilterOptions = [
-    { value: "all", label: "All Categories" },
+    { value: "all", label: t("categories.allCategories") },
     ...reduxCatOptions.map((c) => ({ value: c.id || c._id, label: c.name })),
   ];
 
   const subCategoryFilterOptions = [
-    { value: "all", label: "All Subcategories" },
+    { value: "all", label: t("categories.allSubcategories") },
     ...reduxSubCatOptions.map((s) => ({ value: s.id || s._id, label: s.name })),
   ];
 
@@ -161,12 +163,12 @@ export default function ProductTypesPage() {
       const fn = action === "archive" ? archiveProductTypeAction : unarchiveProductTypeAction;
       const res = await dispatch(fn(item.id));
       if (res?.success) {
-        toast.success(action === "archive" ? "Product type archived" : "Product type unarchived");
+        toast.success(action === "archive" ? t("categories.productTypeArchived") : t("categories.productTypeUnarchived"));
       } else {
-        toast.error(res?.message || "Action failed");
+        toast.error(res?.message || t("categories.actionFailed"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(t("categories.somethingWentWrong"));
     } finally {
       setIsActioning(false);
       setArchiveDialog({ open: false, item: null, action: null });
@@ -177,19 +179,19 @@ export default function ProductTypesPage() {
     const { item } = deleteDialog;
     if (!item?.id || !item?.slug) {
       setDeleteDialog({ open: false, item: null });
-      toast.error("Missing data for deletion");
+      toast.error(t("categories.missingDataForDeletion"));
       return;
     }
     setIsDeleting(true);
     try {
       const res = await dispatch(deleteProductTypeAction(item.id, item.slug));
       if (res?.success) {
-        toast.success("Product type deleted");
+        toast.success(t("categories.productTypeDeleted"));
       } else {
-        toast.error(res?.message || "Failed to delete");
+        toast.error(res?.message || t("categories.failedToDelete"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(t("categories.somethingWentWrong"));
     } finally {
       setIsDeleting(false);
       setDeleteDialog({ open: false, item: null });
@@ -223,7 +225,7 @@ export default function ProductTypesPage() {
       if (it?.slug) {
         router.push(`/categories/product-types/${it.slug}`);
       } else {
-        toast.error("Slug not available");
+        toast.error(t("categories.slugNotAvailable"));
       }
     },
     onEdit: (it) => router.push(`/categories/product-types/add?edit=${it.id}&slug=${it.slug || ""}`),
@@ -235,7 +237,7 @@ export default function ProductTypesPage() {
   return (
     <div className="space-y-5">
       <Breadcrumb />
-      <PageHeader title="Product Types" description="Manage all product types">
+      <PageHeader title={t("sidebar.productTypes")} description={t("categories.description")}>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           <motion.button
             whileHover={{ scale: 1.02 }}
@@ -245,16 +247,16 @@ export default function ProductTypesPage() {
             style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
           >
             <Plus className="h-4 w-4" />
-            Add Product Type
+            {t("categories.addProductType")}
           </motion.button>
         </div>
       </PageHeader>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatsCard title="Total" value={totalFromStats} icon={Tag} color="rgba(15,105,176,0.08)" index={0} />
-        <StatsCard title="Active" value={activeFromStats} icon={FolderOpen} color="rgba(16,185,129,0.08)" index={1} />
-        <StatsCard title="Archived" value={archivedFromStats} icon={Layers} color="rgba(245,158,11,0.08)" index={2} />
-        <StatsCard title="Shown" value={filteredItems.length} icon={Package} color="rgba(124,58,237,0.08)" index={3} />
+        <StatsCard title={t("categories.total")} value={totalFromStats} icon={Tag} color="rgba(15,105,176,0.08)" index={0} />
+        <StatsCard title={t("categories.active")} value={activeFromStats} icon={FolderOpen} color="rgba(16,185,129,0.08)" index={1} />
+        <StatsCard title={t("categories.archived")} value={archivedFromStats} icon={Layers} color="rgba(245,158,11,0.08)" index={2} />
+        <StatsCard title={t("categories.shown")} value={filteredItems.length} icon={Package} color="rgba(124,58,237,0.08)" index={3} />
       </div>
 
       <div className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden">
@@ -281,13 +283,13 @@ export default function ProductTypesPage() {
         <div className="p-4 border-b border-gray-50 dark:border-white/[0.04]">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex-1 min-w-[180px]">
-              <SearchInput value={searchQuery} onChange={handleSearchChange} placeholder="Search product types..." />
+              <SearchInput value={searchQuery} onChange={handleSearchChange} placeholder={t("categories.searchProductTypesPlaceholder")} />
             </div>
-            <FilterDropdown label="Category" value={categoryFilter} options={categoryFilterOptions} onChange={handleCategoryFilterChange} />
-            <FilterDropdown label="Subcategory" value={subCategoryFilter} options={subCategoryFilterOptions} onChange={handleSubCategoryFilterChange} />
+            <FilterDropdown label={t("categories.categoryField")} value={categoryFilter} options={categoryFilterOptions} onChange={handleCategoryFilterChange} />
+            <FilterDropdown label={t("categories.subcategoryField")} value={subCategoryFilter} options={subCategoryFilterOptions} onChange={handleSubCategoryFilterChange} />
             {searchQuery && (
               <button onClick={handleClearSearch} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40">
-                <X className="h-3.5 w-3.5" />Clear
+                <X className="h-3.5 w-3.5" />{t("categories.clear")}
               </button>
             )}
             <button onClick={handleRefresh} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer border border-gray-200 dark:border-white/[0.08]" title="Refresh">
@@ -301,27 +303,34 @@ export default function ProductTypesPage() {
                 <Grid3X3 className="h-4 w-4" />
               </button>
             </div>
-            <p className="text-[11px] text-muted-foreground font-medium">{filteredItems.length} result{filteredItems.length !== 1 ? "s" : ""}</p>
+            <p className="text-[11px] text-muted-foreground font-medium">
+              {filteredItems.length} {filteredItems.length !== 1 ? t("categories.resultsPlural") : t("categories.results")}
+            </p>
           </div>
         </div>
 
         <div className="p-4">
           {isLoading ? (
-            <LoadingSpinner size="lg" text="Loading product types..." className="py-16" />
+            <LoadingSpinner size="lg" text={t("categories.loadingProductTypes")} className="py-16" />
           ) : filteredItems.length === 0 ? (
             <EmptyState
               icon={Tag}
-              title="No product types found"
-              description={searchQuery ? "Try adjusting your search" : activeTab === "archived" ? "No archived product types" : activeTab === "active" ? "No active product types" : "Create your first product type"}
+              title={t("categories.noProductTypesFound")}
+              description={
+                searchQuery ? t("categories.tryAdjustingSearch")
+                  : activeTab === "archived" ? t("categories.noArchivedProductTypes")
+                  : activeTab === "active" ? t("categories.noActiveProductTypes")
+                  : t("categories.createFirstProductType")
+              }
               action={
                 <div className="flex items-center gap-3 flex-wrap justify-center">
                   {searchQuery && (
                     <button onClick={handleClearSearch} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
-                      Clear Search
+                      {t("categories.clearSearch")}
                     </button>
                   )}
                   <button onClick={() => router.push("/categories/product-types/add")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
-                    <Plus className="h-4 w-4" />Add Product Type
+                    <Plus className="h-4 w-4" />{t("categories.addProductType")}
                   </button>
                 </div>
               }
@@ -339,7 +348,14 @@ export default function ProductTypesPage() {
             </>
           ) : (
             <>
-              <SharedTable items={filteredItems} extraColumns={[{ key: "categoryName", label: "Category" }, { key: "subCategoryName", label: "Subcategory" }]} {...commonCardProps} />
+              <SharedTable
+                items={filteredItems}
+                extraColumns={[
+                  { key: "categoryName", label: t("categories.categoryField") },
+                  { key: "subCategoryName", label: t("categories.subcategoryField") },
+                ]}
+                {...commonCardProps}
+              />
               <div className="mt-4 border-t border-gray-50 dark:border-white/[0.04] pt-4">
                 <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} from={from} to={to} total={total} />
               </div>
@@ -352,9 +368,9 @@ export default function ProductTypesPage() {
         open={archiveDialog.open}
         onClose={() => setArchiveDialog({ open: false, item: null, action: null })}
         onConfirm={handleArchiveConfirm}
-        title={archiveDialog.action === "archive" ? "Archive Product Type" : "Unarchive Product Type"}
-        description={archiveDialog.item ? `Are you sure you want to ${archiveDialog.action} "${archiveDialog.item.name}"?` : "Are you sure?"}
-        confirmLabel={archiveDialog.action === "archive" ? "Archive" : "Unarchive"}
+        title={archiveDialog.action === "archive" ? t("categories.archiveProductType") : t("categories.unarchiveProductType")}
+        description={archiveDialog.item ? `${archiveDialog.action === "archive" ? t("categories.archiveDesc") : t("categories.unarchiveDesc")} "${archiveDialog.item.name}"?` : t("categories.areYouSure")}
+        confirmLabel={archiveDialog.action === "archive" ? t("categories.archive") : t("categories.unarchive")}
         isLoading={isActioning}
         variant={archiveDialog.action === "archive" ? "warning" : "primary"}
       />
@@ -363,9 +379,9 @@ export default function ProductTypesPage() {
         open={deleteDialog.open}
         onClose={() => setDeleteDialog({ open: false, item: null })}
         onConfirm={handleDeleteConfirm}
-        title="Delete Product Type"
-        description={deleteDialog.item ? `Are you sure you want to permanently delete "${deleteDialog.item.name}"? This cannot be undone.` : "Are you sure?"}
-        confirmLabel="Delete"
+        title={t("categories.deleteProductType")}
+        description={deleteDialog.item ? `${t("categories.deleteProductTypeDesc")} "${deleteDialog.item.name}"${t("categories.deleteSuffix")}` : t("categories.areYouSure")}
+        confirmLabel={t("categories.delete")}
         isLoading={isDeleting}
         variant="danger"
       />

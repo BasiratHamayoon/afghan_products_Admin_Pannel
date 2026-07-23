@@ -6,9 +6,11 @@ import { Lock, Eye, EyeOff, ArrowRight, Loader2, CheckCircle, ShieldCheck } from
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -26,21 +28,27 @@ export default function ResetPasswordPage() {
   };
 
   const strength = passwordStrength(password);
-  const strengthLabels = ["", "Weak", "Fair", "Good", "Strong"];
+  const strengthLabels = [
+    "",
+    t("auth.weakPassword"),
+    t("auth.fairPassword"),
+    t("auth.goodPassword"),
+    t("auth.strongPassword"),
+  ];
   const strengthColors = ["", "bg-red-500", "bg-orange-500", "bg-yellow-500", "bg-green-500"];
   const strengthTextColors = ["", "text-red-500", "text-orange-500", "text-yellow-500", "text-green-500"];
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match!");
+      toast.error(t("auth.passwordsDoNotMatchError"));
       return;
     }
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
       setIsReset(true);
-      toast.success("Password reset successfully!");
+      toast.success(t("auth.allDone"));
       setTimeout(() => router.push("/login"), 2500);
     }, 2000);
   };
@@ -93,9 +101,11 @@ export default function ResetPasswordPage() {
                   <CheckCircle className="h-7 w-7 text-green-500" />
                 </motion.div>
                 <h1 className="text-xl font-black tracking-tight bg-gradient-to-br from-gray-900 via-gray-800 to-gray-600 dark:from-white dark:via-white/90 dark:to-white/60 bg-clip-text text-transparent">
-                  All Done!
+                  {t("auth.allDone")}
                 </h1>
-                <p className="text-xs text-muted-foreground font-medium">Redirecting to login...</p>
+                <p className="text-xs text-muted-foreground font-medium">
+                  {t("auth.redirectingToLogin")}
+                </p>
               </motion.div>
             ) : (
               <motion.div
@@ -115,10 +125,10 @@ export default function ResetPasswordPage() {
                   />
                 </div>
                 <h1 className="text-xl font-black tracking-tight bg-gradient-to-br from-gray-900 via-gray-800 to-gray-600 dark:from-white dark:via-white/90 dark:to-white/60 bg-clip-text text-transparent">
-                  Reset Password
+                  {t("auth.resetPassword")}
                 </h1>
                 <p className="text-xs text-muted-foreground mt-1 font-medium">
-                  Create a strong new password
+                  {t("auth.resetPasswordSubtitle")}
                 </p>
               </motion.div>
             )}
@@ -155,7 +165,7 @@ export default function ResetPasswordPage() {
                       onChange={(e) => setPassword(e.target.value)}
                       onFocus={() => setFocusedField("password")}
                       onBlur={() => setFocusedField(null)}
-                      placeholder="New password"
+                      placeholder={t("auth.newPassword")}
                       className="w-full bg-transparent pl-11 pr-11 py-3.5 text-sm outline-none placeholder:text-gray-400/60 dark:placeholder:text-white/25 text-foreground cursor-text font-medium"
                       required
                       minLength={6}
@@ -188,7 +198,7 @@ export default function ResetPasswordPage() {
                           ))}
                         </div>
                         <p className={`text-[10px] font-bold ${strengthTextColors[strength]}`}>
-                          {strengthLabels[strength]} password
+                          {strengthLabels[strength]} {t("auth.passwordStrengthSuffix")}
                         </p>
                       </motion.div>
                     )}
@@ -226,7 +236,7 @@ export default function ResetPasswordPage() {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       onFocus={() => setFocusedField("confirm")}
                       onBlur={() => setFocusedField(null)}
-                      placeholder="Confirm password"
+                      placeholder={t("auth.confirmPassword")}
                       className="w-full bg-transparent pl-11 pr-11 py-3.5 text-sm outline-none placeholder:text-gray-400/60 dark:placeholder:text-white/25 text-foreground cursor-text font-medium"
                       required
                       minLength={6}
@@ -248,7 +258,7 @@ export default function ResetPasswordPage() {
                         exit={{ opacity: 0, height: 0 }}
                         className="text-[10px] text-red-500 font-bold pt-1 pl-1 overflow-hidden"
                       >
-                        Passwords do not match
+                        {t("auth.passwordsDoNotMatch")}
                       </motion.p>
                     )}
                   </AnimatePresence>
@@ -271,11 +281,11 @@ export default function ResetPasswordPage() {
                     {isLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Resetting...</span>
+                        <span>{t("auth.resetting")}</span>
                       </>
                     ) : (
                       <>
-                        <span>Reset Password</span>
+                        <span>{t("auth.resetPassword")}</span>
                         <ArrowRight className="h-4 w-4" />
                       </>
                     )}

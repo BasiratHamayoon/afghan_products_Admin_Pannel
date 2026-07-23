@@ -8,18 +8,15 @@ import { ArrowLeft, Info, Loader2 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import AboutForm from "@/components/about/AboutForm";
-import {
-  createAboutItem,
-  updateAboutItem,
-  fetchAboutById,
-  fetchAboutItems,
-} from "@/store/actions/aboutActions";
+import { createAboutItem, updateAboutItem, fetchAboutById, fetchAboutItems } from "@/store/actions/aboutActions";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 function AddAboutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dispatch = useDispatch();
+  const { t } = useTranslation();
 
   const editId = searchParams.get("edit") || null;
   const isEditMode = !!editId;
@@ -33,16 +30,11 @@ function AddAboutContent() {
 
   useEffect(() => {
     isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
+    return () => { isMountedRef.current = false; };
   }, []);
 
   useEffect(() => {
-    if (!editId) {
-      setInitialData({});
-      return;
-    }
+    if (!editId) { setInitialData({}); return; }
     const fetchKey = `about:${editId}`;
     if (fetchKeyRef.current === fetchKey) return;
     fetchKeyRef.current = fetchKey;
@@ -55,12 +47,12 @@ function AddAboutContent() {
         if (res?.success) {
           setInitialData(res.data);
         } else {
-          toast.error("Failed to load about content");
+          toast.error(t("about.failedToLoad"));
           setInitialData({});
         }
       } catch {
         if (isMountedRef.current) {
-          toast.error("Something went wrong");
+          toast.error(t("about.somethingWentWrong"));
           setInitialData({});
         }
       } finally {
@@ -68,7 +60,7 @@ function AddAboutContent() {
       }
     };
     load();
-  }, [editId, dispatch]);
+  }, [editId, dispatch, t]);
 
   const handleSubmit = async (payload) => {
     setIsLoading(true);
@@ -78,21 +70,14 @@ function AddAboutContent() {
         : await dispatch(createAboutItem(payload));
 
       if (res?.success) {
-        toast.success(
-          isEditMode
-            ? "About content updated successfully!"
-            : "About content created successfully!"
-        );
+        toast.success(isEditMode ? t("about.aboutUpdated") : t("about.aboutCreated"));
         dispatch(fetchAboutItems());
         router.push("/about");
       } else {
-        toast.error(
-          res?.message ||
-            `Failed to ${isEditMode ? "update" : "create"} about content`
-        );
+        toast.error(res?.message || (isEditMode ? t("about.failedToUpdate") : t("about.failedToCreate")));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(t("about.somethingWentWrong"));
     } finally {
       setIsLoading(false);
     }
@@ -104,75 +89,42 @@ function AddAboutContent() {
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-[#0F69B0]" />
           <p className="text-sm text-muted-foreground font-medium">
-            {isEditMode
-              ? "Loading about content..."
-              : "Preparing form..."}
+            {isEditMode ? t("about.loadingAbout") : t("about.preparingForm")}
           </p>
         </div>
       </div>
     );
   }
 
-  const title = isEditMode
-    ? "Edit About Content"
-    : "Create About Content";
-  const desc = isEditMode
-    ? "Update your about page content"
-    : "Create your about page content";
+  const title = isEditMode ? t("about.editAboutTitle") : t("about.addAboutTitle");
+  const desc = isEditMode ? t("about.editAboutDesc") : t("about.addAboutDesc");
 
   return (
     <div className="space-y-5">
       <Breadcrumb />
       <PageHeader title={title} description={desc}>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={() => router.push("/about")}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
+        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => router.push("/about")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
+          <ArrowLeft className="h-4 w-4 rtl-mirror" />{t("about.back")}
         </motion.button>
       </PageHeader>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden p-6"
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden p-6">
         <div className="flex items-center gap-3 mb-6 pb-5 border-b border-gray-100 dark:border-white/[0.06]">
-          <div
-            className="h-11 w-11 rounded-xl flex items-center justify-center"
-            style={{ background: "rgba(15,105,176,0.1)" }}
-          >
+          <div className="h-11 w-11 rounded-xl flex items-center justify-center" style={{ background: "rgba(15,105,176,0.1)" }}>
             <Info className="h-5 w-5 text-[#0F69B0]" />
           </div>
           <div>
-            <h2 className="text-base font-black text-foreground">
-              {title}
-            </h2>
-            <p className="text-xs text-muted-foreground font-medium mt-0.5">
-              {desc}
-            </p>
+            <h2 className="text-base font-black text-foreground">{title}</h2>
+            <p className="text-xs text-muted-foreground font-medium mt-0.5">{desc}</p>
           </div>
         </div>
 
-        <AboutForm
-          initialData={initialData}
-          onSubmit={handleSubmit}
-          onCancel={() => router.push("/about")}
-          isLoading={isLoading}
-        />
+        <AboutForm initialData={initialData} onSubmit={handleSubmit} onCancel={() => router.push("/about")} isLoading={isLoading} />
       </motion.div>
     </div>
   );
 }
 
 export default function AddAboutPage() {
-  return (
-    <Suspense fallback={null}>
-      <AddAboutContent />
-    </Suspense>
-  );
+  return <Suspense fallback={null}><AddAboutContent /></Suspense>;
 }

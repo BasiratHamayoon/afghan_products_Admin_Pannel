@@ -3,9 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  Star, X, List, Grid3X3, Eye, EyeOff, MessageSquare,
-} from "lucide-react";
+import { Star, X, List, Grid3X3, Eye, EyeOff, MessageSquare } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import ReviewTable from "@/components/reviews/ReviewTable";
@@ -16,25 +14,17 @@ import Pagination from "@/components/common/Pagination";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import EmptyState from "@/components/common/EmptyState";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
-import {
-  fetchReviews,
-  toggleReviewVisibilityAction,
-  deleteReviewAction,
-} from "@/store/actions/reviewsActions";
+import { fetchReviews, toggleReviewVisibilityAction, deleteReviewAction } from "@/store/actions/reviewsActions";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
-
-const TABS = [
-  { id: "all", label: "All Reviews" },
-  { id: "visible", label: "Visible" },
-  { id: "hidden", label: "Hidden" },
-];
+import { useTranslation } from "react-i18next";
 
 const DEBOUNCE_DELAY = 500;
 const PAGE_LIMIT = 10;
 
 export default function ReviewsPage() {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { reviews, isLoading, pagination } = useSelector((state) => state.reviews);
 
   const [activeTab, setActiveTab] = useState("all");
@@ -46,6 +36,12 @@ export default function ReviewsPage() {
 
   const searchDebounceRef = useRef(null);
   const hasFetched = useRef(false);
+
+  const TABS = [
+    { id: "all", label: t("reviews.allReviews") },
+    { id: "visible", label: t("reviews.visible") },
+    { id: "hidden", label: t("reviews.hidden") },
+  ];
 
   const buildParams = useCallback((page, search, tab) => {
     const params = { page, limit: PAGE_LIMIT };
@@ -99,28 +95,25 @@ export default function ReviewsPage() {
     const wasVisible = review.isVisible;
     const res = await dispatch(toggleReviewVisibilityAction(review.id));
     if (res?.success) {
-      toast.success(wasVisible ? "Review hidden" : "Review shown");
+      toast.success(wasVisible ? t("reviews.reviewHidden") : t("reviews.reviewShown"));
     } else {
-      toast.error("Failed to update visibility");
+      toast.error(t("reviews.failedToUpdateVisibility"));
     }
-  }, [dispatch]);
+  }, [dispatch, t]);
 
   const handleDeleteConfirm = async () => {
     const { item } = deleteDialog;
-    if (!item?.id) {
-      setDeleteDialog({ open: false, item: null });
-      return;
-    }
+    if (!item?.id) { setDeleteDialog({ open: false, item: null }); return; }
     setIsDeleting(true);
     try {
       const res = await dispatch(deleteReviewAction(item.id));
       if (res?.success) {
-        toast.success("Review deleted");
+        toast.success(t("reviews.reviewDeleted"));
       } else {
-        toast.error("Failed to delete");
+        toast.error(t("reviews.failedToDelete"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(t("reviews.somethingWentWrong"));
     } finally {
       setIsDeleting(false);
       setDeleteDialog({ open: false, item: null });
@@ -145,10 +138,9 @@ export default function ReviewsPage() {
   const from = total === 0 ? 0 : (currentPage - 1) * PAGE_LIMIT + 1;
   const to = Math.min(currentPage * PAGE_LIMIT, total);
 
-  const avgRating =
-    allCount > 0
-      ? (safeReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / allCount).toFixed(1)
-      : "0.0";
+  const avgRating = allCount > 0
+    ? (safeReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / allCount).toFixed(1)
+    : "0.0";
 
   const commonProps = {
     onToggleVisibility: handleToggleVisibility,
@@ -158,21 +150,21 @@ export default function ReviewsPage() {
   return (
     <div className="space-y-5">
       <Breadcrumb />
-      <PageHeader title="Reviews" description="Manage all product and business reviews">
+      <PageHeader title={t("reviews.title")} description={t("reviews.description")}>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           <div className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.04]">
             <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
             <span className="text-sm font-black text-foreground">{avgRating}</span>
-            <span className="text-xs text-muted-foreground font-medium">avg rating</span>
+            <span className="text-xs text-muted-foreground font-medium">{t("reviews.avgRating")}</span>
           </div>
         </div>
       </PageHeader>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatsCard title="Total Reviews" value={allCount} icon={MessageSquare} color="rgba(15,105,176,0.08)" index={0} />
-        <StatsCard title="Visible" value={visibleCount} icon={Eye} color="rgba(16,185,129,0.08)" index={1} />
-        <StatsCard title="Hidden" value={hiddenCount} icon={EyeOff} color="rgba(239,68,68,0.08)" index={2} />
-        <StatsCard title="Avg Rating" value={avgRating} icon={Star} color="rgba(245,158,11,0.08)" index={3} />
+        <StatsCard title={t("reviews.totalReviews")} value={allCount} icon={MessageSquare} color="rgba(15,105,176,0.08)" index={0} />
+        <StatsCard title={t("reviews.visible")} value={visibleCount} icon={Eye} color="rgba(16,185,129,0.08)" index={1} />
+        <StatsCard title={t("reviews.hidden")} value={hiddenCount} icon={EyeOff} color="rgba(239,68,68,0.08)" index={2} />
+        <StatsCard title={t("reviews.avgRatingStat")} value={avgRating} icon={Star} color="rgba(245,158,11,0.08)" index={3} />
       </div>
 
       <div className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden">
@@ -189,14 +181,7 @@ export default function ReviewsPage() {
               )}
             >
               {tab.label}
-              <span
-                className={cn(
-                  "px-1.5 py-0.5 rounded-full text-[10px] font-black",
-                  activeTab === tab.id
-                    ? "bg-[#0F69B0] text-white"
-                    : "bg-gray-100 dark:bg-white/[0.08] text-muted-foreground"
-                )}
-              >
+              <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-black", activeTab === tab.id ? "bg-[#0F69B0] text-white" : "bg-gray-100 dark:bg-white/[0.08] text-muted-foreground")}>
                 {tabCounts[tab.id]}
               </span>
             </button>
@@ -206,76 +191,45 @@ export default function ReviewsPage() {
         <div className="p-4 border-b border-gray-50 dark:border-white/[0.04]">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex-1 min-w-[180px]">
-              <SearchInput
-                value={searchQuery}
-                onChange={handleSearchChange}
-                placeholder="Search reviews..."
-              />
+              <SearchInput value={searchQuery} onChange={handleSearchChange} placeholder={t("reviews.searchPlaceholder")} />
             </div>
             {searchQuery && (
-              <button
-                onClick={handleClearSearch}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40"
-              >
-                <X className="h-3.5 w-3.5" />Clear
+              <button onClick={handleClearSearch} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40">
+                <X className="h-3.5 w-3.5" />{t("reviews.clear")}
               </button>
             )}
             <div className="flex items-center border border-gray-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
-              <button
-                onClick={() => setViewMode("table")}
-                className={cn(
-                  "h-9 w-9 flex items-center justify-center transition-colors cursor-pointer",
-                  viewMode === "table"
-                    ? "bg-[#0F69B0] text-white"
-                    : "text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04]"
-                )}
-              >
+              <button onClick={() => setViewMode("table")} className={cn("h-9 w-9 flex items-center justify-center transition-colors cursor-pointer", viewMode === "table" ? "bg-[#0F69B0] text-white" : "text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04]")}>
                 <List className="h-4 w-4" />
               </button>
-              <button
-                onClick={() => setViewMode("grid")}
-                className={cn(
-                  "h-9 w-9 flex items-center justify-center transition-colors cursor-pointer",
-                  viewMode === "grid"
-                    ? "bg-[#0F69B0] text-white"
-                    : "text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04]"
-                )}
-              >
+              <button onClick={() => setViewMode("grid")} className={cn("h-9 w-9 flex items-center justify-center transition-colors cursor-pointer", viewMode === "grid" ? "bg-[#0F69B0] text-white" : "text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04]")}>
                 <Grid3X3 className="h-4 w-4" />
               </button>
             </div>
             <p className="text-[11px] text-muted-foreground font-medium">
-              {filteredReviews.length} result{filteredReviews.length !== 1 ? "s" : ""}
+              {filteredReviews.length} {filteredReviews.length !== 1 ? t("reviews.resultsPlural") : t("reviews.results")}
             </p>
           </div>
         </div>
 
         <div className="p-4">
           {isLoading ? (
-            <LoadingSpinner size="lg" text="Loading reviews..." className="py-16" />
+            <LoadingSpinner size="lg" text={t("reviews.loadingReviews")} className="py-16" />
           ) : filteredReviews.length === 0 ? (
             <EmptyState
               icon={Star}
-              title="No reviews found"
+              title={t("reviews.noReviewsFound")}
               description={
-                searchQuery
-                  ? "Try adjusting your search"
-                  : activeTab === "hidden"
-                  ? "No hidden reviews"
-                  : activeTab === "visible"
-                  ? "No visible reviews"
-                  : "No reviews yet"
+                searchQuery ? t("reviews.tryAdjustingSearch")
+                  : activeTab === "hidden" ? t("reviews.noHiddenReviews")
+                  : activeTab === "visible" ? t("reviews.noVisibleReviews")
+                  : t("reviews.noReviewsYet")
               }
-              action={
-                searchQuery ? (
-                  <button
-                    onClick={handleClearSearch}
-                    className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
-                  >
-                    Clear Search
-                  </button>
-                ) : null
-              }
+              action={searchQuery ? (
+                <button onClick={handleClearSearch} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
+                  {t("reviews.clearSearch")}
+                </button>
+              ) : null}
             />
           ) : viewMode === "grid" ? (
             <>
@@ -285,28 +239,14 @@ export default function ReviewsPage() {
                 ))}
               </div>
               <div className="mt-4 border-t border-gray-50 dark:border-white/[0.04] pt-4">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                  from={from}
-                  to={to}
-                  total={total}
-                />
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} from={from} to={to} total={total} />
               </div>
             </>
           ) : (
             <>
               <ReviewTable items={filteredReviews} {...commonProps} />
               <div className="mt-4 border-t border-gray-50 dark:border-white/[0.04] pt-4">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                  from={from}
-                  to={to}
-                  total={total}
-                />
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} from={from} to={to} total={total} />
               </div>
             </>
           )}
@@ -317,13 +257,9 @@ export default function ReviewsPage() {
         open={deleteDialog.open}
         onClose={() => setDeleteDialog({ open: false, item: null })}
         onConfirm={handleDeleteConfirm}
-        title="Delete Review"
-        description={
-          deleteDialog.item
-            ? `Are you sure you want to delete this review by "${deleteDialog.item.userName}"? This cannot be undone.`
-            : "Are you sure?"
-        }
-        confirmLabel="Delete"
+        title={t("reviews.deleteReview")}
+        description={deleteDialog.item ? `${t("reviews.deleteReviewDesc")} "${deleteDialog.item.userName}"${t("reviews.deleteReviewSuffix")}` : t("reviews.areYouSure")}
+        confirmLabel={t("reviews.delete")}
         isLoading={isDeleting}
         variant="danger"
       />

@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { Home, ArrowLeft, Search } from "lucide-react";
+import { Home, ArrowLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const CIRCLES_CONFIG = [
   { size: [100, 400], pos: [20, 90], duration: [15, 30] },
@@ -16,6 +17,7 @@ const CIRCLES_CONFIG = [
 
 export default function NotFound() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [circles, setCircles] = useState([]);
   const [mounted, setMounted] = useState(false);
 
@@ -52,23 +54,46 @@ export default function NotFound() {
           transition={{ duration: 0.5 }}
           className="mb-8"
         >
-          <div className="text-[120px] font-black leading-none" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+          <div
+            className="text-[120px] font-black leading-none"
+            style={{
+              background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
             404
           </div>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <h1 className="text-2xl font-black text-foreground mb-2">Page Not Found</h1>
+          <h1 className="text-2xl font-black text-foreground mb-2">
+            {t("errors.pageNotFound")}
+          </h1>
           <p className="text-sm text-muted-foreground font-medium mb-8">
-            The page you are looking for does not exist or has been moved.
+            {t("errors.pageNotFoundDescription")}
           </p>
 
           <div className="flex items-center justify-center gap-3 flex-wrap">
-            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => router.back()} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
-              <ArrowLeft className="h-4 w-4" />Go Back
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => router.back()}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {t("errors.goBack")}
             </motion.button>
-            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => router.push("/dashboard")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer shadow-lg shadow-[#0F69B0]/25" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
-              <Home className="h-4 w-4" />Go to Dashboard
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => router.push("/dashboard")}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer shadow-lg shadow-[#0F69B0]/25"
+              style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
+            >
+              <Home className="h-4 w-4" />
+              {t("errors.goToDashboard")}
             </motion.button>
           </div>
         </motion.div>

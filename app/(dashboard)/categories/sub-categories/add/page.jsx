@@ -10,11 +10,13 @@ import Breadcrumb from "@/components/layout/Breadcrumb";
 import SubCategoryForm from "@/components/categories/SubCategoryForm";
 import { createSubCategory, editSubCategory, fetchSubCategoryBySlug, fetchSubCategoryById } from "@/store/actions/subCategoriesActions";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 function AddSubCategoryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dispatch = useDispatch();
+  const { t } = useTranslation();
 
   const editId = searchParams.get("edit") || null;
   const editSlug = searchParams.get("slug") || null;
@@ -33,11 +35,7 @@ function AddSubCategoryContent() {
   }, []);
 
   useEffect(() => {
-    if (!editId) {
-      setInitialData({});
-      return;
-    }
-
+    if (!editId) { setInitialData({}); return; }
     const fetchKey = `subCategory:${editId}`;
     if (fetchKeyRef.current === fetchKey) return;
     fetchKeyRef.current = fetchKey;
@@ -55,12 +53,12 @@ function AddSubCategoryContent() {
         if (res?.success) {
           setInitialData(res.data);
         } else {
-          toast.error("Failed to load subcategory");
+          toast.error(t("categories.failedToLoadSubcategory"));
           setInitialData({});
         }
       } catch {
         if (isMountedRef.current) {
-          toast.error("Something went wrong");
+          toast.error(t("categories.somethingWentWrong"));
           setInitialData({});
         }
       } finally {
@@ -68,7 +66,7 @@ function AddSubCategoryContent() {
       }
     };
     load();
-  }, [editId, editSlug, dispatch]);
+  }, [editId, editSlug, dispatch, t]);
 
   const handleSubmit = async (formData) => {
     setIsLoading(true);
@@ -78,13 +76,13 @@ function AddSubCategoryContent() {
         : await dispatch(createSubCategory(formData));
 
       if (res?.success) {
-        toast.success(isEditMode ? "Subcategory updated successfully!" : "Subcategory created successfully!");
+        toast.success(isEditMode ? t("categories.subcategoryUpdated") : t("categories.subcategoryCreated"));
         router.push("/categories/sub-categories");
       } else {
-        toast.error(res?.message || `Failed to ${isEditMode ? "update" : "create"} subcategory`);
+        toast.error(res?.message || (isEditMode ? t("categories.failedToUpdateSubcategory") : t("categories.failedToCreateSubcategory")));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(t("categories.somethingWentWrong"));
     } finally {
       setIsLoading(false);
     }
@@ -96,15 +94,15 @@ function AddSubCategoryContent() {
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-[#0F69B0]" />
           <p className="text-sm text-muted-foreground font-medium">
-            {isEditMode ? "Loading subcategory..." : "Preparing form..."}
+            {isEditMode ? t("categories.loadingSubcategory") : t("categories.preparingForm")}
           </p>
         </div>
       </div>
     );
   }
 
-  const title = isEditMode ? "Edit Subcategory" : "Add Subcategory";
-  const desc = isEditMode ? "Update subcategory details" : "Create a new subcategory under an existing category";
+  const title = isEditMode ? t("categories.editSubcategoryTitle") : t("categories.addSubcategoryTitle");
+  const desc = isEditMode ? t("categories.editSubcategoryDesc") : t("categories.addSubcategoryDesc");
 
   return (
     <div className="space-y-5">
@@ -116,8 +114,8 @@ function AddSubCategoryContent() {
           onClick={() => router.push("/categories/sub-categories")}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back
+          <ArrowLeft className="h-4 w-4 rtl-mirror" />
+          {t("categories.back")}
         </motion.button>
       </PageHeader>
 
