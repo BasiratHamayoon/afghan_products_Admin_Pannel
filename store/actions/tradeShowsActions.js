@@ -33,9 +33,7 @@ const normalizeTradeShow = (item) => {
     tags: Array.isArray(item.tags) ? item.tags : [],
     isFeatured: item.isFeatured ?? false,
     isActive: item.isActive ?? true,
-    bookmarkedBy: Array.isArray(item.bookmarkedBy)
-      ? item.bookmarkedBy
-      : [],
+    bookmarkedBy: Array.isArray(item.bookmarkedBy) ? item.bookmarkedBy : [],
     createdAt: item.createdAt || null,
     updatedAt: item.updatedAt || null,
   };
@@ -43,7 +41,6 @@ const normalizeTradeShow = (item) => {
 
 const _byIdCache = {};
 
-// ─── Fetch All ────────────────────────────────────────────────────────────────
 export const fetchTradeShows = (params = {}) => async (dispatch) => {
   dispatch(setLoading(true));
   try {
@@ -56,27 +53,19 @@ export const fetchTradeShows = (params = {}) => async (dispatch) => {
       isFeatured,
       isActive,
     } = params;
+
     const query = new URLSearchParams();
     query.set("page", String(page));
     query.set("limit", String(limit));
     if (search) query.set("search", search);
     if (country) query.set("country", country);
     if (city) query.set("city", city);
-    if (isFeatured !== undefined)
-      query.set("isFeatured", String(isFeatured));
-    if (isActive !== undefined)
-      query.set("isActive", String(isActive));
+    if (isFeatured !== undefined) query.set("isFeatured", String(isFeatured));
+    if (isActive !== undefined) query.set("isActive", String(isActive));
 
-    const res = await axiosInstance.get(
-      `${BASE}?${query.toString()}`
-    );
+    const res = await axiosInstance.get(`${BASE}?${query.toString()}`);
     const data = res.data;
-    const raw =
-      data.tradeShows ||
-      data.tradeShow ||
-      data.data ||
-      data.items ||
-      [];
+    const raw = data.tradeShows || data.tradeShow || data.data || data.items || [];
     const normalized = Array.isArray(raw)
       ? raw.map(normalizeTradeShow).filter(Boolean)
       : [];
@@ -84,10 +73,10 @@ export const fetchTradeShows = (params = {}) => async (dispatch) => {
     dispatch(setTradeShows(normalized));
     dispatch(
       setPaginationMeta({
-        page: data.page || data.currentPage || page,
-        limit: data.limit || limit,
-        total: data.total || data.totalCount || normalized.length,
-        totalPages: data.totalPages || 1,
+        page: data.pagination?.page || data.page || data.currentPage || page,
+        limit: data.pagination?.limit || data.limit || limit,
+        total: data.pagination?.total || data.total || data.totalCount || normalized.length,
+        totalPages: data.pagination?.totalPages || data.totalPages || 1,
       })
     );
     return { success: true };
@@ -99,7 +88,6 @@ export const fetchTradeShows = (params = {}) => async (dispatch) => {
   }
 };
 
-// ─── Fetch By ID ──────────────────────────────────────────────────────────────
 export const fetchTradeShowById = (id) => async () => {
   if (!id) return { success: false };
 
@@ -133,10 +121,7 @@ export const fetchTradeShowById = (id) => async () => {
     return { success: true, data: normalized };
   } catch (err) {
     delete _byIdCache[id];
-    return {
-      success: false,
-      message: err.message || "Failed to fetch trade show",
-    };
+    return { success: false, message: err.message || "Failed to fetch trade show" };
   }
 };
 
@@ -144,73 +129,62 @@ export const clearTradeShowByIdCache = (id) => {
   if (id && _byIdCache[id]) delete _byIdCache[id];
 };
 
-// ─── Fetch Countries ──────────────────────────────────────────────────────────
 export const fetchTradeShowCountries = () => async () => {
   try {
     const res = await axiosInstance.get(`${BASE}/countries`);
-    const data =
-      res.data?.countries || res.data?.data || res.data || [];
-    return {
-      success: true,
-      data: Array.isArray(data) ? data : [],
-    };
+    const data = res.data?.countries || res.data?.data || res.data || [];
+    return { success: true, data: Array.isArray(data) ? data : [] };
   } catch (err) {
     return { success: false, message: err.message };
   }
 };
 
-// ─── Fetch Cities ─────────────────────────────────────────────────────────────
 export const fetchTradeShowCities = (country) => async () => {
   try {
     const query = country ? `?country=${country}` : "";
-    const res = await axiosInstance.get(
-      `${BASE}/cities${query}`
-    );
-    const data =
-      res.data?.cities || res.data?.data || res.data || [];
-    return {
-      success: true,
-      data: Array.isArray(data) ? data : [],
-    };
+    const res = await axiosInstance.get(`${BASE}/cities${query}`);
+    const data = res.data?.cities || res.data?.data || res.data || [];
+    return { success: true, data: Array.isArray(data) ? data : [] };
   } catch (err) {
     return { success: false, message: err.message };
   }
 };
 
-// ─── Create (JSON) ────────────────────────────────────────────────────────────
 export const createTradeShow = (payload) => async (dispatch) => {
   try {
-    const res = await axiosInstance.post(BASE, payload);
+    const isFormData = payload instanceof FormData;
+    const res = await axiosInstance.post(BASE, payload, {
+      headers: isFormData
+        ? { "Content-Type": undefined }
+        : { "Content-Type": "application/json" },
+    });
     const raw = res.data?.tradeShow || res.data?.data || res.data;
     const normalized = normalizeTradeShow(raw);
     if (normalized) dispatch(addTradeShow(normalized));
     return { success: true, data: normalized };
   } catch (err) {
-    return {
-      success: false,
-      message: err.message || "Failed to create trade show",
-    };
+    return { success: false, message: err.message || "Failed to create trade show" };
   }
 };
 
-// ─── Update (JSON) ────────────────────────────────────────────────────────────
 export const updateTradeShow = (id, payload) => async (dispatch) => {
   try {
-    const res = await axiosInstance.patch(`${BASE}/${id}`, payload);
+    const isFormData = payload instanceof FormData;
+    const res = await axiosInstance.patch(`${BASE}/${id}`, payload, {
+      headers: isFormData
+        ? { "Content-Type": undefined }
+        : { "Content-Type": "application/json" },
+    });
     const raw = res.data?.tradeShow || res.data?.data || res.data;
     const normalized = normalizeTradeShow(raw);
     if (normalized) dispatch(updateTradeShowInList(normalized));
     clearTradeShowByIdCache(id);
     return { success: true, data: normalized };
   } catch (err) {
-    return {
-      success: false,
-      message: err.message || "Failed to update trade show",
-    };
+    return { success: false, message: err.message || "Failed to update trade show" };
   }
 };
 
-// ─── Delete ───────────────────────────────────────────────────────────────────
 export const deleteTradeShow = (id) => async (dispatch) => {
   try {
     await axiosInstance.delete(`${BASE}/${id}`);
@@ -218,9 +192,6 @@ export const deleteTradeShow = (id) => async (dispatch) => {
     clearTradeShowByIdCache(id);
     return { success: true };
   } catch (err) {
-    return {
-      success: false,
-      message: err.message || "Failed to delete trade show",
-    };
+    return { success: false, message: err.message || "Failed to delete trade show" };
   }
 };

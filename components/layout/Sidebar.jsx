@@ -199,6 +199,7 @@ export default function Sidebar() {
                     <div className="relative group/tip">
                       <Link
                         href={item.submenu ? item.submenu[0].href : item.href}
+                        prefetch={false}
                         className={cn(
                           "flex items-center justify-center h-10 w-full rounded-xl transition-all duration-200 relative overflow-hidden cursor-pointer",
                           isActive ? "text-white" : "text-muted-foreground hover:text-[#0F69B0]"
@@ -299,6 +300,7 @@ export default function Sidebar() {
                                       <Link
                                         key={sub.id}
                                         href={sub.href}
+                                        prefetch={false}
                                         className={cn(
                                           "flex items-center gap-2.5 py-1.5 px-2.5 rounded-lg text-[12px] transition-all duration-200 font-medium cursor-pointer",
                                           isSubActive
@@ -342,6 +344,7 @@ export default function Sidebar() {
                       ) : (
                         <Link
                           href={item.href}
+                          prefetch={false}
                           className={cn(
                             "flex items-center gap-2.5 h-10 px-3 rounded-xl transition-all duration-200 text-[13px] group/item relative overflow-hidden cursor-pointer",
                             isActive

@@ -33,7 +33,6 @@ const normalizeStory = (item) => {
 
 const _byIdCache = {};
 
-// ─── Fetch All (Admin) ───────────────────────────────────────────────────────
 export const fetchSuccessStories = (params = {}) => async (dispatch) => {
   dispatch(setLoading(true));
   try {
@@ -70,7 +69,6 @@ export const fetchSuccessStories = (params = {}) => async (dispatch) => {
   }
 };
 
-// ─── Fetch By ID ──────────────────────────────────────────────────────────────
 export const fetchSuccessStoryById = (id) => async () => {
   if (!id) return { success: false };
   if (_byIdCache[id] && _byIdCache[id] !== "loading") {
@@ -109,10 +107,14 @@ export const clearStoryByIdCache = (id) => {
   if (id && _byIdCache[id]) delete _byIdCache[id];
 };
 
-// ─── Create (JSON) ───────────────────────────────────────────────────────────
 export const createSuccessStory = (payload) => async (dispatch) => {
   try {
-    const res = await axiosInstance.post(BASE, payload);
+    const isFormData = payload instanceof FormData;
+    const res = await axiosInstance.post(BASE, payload, {
+      headers: isFormData
+        ? { "Content-Type": "multipart/form-data" }
+        : { "Content-Type": "application/json" },
+    });
     const raw = res.data?.successStory || res.data?.story || res.data?.data || res.data;
     const normalized = normalizeStory(raw);
     if (normalized) dispatch(addStory(normalized));
@@ -122,10 +124,14 @@ export const createSuccessStory = (payload) => async (dispatch) => {
   }
 };
 
-// ─── Update (JSON) ───────────────────────────────────────────────────────────
 export const updateSuccessStory = (id, payload) => async (dispatch) => {
   try {
-    const res = await axiosInstance.patch(`${BASE}/${id}`, payload);
+    const isFormData = payload instanceof FormData;
+    const res = await axiosInstance.patch(`${BASE}/${id}`, payload, {
+      headers: isFormData
+        ? { "Content-Type": "multipart/form-data" }
+        : { "Content-Type": "application/json" },
+    });
     const raw = res.data?.story || res.data?.data || res.data;
     const normalized = normalizeStory(raw);
     if (normalized) dispatch(updateStoryInList(normalized));
@@ -136,7 +142,6 @@ export const updateSuccessStory = (id, payload) => async (dispatch) => {
   }
 };
 
-// ─── Toggle Status ────────────────────────────────────────────────────────────
 export const toggleSuccessStoryStatus = (id) => async (dispatch) => {
   try {
     const res = await axiosInstance.patch(`${BASE}/${id}/toggle-status`);
@@ -150,7 +155,6 @@ export const toggleSuccessStoryStatus = (id) => async (dispatch) => {
   }
 };
 
-// ─── Delete (soft) ───────────────────────────────────────────────────────────
 export const deleteSuccessStory = (id) => async (dispatch) => {
   try {
     await axiosInstance.delete(`${BASE}/${id}`);
@@ -162,7 +166,6 @@ export const deleteSuccessStory = (id) => async (dispatch) => {
   }
 };
 
-// ─── Permanent Delete ─────────────────────────────────────────────────────────
 export const permanentDeleteSuccessStory = (id) => async (dispatch) => {
   try {
     await axiosInstance.delete(`${BASE}/${id}/permanent`);
