@@ -18,6 +18,15 @@ const CATEGORY_COLORS = [
 
 const YEAR_OPTIONS = [2024, 2025, 2026];
 
+const getString = (val) => {
+  if (!val) return "";
+  if (typeof val === "string") return val;
+  if (typeof val === "object" && !Array.isArray(val)) {
+    return val.en || val.fa || val.ps || Object.values(val).find((v) => typeof v === "string") || "";
+  }
+  return String(val);
+};
+
 function Skeleton({ className }) {
   return <div className={`rounded-xl bg-gray-100 dark:bg-white/[0.06] animate-pulse ${className}`} />;
 }
@@ -71,7 +80,7 @@ export default function RevenueChart() {
   const totalProducts = categories.reduce((sum, c) => sum + (c.productsCount || 0), 0);
 
   const categoryDistribution = categories.map((c, i) => ({
-    name: c.categoryName || `Category ${i + 1}`,
+    name: getString(c.categoryName) || getString(c.name) || `Category ${i + 1}`,
     value: totalProducts > 0 ? Math.round((c.productsCount / totalProducts) * 100) : 0,
     count: c.productsCount || 0,
     color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
@@ -168,20 +177,33 @@ export default function RevenueChart() {
               centerLabel={t("dashboard.categories")}
             />
             <div className="space-y-2.5 mt-4">
-              {categoryDistribution.map((cat) => (
-                <div key={cat.name} className="flex items-center justify-between">
+              {categoryDistribution.map((cat, i) => (
+                <div key={`${cat.name}-${i}`} className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
-                    <span className="text-xs text-muted-foreground font-medium truncate max-w-[100px]">{cat.name}</span>
+                    <div
+                      className="h-2.5 w-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: cat.color }}
+                    />
+                    <span className="text-xs text-muted-foreground font-medium truncate max-w-[100px]">
+                      {typeof cat.name === "string" ? cat.name : ""}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] text-muted-foreground font-medium">
                       {cat.count} {t("dashboard.products")}
                     </span>
                     <div className="h-1 w-14 rounded-full overflow-hidden bg-gray-100 dark:bg-white/[0.06]">
-                      <div className="h-full rounded-full" style={{ width: `${Math.max(cat.value, 2)}%`, backgroundColor: cat.color }} />
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${Math.max(cat.value, 2)}%`,
+                          backgroundColor: cat.color,
+                        }}
+                      />
                     </div>
-                    <span className="text-xs font-black text-foreground w-8 text-right">{cat.value}%</span>
+                    <span className="text-xs font-black text-foreground w-8 text-right">
+                      {cat.value}%
+                    </span>
                   </div>
                 </div>
               ))}

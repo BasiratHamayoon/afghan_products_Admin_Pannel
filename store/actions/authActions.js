@@ -1,6 +1,24 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import axiosInstance from "@/lib/axiosInstance";
 
+const normalizeUser = (raw) => {
+  if (!raw) return null;
+  return {
+    id: raw._id || raw.id || "",
+    email: raw.email || "",
+    role: raw.role || "",
+    firstName: typeof raw.firstName === "string" ? raw.firstName : raw.firstName?.en || raw.firstName?.fa || raw.firstName?.ps || "",
+    lastName: typeof raw.lastName === "string" ? raw.lastName : raw.lastName?.en || raw.lastName?.fa || raw.lastName?.ps || "",
+    profilePicture: typeof raw.profilePicture === "string" ? raw.profilePicture : null,
+    phone: typeof raw.phone === "string" ? raw.phone : "",
+    isActive: raw.isActive ?? true,
+    isVerified: raw.isVerified ?? false,
+    business: raw.business || null,
+    createdAt: raw.createdAt || null,
+    updatedAt: raw.updatedAt || null,
+  };
+};
+
 export const loginWithEmail = createAsyncThunk(
   "auth/loginWithEmail",
   async (credentials, { rejectWithValue }) => {
@@ -10,16 +28,13 @@ export const loginWithEmail = createAsyncThunk(
         password: credentials.password,
       });
 
-      console.log("Login Response:", response.data);
-
-      // ✅ Handle different response structures
       const token =
         response.data?.token ||
         response.data?.data?.token ||
         response.data?.accessToken ||
         response.data?.data?.accessToken;
 
-      const user =
+      const rawUser =
         response.data?.user ||
         response.data?.data?.user ||
         response.data?.data;
@@ -30,8 +45,9 @@ export const loginWithEmail = createAsyncThunk(
 
       if (typeof window !== "undefined") {
         localStorage.setItem("token", token);
-        console.log("Token saved:", token);
       }
+
+      const user = normalizeUser(rawUser);
 
       return { token, user };
     } catch (error) {
@@ -48,8 +64,6 @@ export const logoutUser = createAsyncThunk(
         typeof window !== "undefined"
           ? localStorage.getItem("token")
           : null;
-
-      console.log("Logout token:", token);
 
       if (!token) {
         if (typeof window !== "undefined") {
@@ -77,7 +91,12 @@ export const getUserProfile = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.get("/auth/profile");
-      return response.data?.userData || response.data?.user || response.data?.data || response.data;
+      const raw =
+        response.data?.userData ||
+        response.data?.user ||
+        response.data?.data ||
+        response.data;
+      return normalizeUser(raw);
     } catch (error) {
       return rejectWithValue(error.message);
     }
