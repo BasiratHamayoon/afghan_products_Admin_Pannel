@@ -14,14 +14,41 @@ import {
 } from "@/store/slices/categoriesSlice";
 import { loadCategoryOptions } from "@/store/actions/selectActions";
 
+// ─── Normalize ────────────────────────────────────────────────────────────────
+
 const normalizeCategory = (item) => {
   if (!item) return null;
+
+  // Handle multilingual name
+  const rawName = item.name;
+  const displayName =
+    rawName && typeof rawName === "object"
+      ? rawName.en || rawName.fa || rawName.ps || ""
+      : rawName || "";
+
+  // Handle multilingual description
+  const rawDescription = item.description;
+  const displayDescription =
+    rawDescription && typeof rawDescription === "object"
+      ? rawDescription.en || rawDescription.fa || rawDescription.ps || ""
+      : rawDescription || "";
+
   return {
     ...item,
     id: item._id || item.id,
-    name: item.name || "",
+    // Keep full multilingual object so edit form can read all languages
+    name:
+      rawName && typeof rawName === "object"
+        ? rawName
+        : { en: displayName, fa: "", ps: "" },
+    // Flat string used for display in tables / cards / dialogs
+    displayName,
+    description:
+      rawDescription && typeof rawDescription === "object"
+        ? rawDescription
+        : { en: displayDescription, fa: "", ps: "" },
+    displayDescription,
     slug: item.slug || "",
-    description: item.description || "",
     image: item.image || null,
     sortOrder: item.sortOrder ?? 0,
     isArchived: item.isArchived ?? false,
@@ -31,10 +58,14 @@ const normalizeCategory = (item) => {
   };
 };
 
+// ─── In-flight guards ─────────────────────────────────────────────────────────
+
 let _listFetchInProgress = false;
 let _statsFetchInProgress = false;
 let _statsFetchDone = false;
 const _byIdCache = {};
+
+// ─── Actions ──────────────────────────────────────────────────────────────────
 
 export const fetchCategories = (params = {}) => async (dispatch) => {
   if (_listFetchInProgress) return;
@@ -51,18 +82,26 @@ export const fetchCategories = (params = {}) => async (dispatch) => {
     const res = await axiosInstance.get(`/categories?${query.toString()}`);
     const data = res.data;
     const raw = data.categories || data.data || [];
-    const normalized = Array.isArray(raw) ? raw.map(normalizeCategory).filter(Boolean) : [];
+    const normalized = Array.isArray(raw)
+      ? raw.map(normalizeCategory).filter(Boolean)
+      : [];
 
     dispatch(setCategories(normalized));
-    dispatch(setPaginationMeta({
-      page: data.page || data.currentPage || page,
-      limit: data.limit || limit,
-      total: data.total || data.totalCount || normalized.length,
-      totalPages: data.totalPages || 1,
-    }));
+    dispatch(
+      setPaginationMeta({
+        page: data.page || data.currentPage || page,
+        limit: data.limit || limit,
+        total: data.total || data.totalCount || normalized.length,
+        totalPages: data.totalPages || 1,
+      })
+    );
     return { success: true };
   } catch (err) {
-    dispatch(setError(err.response?.data?.message || err.message || "Failed to fetch categories"));
+    dispatch(
+      setError(
+        err.response?.data?.message || err.message || "Failed to fetch categories"
+      )
+    );
     return { success: false };
   } finally {
     dispatch(setLoading(false));
@@ -82,7 +121,10 @@ export const fetchCategoryStats = () => async (dispatch) => {
     return { success: true, data };
   } catch (err) {
     _statsFetchDone = false;
-    return { success: false, message: err.response?.data?.message || err.message };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message,
+    };
   } finally {
     dispatch(setStatsLoading(false));
     _statsFetchInProgress = false;
@@ -119,7 +161,10 @@ export const fetchCategoryById = (id) => async () => {
     return { success: true, data: normalized };
   } catch (err) {
     delete _byIdCache[id];
-    return { success: false, message: err.response?.data?.message || err.message };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message,
+    };
   }
 };
 
@@ -138,7 +183,11 @@ export const createCategory = (formData) => async (dispatch) => {
     dispatch(loadCategoryOptions(true));
     return { success: true, data: normalized };
   } catch (err) {
-    return { success: false, message: err.response?.data?.message || err.message || "Failed to create" };
+    return {
+      success: false,
+      message:
+        err.response?.data?.message || err.message || "Failed to create",
+    };
   }
 };
 
@@ -154,7 +203,11 @@ export const editCategory = (id, formData) => async (dispatch) => {
     dispatch(loadCategoryOptions(true));
     return { success: true, data: normalized };
   } catch (err) {
-    return { success: false, message: err.response?.data?.message || err.message || "Failed to update" };
+    return {
+      success: false,
+      message:
+        err.response?.data?.message || err.message || "Failed to update",
+    };
   }
 };
 
@@ -165,7 +218,11 @@ export const archiveCategoryAction = (id) => async (dispatch) => {
     clearCategoryByIdCache(id);
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.response?.data?.message || err.message || "Failed to archive" };
+    return {
+      success: false,
+      message:
+        err.response?.data?.message || err.message || "Failed to archive",
+    };
   }
 };
 
@@ -176,7 +233,11 @@ export const unarchiveCategoryAction = (id) => async (dispatch) => {
     clearCategoryByIdCache(id);
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.response?.data?.message || err.message || "Failed to unarchive" };
+    return {
+      success: false,
+      message:
+        err.response?.data?.message || err.message || "Failed to unarchive",
+    };
   }
 };
 
@@ -188,6 +249,10 @@ export const deleteCategoryAction = (id, slug) => async (dispatch) => {
     dispatch(loadCategoryOptions(true));
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.response?.data?.message || err.message || "Failed to delete" };
+    return {
+      success: false,
+      message:
+        err.response?.data?.message || err.message || "Failed to delete",
+    };
   }
 };

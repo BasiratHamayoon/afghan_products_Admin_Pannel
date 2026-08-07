@@ -8,11 +8,35 @@ import { getFileUrl } from "@/lib/fileUrl";
 import { useTranslation } from "react-i18next";
 
 export default function CategoryForm({ initialData, onSubmit, onCancel, isLoading }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const safe = initialData && typeof initialData === "object" ? initialData : {};
 
-  const [name, setName] = useState(safe.name || "");
-  const [description, setDescription] = useState(safe.description || "");
+  const currentLang = i18n.language || "en";
+
+  const getNameValue = () => {
+    if (!safe.nameMultilingual && !safe.name) return "";
+    if (safe.nameMultilingual && typeof safe.nameMultilingual === "object") {
+      return safe.nameMultilingual[currentLang] || safe.nameMultilingual.en || safe.nameMultilingual.fa || safe.nameMultilingual.ps || "";
+    }
+    if (safe.name && typeof safe.name === "object") {
+      return safe.name[currentLang] || safe.name.en || safe.name.fa || safe.name.ps || "";
+    }
+    return typeof safe.name === "string" ? safe.name : "";
+  };
+
+  const getDescriptionValue = () => {
+    if (!safe.descriptionMultilingual && !safe.description) return "";
+    if (safe.descriptionMultilingual && typeof safe.descriptionMultilingual === "object") {
+      return safe.descriptionMultilingual[currentLang] || safe.descriptionMultilingual.en || safe.descriptionMultilingual.fa || safe.descriptionMultilingual.ps || "";
+    }
+    if (safe.description && typeof safe.description === "object") {
+      return safe.description[currentLang] || safe.description.en || safe.description.fa || safe.description.ps || "";
+    }
+    return typeof safe.description === "string" ? safe.description : "";
+  };
+
+  const [name, setName] = useState(getNameValue());
+  const [description, setDescription] = useState(getDescriptionValue());
   const [sortOrder, setSortOrder] = useState(safe.sortOrder ?? 0);
   const [isArchived, setIsArchived] = useState(safe.isArchived ?? false);
   const [imageFile, setImageFile] = useState(null);
@@ -41,9 +65,11 @@ export default function CategoryForm({ initialData, onSubmit, onCancel, isLoadin
     if (!name.trim()) errs.name = t("categories.categoryNameRequired");
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
+    const lang = currentLang === "ps" ? "ps" : currentLang === "fa" ? "fa" : "en";
+
     const formData = new FormData();
-    formData.append("name", name.trim());
-    formData.append("description", description.trim());
+    formData.append(`name[${lang}]`, name.trim());
+    formData.append(`description[${lang}]`, description.trim());
     formData.append("sortOrder", String(sortOrder));
     formData.append("isArchived", String(isArchived));
     if (imageFile) formData.append("image", imageFile);
@@ -64,6 +90,7 @@ export default function CategoryForm({ initialData, onSubmit, onCancel, isLoadin
               onChange={(e) => { setName(e.target.value); if (errors.name) setErrors((p) => ({ ...p, name: "" })); }}
               placeholder={t("categories.categoryNamePlaceholder")}
               disabled={isLoading}
+              dir={currentLang === "fa" || currentLang === "ps" ? "rtl" : "ltr"}
               className={cn(
                 "w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all border bg-white dark:bg-white/[0.04] text-foreground placeholder:text-muted-foreground/40 cursor-text disabled:opacity-60",
                 errors.name ? "border-red-400" : "border-gray-200 dark:border-white/[0.08] focus:border-[#0F69B0]/40 focus:shadow-[0_0_0_3px_rgba(15,105,176,0.08)]"
@@ -80,6 +107,7 @@ export default function CategoryForm({ initialData, onSubmit, onCancel, isLoadin
               placeholder={t("categories.descriptionPlaceholder")}
               rows={4}
               disabled={isLoading}
+              dir={currentLang === "fa" || currentLang === "ps" ? "rtl" : "ltr"}
               className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.04] text-foreground placeholder:text-muted-foreground/40 cursor-text focus:border-[#0F69B0]/40 focus:shadow-[0_0_0_3px_rgba(15,105,176,0.08)] resize-none disabled:opacity-60"
             />
           </div>
