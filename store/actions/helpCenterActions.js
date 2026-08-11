@@ -3,15 +3,12 @@ import {
   setLoading,
   setHelpCenter,
   setFaqs,
-  addFaq as addFaqToList,
   updateFaqInList,
   removeFaqFromList,
   setCategories,
-  addCategory as addCatToList,
   updateCategoryInList,
   removeCategoryFromList,
   setContactOptions,
-  addContactOption as addContactToList,
   updateContactOptionInList,
   removeContactOptionFromList,
   setError,
@@ -19,21 +16,109 @@ import {
 
 const BASE = "/help_center";
 
+const normalizeMultilingual = (raw) => {
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    return {
+      en: typeof raw.en === "string" ? raw.en.trim() : "",
+      fa: typeof raw.fa === "string" ? raw.fa.trim() : "",
+      ps: typeof raw.ps === "string" ? raw.ps.trim() : "",
+    };
+  }
+  if (typeof raw === "string" && raw.trim() !== "") {
+    return { en: raw.trim(), fa: "", ps: "" };
+  }
+  return { en: "", fa: "", ps: "" };
+};
+
+const getFlatValue = (multiObj) =>
+  multiObj?.en || multiObj?.fa || multiObj?.ps || "";
+
+const normalizeCategory = (item) => {
+  if (!item) return null;
+  const titleMultilingual = normalizeMultilingual(item.title);
+  const descriptionMultilingual = normalizeMultilingual(item.description);
+  return {
+    ...item,
+    id: item._id || item.id,
+    titleMultilingual,
+    descriptionMultilingual,
+    title: getFlatValue(titleMultilingual),
+    description: getFlatValue(descriptionMultilingual),
+    icon: item.icon || null,
+    link: item.link || null,
+    order: item.order ?? 0,
+    isActive: item.isActive ?? true,
+  };
+};
+
+const normalizeFaq = (item) => {
+  if (!item) return null;
+  const questionMultilingual = normalizeMultilingual(item.question);
+  const answerMultilingual = normalizeMultilingual(item.answer);
+  return {
+    ...item,
+    id: item._id || item.id,
+    questionMultilingual,
+    answerMultilingual,
+    question: getFlatValue(questionMultilingual),
+    answer: getFlatValue(answerMultilingual),
+    order: item.order ?? 0,
+    isActive: item.isActive ?? true,
+  };
+};
+
+const normalizeContactOption = (item) => {
+  if (!item) return null;
+  const labelMultilingual = normalizeMultilingual(item.label);
+  return {
+    ...item,
+    id: item._id || item.id,
+    labelMultilingual,
+    label: getFlatValue(labelMultilingual),
+    type: item.type || "",
+    value: item.value || "",
+    icon: item.icon || null,
+    order: item.order ?? 0,
+    isActive: item.isActive ?? true,
+  };
+};
+
 const normalizeHelpCenter = (item) => {
   if (!item) return null;
+
+  const headerTitleMultilingual = normalizeMultilingual(item.headerTitle);
+  const headerSubtitleMultilingual = normalizeMultilingual(item.headerSubtitle);
+  const heroTitleMultilingual = normalizeMultilingual(item.heroTitle);
+  const heroDescriptionMultilingual = normalizeMultilingual(item.heroDescription);
+  const supportTitleMultilingual = normalizeMultilingual(item.supportTitle);
+  const supportDescriptionMultilingual = normalizeMultilingual(item.supportDescription);
+
   return {
+    ...item,
     id: item._id || item.id,
-    headerTitle: item.headerTitle || "",
-    headerSubtitle: item.headerSubtitle || "",
-    heroTitle: item.heroTitle || "",
-    heroDescription: item.heroDescription || "",
+    headerTitleMultilingual,
+    headerSubtitleMultilingual,
+    heroTitleMultilingual,
+    heroDescriptionMultilingual,
+    supportTitleMultilingual,
+    supportDescriptionMultilingual,
+    headerTitle: getFlatValue(headerTitleMultilingual),
+    headerSubtitle: getFlatValue(headerSubtitleMultilingual),
+    heroTitle: getFlatValue(heroTitleMultilingual),
+    heroDescription: getFlatValue(heroDescriptionMultilingual),
+    supportTitle: getFlatValue(supportTitleMultilingual),
+    supportDescription: getFlatValue(supportDescriptionMultilingual),
     heroImage: item.heroImage || "",
-    supportTitle: item.supportTitle || "",
-    supportDescription: item.supportDescription || "",
     isActive: item.isActive ?? true,
-    faqs: Array.isArray(item.faqs) ? item.faqs : [],
-    categories: Array.isArray(item.categories) ? item.categories : [],
-    contactOptions: Array.isArray(item.contactOptions) ? item.contactOptions : [],
+    faqs: Array.isArray(item.faqs)
+      ? item.faqs.map(normalizeFaq).filter(Boolean)
+      : [],
+    categories: Array.isArray(item.categories)
+      ? item.categories.map(normalizeCategory).filter(Boolean)
+      : [],
+    contactOptions: Array.isArray(item.contactOptions)
+      ? item.contactOptions.map(normalizeContactOption).filter(Boolean)
+      : [],
     createdAt: item.createdAt || null,
     updatedAt: item.updatedAt || null,
   };
@@ -41,28 +126,39 @@ const normalizeHelpCenter = (item) => {
 
 const _byIdCache = {};
 
-// ─── Fetch Help Center (singleton) ────────────────────────────────────────────
 export const fetchHelpCenter = () => async (dispatch) => {
   dispatch(setLoading(true));
   try {
     const res = await axiosInstance.get(BASE);
-    const raw = res.data?.helpCenter || res.data?.data || res.data;
+    const raw =
+      res.data?.data?.helpCenter ||
+      res.data?.helpCenter ||
+      res.data?.data ||
+      res.data;
     const normalized = normalizeHelpCenter(raw);
     dispatch(setHelpCenter(normalized));
+    if (normalized) {
+      dispatch(setFaqs(normalized.faqs || []));
+      dispatch(setCategories(normalized.categories || []));
+      dispatch(setContactOptions(normalized.contactOptions || []));
+    }
     return { success: true, data: normalized };
   } catch (err) {
-    if (err.status === 404) {
+    if (err.response?.status === 404) {
       dispatch(setHelpCenter(null));
       return { success: true, data: null, empty: true };
     }
-    dispatch(setError(err.message || "Failed to fetch help center"));
+    dispatch(
+      setError(
+        err.response?.data?.message || err.message || "Failed to fetch help center"
+      )
+    );
     return { success: false, message: err.message };
   } finally {
     dispatch(setLoading(false));
   }
 };
 
-// ─── Fetch By ID ──────────────────────────────────────────────────────────────
 export const fetchHelpCenterById = (id) => async () => {
   if (!id) return { success: false };
   if (_byIdCache[id] && _byIdCache[id] !== "loading") {
@@ -77,20 +173,30 @@ export const fetchHelpCenterById = (id) => async () => {
           clearInterval(interval);
           resolve({ success: true, data: _byIdCache[id] });
         }
-        if (attempts > 50) { clearInterval(interval); resolve({ success: false }); }
+        if (attempts > 50) {
+          clearInterval(interval);
+          resolve({ success: false });
+        }
       }, 100);
     });
   }
   _byIdCache[id] = "loading";
   try {
     const res = await axiosInstance.get(`${BASE}/${id}`);
-    const raw = res.data?.helpCenter || res.data?.data || res.data;
+    const raw =
+      res.data?.data?.helpCenter ||
+      res.data?.helpCenter ||
+      res.data?.data ||
+      res.data;
     const normalized = normalizeHelpCenter(raw);
     _byIdCache[id] = normalized;
     return { success: true, data: normalized };
   } catch (err) {
     delete _byIdCache[id];
-    return { success: false, message: err.message };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message,
+    };
   }
 };
 
@@ -98,34 +204,45 @@ export const clearHelpCenterByIdCache = (id) => {
   if (id && _byIdCache[id]) delete _byIdCache[id];
 };
 
-// ─── Create Help Center ──────────────────────────────────────────────────────
 export const createHelpCenter = (payload) => async (dispatch) => {
   try {
     const res = await axiosInstance.post(BASE, payload);
-    const raw = res.data?.helpCenter || res.data?.data || res.data;
+    const raw =
+      res.data?.data?.helpCenter ||
+      res.data?.helpCenter ||
+      res.data?.data ||
+      res.data;
     const normalized = normalizeHelpCenter(raw);
     dispatch(setHelpCenter(normalized));
     return { success: true, data: normalized };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to create" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to create",
+    };
   }
 };
 
-// ─── Update Help Center ──────────────────────────────────────────────────────
 export const updateHelpCenter = (id, payload) => async (dispatch) => {
   try {
     const res = await axiosInstance.patch(`${BASE}/${id}`, payload);
-    const raw = res.data?.helpCenter || res.data?.data || res.data;
+    const raw =
+      res.data?.data?.helpCenter ||
+      res.data?.helpCenter ||
+      res.data?.data ||
+      res.data;
     const normalized = normalizeHelpCenter(raw);
     dispatch(setHelpCenter(normalized));
     clearHelpCenterByIdCache(id);
     return { success: true, data: normalized };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to update" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to update",
+    };
   }
 };
 
-// ─── Delete Help Center ──────────────────────────────────────────────────────
 export const deleteHelpCenter = (id) => async (dispatch) => {
   try {
     await axiosInstance.delete(`${BASE}/${id}`);
@@ -133,22 +250,28 @@ export const deleteHelpCenter = (id) => async (dispatch) => {
     clearHelpCenterByIdCache(id);
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to delete" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to delete",
+    };
   }
 };
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// FAQs
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export const fetchFaqs = () => async (dispatch) => {
   try {
     const res = await axiosInstance.get(`${BASE}/faqs`);
-    const data = res.data?.faqs || res.data?.data || [];
-    dispatch(setFaqs(Array.isArray(data) ? data : []));
-    return { success: true, data };
+    const data =
+      res.data?.data?.faqs || res.data?.faqs || res.data?.data || [];
+    const normalized = Array.isArray(data)
+      ? data.map(normalizeFaq).filter(Boolean)
+      : [];
+    dispatch(setFaqs(normalized));
+    return { success: true, data: normalized };
   } catch (err) {
-    if (err.status === 404) { dispatch(setFaqs([])); return { success: true, data: [] }; }
+    if (err.response?.status === 404) {
+      dispatch(setFaqs([]));
+      return { success: true, data: [] };
+    }
     return { success: false, message: err.message };
   }
 };
@@ -156,23 +279,31 @@ export const fetchFaqs = () => async (dispatch) => {
 export const addFaq = (payload) => async (dispatch) => {
   try {
     const res = await axiosInstance.post(`${BASE}/faqs`, payload);
-    const raw = res.data?.helpCenter || res.data;
-    // After add, refresh full help center to get updated faqs
     dispatch(fetchHelpCenter());
-    return { success: true, data: raw };
+    return { success: true, data: res.data };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to add FAQ" };
+    return {
+      success: false,
+      message:
+        err.response?.data?.message || err.message || "Failed to add FAQ",
+    };
   }
 };
 
 export const updateFaq = (faqId, payload) => async (dispatch) => {
   try {
     const res = await axiosInstance.patch(`${BASE}/faqs/${faqId}`, payload);
-    const raw = res.data?.faq || res.data?.data || res.data;
-    dispatch(updateFaqInList(raw));
-    return { success: true, data: raw };
+    const raw =
+      res.data?.data?.faq || res.data?.faq || res.data?.data || res.data;
+    const normalized = normalizeFaq(raw);
+    if (normalized) dispatch(updateFaqInList(normalized));
+    return { success: true, data: normalized };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to update FAQ" };
+    return {
+      success: false,
+      message:
+        err.response?.data?.message || err.message || "Failed to update FAQ",
+    };
   }
 };
 
@@ -182,22 +313,32 @@ export const deleteFaq = (faqId) => async (dispatch) => {
     dispatch(removeFaqFromList(faqId));
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to delete FAQ" };
+    return {
+      success: false,
+      message:
+        err.response?.data?.message || err.message || "Failed to delete FAQ",
+    };
   }
 };
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// Categories
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export const fetchHelpCategories = () => async (dispatch) => {
   try {
     const res = await axiosInstance.get(`${BASE}/categories`);
-    const data = res.data?.categories || res.data?.data || [];
-    dispatch(setCategories(Array.isArray(data) ? data : []));
-    return { success: true, data };
+    const data =
+      res.data?.data?.categories ||
+      res.data?.categories ||
+      res.data?.data ||
+      [];
+    const normalized = Array.isArray(data)
+      ? data.map(normalizeCategory).filter(Boolean)
+      : [];
+    dispatch(setCategories(normalized));
+    return { success: true, data: normalized };
   } catch (err) {
-    if (err.status === 404) { dispatch(setCategories([])); return { success: true, data: [] }; }
+    if (err.response?.status === 404) {
+      dispatch(setCategories([]));
+      return { success: true, data: [] };
+    }
     return { success: false, message: err.message };
   }
 };
@@ -208,18 +349,38 @@ export const addHelpCategory = (payload) => async (dispatch) => {
     dispatch(fetchHelpCenter());
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to add category" };
+    return {
+      success: false,
+      message:
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to add category",
+    };
   }
 };
 
 export const updateHelpCategory = (catId, payload) => async (dispatch) => {
   try {
-    const res = await axiosInstance.patch(`${BASE}/categories/${catId}`, payload);
-    const raw = res.data?.category || res.data?.data || res.data;
-    dispatch(updateCategoryInList(raw));
-    return { success: true, data: raw };
+    const res = await axiosInstance.patch(
+      `${BASE}/categories/${catId}`,
+      payload
+    );
+    const raw =
+      res.data?.data?.category ||
+      res.data?.category ||
+      res.data?.data ||
+      res.data;
+    const normalized = normalizeCategory(raw);
+    if (normalized) dispatch(updateCategoryInList(normalized));
+    return { success: true, data: normalized };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to update category" };
+    return {
+      success: false,
+      message:
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to update category",
+    };
   }
 };
 
@@ -229,22 +390,34 @@ export const deleteHelpCategory = (catId) => async (dispatch) => {
     dispatch(removeCategoryFromList(catId));
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to delete category" };
+    return {
+      success: false,
+      message:
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to delete category",
+    };
   }
 };
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// Contact Options
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export const fetchContactOptions = () => async (dispatch) => {
   try {
     const res = await axiosInstance.get(`${BASE}/contact-options`);
-    const data = res.data?.contactOptions || res.data?.data || [];
-    dispatch(setContactOptions(Array.isArray(data) ? data : []));
-    return { success: true, data };
+    const data =
+      res.data?.data?.contactOptions ||
+      res.data?.contactOptions ||
+      res.data?.data ||
+      [];
+    const normalized = Array.isArray(data)
+      ? data.map(normalizeContactOption).filter(Boolean)
+      : [];
+    dispatch(setContactOptions(normalized));
+    return { success: true, data: normalized };
   } catch (err) {
-    if (err.status === 404) { dispatch(setContactOptions([])); return { success: true, data: [] }; }
+    if (err.response?.status === 404) {
+      dispatch(setContactOptions([]));
+      return { success: true, data: [] };
+    }
     return { success: false, message: err.message };
   }
 };
@@ -255,18 +428,38 @@ export const addContactOption = (payload) => async (dispatch) => {
     dispatch(fetchHelpCenter());
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to add contact option" };
+    return {
+      success: false,
+      message:
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to add contact option",
+    };
   }
 };
 
 export const updateContactOption = (contactId, payload) => async (dispatch) => {
   try {
-    const res = await axiosInstance.patch(`${BASE}/contact-options/${contactId}`, payload);
-    const raw = res.data?.contact || res.data?.data || res.data;
-    dispatch(updateContactOptionInList(raw));
-    return { success: true, data: raw };
+    const res = await axiosInstance.patch(
+      `${BASE}/contact-options/${contactId}`,
+      payload
+    );
+    const raw =
+      res.data?.data?.contact ||
+      res.data?.contact ||
+      res.data?.data ||
+      res.data;
+    const normalized = normalizeContactOption(raw);
+    if (normalized) dispatch(updateContactOptionInList(normalized));
+    return { success: true, data: normalized };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to update contact option" };
+    return {
+      success: false,
+      message:
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to update contact option",
+    };
   }
 };
 
@@ -276,6 +469,12 @@ export const deleteContactOption = (contactId) => async (dispatch) => {
     dispatch(removeContactOptionFromList(contactId));
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to delete contact option" };
+    return {
+      success: false,
+      message:
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to delete contact option",
+    };
   }
 };

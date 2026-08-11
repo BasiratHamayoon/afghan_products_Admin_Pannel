@@ -37,7 +37,8 @@ const PAGE_LIMIT = 10;
 export default function ProductTypesPage() {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language || "en";
 
   const { productTypes, isLoading, pagination, stats } = useSelector((state) => state.productTypes);
   const { categoryOptions: reduxCatOptions, subCategoryOptions: reduxSubCatOptions } = useSelector((state) => state.select);
@@ -65,12 +66,12 @@ export default function ProductTypesPage() {
 
   const categoryFilterOptions = [
     { value: "all", label: t("categories.allCategories") },
-    ...reduxCatOptions.map((c) => ({ value: c.id || c._id, label: c.name })),
+    ...reduxCatOptions.map((c) => ({ value: c.id || c._id, label: c.name || "" })),
   ];
 
   const subCategoryFilterOptions = [
     { value: "all", label: t("categories.allSubcategories") },
-    ...reduxSubCatOptions.map((s) => ({ value: s.id || s._id, label: s.name })),
+    ...reduxSubCatOptions.map((s) => ({ value: s.id || s._id, label: s.name || "" })),
   ];
 
   const buildParams = useCallback((page, search, tab, catId, subCatId) => {
@@ -155,6 +156,14 @@ export default function ProductTypesPage() {
     dispatch(fetchProductTypeStats());
   };
 
+  const getDisplayName = (item) => {
+    const multi = item?.nameMultilingual;
+    if (multi && typeof multi === "object") {
+      return multi[lang] || multi.en || multi.fa || multi.ps || "";
+    }
+    return typeof item?.name === "string" ? item.name : "";
+  };
+
   const handleArchiveConfirm = async () => {
     const { item, action } = archiveDialog;
     if (!item?.id) { setArchiveDialog({ open: false, item: null, action: null }); return; }
@@ -216,9 +225,9 @@ export default function ProductTypesPage() {
   const archivedCount = safeItems.filter((p) => p.isArchived).length;
   const tabCounts = { all: allCount, active: activeCount, archived: archivedCount };
 
-  const totalFromStats = stats?.total ?? total;
-  const activeFromStats = stats?.active ?? activeCount;
-  const archivedFromStats = stats?.archived ?? archivedCount;
+  const totalFromStats = stats?.totalProductTypes ?? stats?.total ?? total;
+  const activeFromStats = stats?.activeProductTypes ?? stats?.active ?? activeCount;
+  const archivedFromStats = stats?.archivedProductTypes ?? stats?.archived ?? archivedCount;
 
   const commonCardProps = {
     onView: (it) => {
@@ -339,7 +348,17 @@ export default function ProductTypesPage() {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                 {filteredItems.map((item, i) => (
-                  <SharedGridCard key={item.id} item={item} index={i} defaultEmoji="🏷️" extraInfo={[{ key: "categoryName", color: "#0F69B0" }, { key: "subCategoryName", color: "#7c3aed", prefix: "↳" }]} {...commonCardProps} />
+                  <SharedGridCard
+                    key={item.id}
+                    item={item}
+                    index={i}
+                    defaultEmoji="🏷️"
+                    extraInfo={[
+                      { key: "categoryName", color: "#0F69B0" },
+                      { key: "subCategoryName", color: "#7c3aed", prefix: "↳" },
+                    ]}
+                    {...commonCardProps}
+                  />
                 ))}
               </div>
               <div className="mt-4 border-t border-gray-50 dark:border-white/[0.04] pt-4">
@@ -369,7 +388,11 @@ export default function ProductTypesPage() {
         onClose={() => setArchiveDialog({ open: false, item: null, action: null })}
         onConfirm={handleArchiveConfirm}
         title={archiveDialog.action === "archive" ? t("categories.archiveProductType") : t("categories.unarchiveProductType")}
-        description={archiveDialog.item ? `${archiveDialog.action === "archive" ? t("categories.archiveDesc") : t("categories.unarchiveDesc")} "${archiveDialog.item.name}"?` : t("categories.areYouSure")}
+        description={
+          archiveDialog.item
+            ? `${archiveDialog.action === "archive" ? t("categories.archiveDesc") : t("categories.unarchiveDesc")} "${getDisplayName(archiveDialog.item)}"?`
+            : t("categories.areYouSure")
+        }
         confirmLabel={archiveDialog.action === "archive" ? t("categories.archive") : t("categories.unarchive")}
         isLoading={isActioning}
         variant={archiveDialog.action === "archive" ? "warning" : "primary"}
@@ -380,7 +403,11 @@ export default function ProductTypesPage() {
         onClose={() => setDeleteDialog({ open: false, item: null })}
         onConfirm={handleDeleteConfirm}
         title={t("categories.deleteProductType")}
-        description={deleteDialog.item ? `${t("categories.deleteProductTypeDesc")} "${deleteDialog.item.name}"${t("categories.deleteSuffix")}` : t("categories.areYouSure")}
+        description={
+          deleteDialog.item
+            ? `${t("categories.deleteProductTypeDesc")} "${getDisplayName(deleteDialog.item)}"${t("categories.deleteSuffix")}`
+            : t("categories.areYouSure")
+        }
         confirmLabel={t("categories.delete")}
         isLoading={isDeleting}
         variant="danger"

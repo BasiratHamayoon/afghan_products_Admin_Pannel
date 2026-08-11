@@ -14,58 +14,68 @@ import {
 } from "@/store/slices/categoriesSlice";
 import { loadCategoryOptions } from "@/store/actions/selectActions";
 
-// ─── Normalize ────────────────────────────────────────────────────────────────
-
 const normalizeCategory = (item) => {
   if (!item) return null;
 
-  // Handle multilingual name
   const rawName = item.name;
-  const displayName =
-    rawName && typeof rawName === "object"
-      ? rawName.en || rawName.fa || rawName.ps || ""
-      : rawName || "";
-
-  // Handle multilingual description
   const rawDescription = item.description;
-  const displayDescription =
-    rawDescription && typeof rawDescription === "object"
-      ? rawDescription.en || rawDescription.fa || rawDescription.ps || ""
-      : rawDescription || "";
+
+  let nameMultilingual = { en: "", fa: "", ps: "" };
+  if (rawName && typeof rawName === "object" && !Array.isArray(rawName)) {
+    nameMultilingual = {
+      en: typeof rawName.en === "string" ? rawName.en.trim() : "",
+      fa: typeof rawName.fa === "string" ? rawName.fa.trim() : "",
+      ps: typeof rawName.ps === "string" ? rawName.ps.trim() : "",
+    };
+  } else if (typeof rawName === "string" && rawName.trim() !== "") {
+    nameMultilingual = { en: rawName.trim(), fa: "", ps: "" };
+  }
+
+  let descriptionMultilingual = { en: "", fa: "", ps: "" };
+  if (rawDescription && typeof rawDescription === "object" && !Array.isArray(rawDescription)) {
+    descriptionMultilingual = {
+      en: typeof rawDescription.en === "string" ? rawDescription.en.trim() : "",
+      fa: typeof rawDescription.fa === "string" ? rawDescription.fa.trim() : "",
+      ps: typeof rawDescription.ps === "string" ? rawDescription.ps.trim() : "",
+    };
+  } else if (typeof rawDescription === "string" && rawDescription.trim() !== "") {
+    descriptionMultilingual = { en: rawDescription.trim(), fa: "", ps: "" };
+  }
+
+  const flatName =
+    nameMultilingual.en ||
+    nameMultilingual.fa ||
+    nameMultilingual.ps ||
+    "";
+
+  const flatDescription =
+    descriptionMultilingual.en ||
+    descriptionMultilingual.fa ||
+    descriptionMultilingual.ps ||
+    "";
 
   return {
     ...item,
     id: item._id || item.id,
-    // Keep full multilingual object so edit form can read all languages
-    name:
-      rawName && typeof rawName === "object"
-        ? rawName
-        : { en: displayName, fa: "", ps: "" },
-    // Flat string used for display in tables / cards / dialogs
-    displayName,
-    description:
-      rawDescription && typeof rawDescription === "object"
-        ? rawDescription
-        : { en: displayDescription, fa: "", ps: "" },
-    displayDescription,
+    nameMultilingual,
+    descriptionMultilingual,
+    name: flatName,
+    description: flatDescription,
     slug: item.slug || "",
     image: item.image || null,
     sortOrder: item.sortOrder ?? 0,
     isArchived: item.isArchived ?? false,
     subCategoryCount: item.subCategoryCount ?? 0,
+    productCount: item.productCount ?? 0,
     createdAt: item.createdAt || null,
     updatedAt: item.updatedAt || null,
   };
 };
 
-// ─── In-flight guards ─────────────────────────────────────────────────────────
-
 let _listFetchInProgress = false;
 let _statsFetchInProgress = false;
 let _statsFetchDone = false;
 const _byIdCache = {};
-
-// ─── Actions ──────────────────────────────────────────────────────────────────
 
 export const fetchCategories = (params = {}) => async (dispatch) => {
   if (_listFetchInProgress) return;
@@ -89,18 +99,16 @@ export const fetchCategories = (params = {}) => async (dispatch) => {
     dispatch(setCategories(normalized));
     dispatch(
       setPaginationMeta({
-        page: data.page || data.currentPage || page,
-        limit: data.limit || limit,
-        total: data.total || data.totalCount || normalized.length,
-        totalPages: data.totalPages || 1,
+        page: data.pagination?.page || data.page || data.currentPage || page,
+        limit: data.pagination?.limit || data.limit || limit,
+        total: data.pagination?.total || data.total || data.totalCount || normalized.length,
+        totalPages: data.pagination?.totalPages || data.totalPages || 1,
       })
     );
     return { success: true };
   } catch (err) {
     dispatch(
-      setError(
-        err.response?.data?.message || err.message || "Failed to fetch categories"
-      )
+      setError(err.response?.data?.message || err.message || "Failed to fetch categories")
     );
     return { success: false };
   } finally {
@@ -185,8 +193,7 @@ export const createCategory = (formData) => async (dispatch) => {
   } catch (err) {
     return {
       success: false,
-      message:
-        err.response?.data?.message || err.message || "Failed to create",
+      message: err.response?.data?.message || err.message || "Failed to create",
     };
   }
 };
@@ -205,8 +212,7 @@ export const editCategory = (id, formData) => async (dispatch) => {
   } catch (err) {
     return {
       success: false,
-      message:
-        err.response?.data?.message || err.message || "Failed to update",
+      message: err.response?.data?.message || err.message || "Failed to update",
     };
   }
 };
@@ -220,8 +226,7 @@ export const archiveCategoryAction = (id) => async (dispatch) => {
   } catch (err) {
     return {
       success: false,
-      message:
-        err.response?.data?.message || err.message || "Failed to archive",
+      message: err.response?.data?.message || err.message || "Failed to archive",
     };
   }
 };
@@ -235,8 +240,7 @@ export const unarchiveCategoryAction = (id) => async (dispatch) => {
   } catch (err) {
     return {
       success: false,
-      message:
-        err.response?.data?.message || err.message || "Failed to unarchive",
+      message: err.response?.data?.message || err.message || "Failed to unarchive",
     };
   }
 };
@@ -251,8 +255,7 @@ export const deleteCategoryAction = (id, slug) => async (dispatch) => {
   } catch (err) {
     return {
       success: false,
-      message:
-        err.response?.data?.message || err.message || "Failed to delete",
+      message: err.response?.data?.message || err.message || "Failed to delete",
     };
   }
 };

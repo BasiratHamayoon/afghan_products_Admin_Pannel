@@ -26,10 +26,18 @@ import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
+const resolveField = (multiObj, flatFallback, lang) => {
+  if (multiObj && typeof multiObj === "object" && !Array.isArray(multiObj)) {
+    return multiObj[lang] || multiObj.en || multiObj.fa || multiObj.ps || (typeof flatFallback === "string" ? flatFallback : "") || "";
+  }
+  return typeof flatFallback === "string" ? flatFallback : "";
+};
+
 export default function HelpCenterPage() {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language || "en";
   const { helpCenter, faqs, categories, contactOptions, isLoading } = useSelector((state) => state.helpCenter);
 
   const [activeTab, setActiveTab] = useState("overview");
@@ -97,6 +105,13 @@ export default function HelpCenterPage() {
     return `${t("helpCenter.deleteTitle")} ${t("helpCenter.deleteHelpCenter")}`;
   };
 
+  const displayHeaderTitle = resolveField(helpCenter?.headerTitleMultilingual, helpCenter?.headerTitle, lang);
+  const displayHeaderSubtitle = resolveField(helpCenter?.headerSubtitleMultilingual, helpCenter?.headerSubtitle, lang);
+  const displayHeroTitle = resolveField(helpCenter?.heroTitleMultilingual, helpCenter?.heroTitle, lang);
+  const displayHeroDescription = resolveField(helpCenter?.heroDescriptionMultilingual, helpCenter?.heroDescription, lang);
+  const displaySupportTitle = resolveField(helpCenter?.supportTitleMultilingual, helpCenter?.supportTitle, lang);
+  const displaySupportDescription = resolveField(helpCenter?.supportDescriptionMultilingual, helpCenter?.supportDescription, lang);
+
   return (
     <div className="space-y-5">
       <Breadcrumb />
@@ -128,11 +143,7 @@ export default function HelpCenterPage() {
       <div className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden">
         <div className="flex items-center overflow-x-auto scrollbar-thin border-b border-gray-100 dark:border-white/[0.06]">
           {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn("flex items-center gap-2 px-5 py-4 text-xs font-bold transition-all cursor-pointer whitespace-nowrap border-b-2", activeTab === tab.id ? "border-[#0F69B0] text-[#0F69B0] bg-[#0F69B0]/[0.04]" : "border-transparent text-muted-foreground hover:text-foreground hover:bg-gray-50 dark:hover:bg-white/[0.03]")}
-            >
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("flex items-center gap-2 px-5 py-4 text-xs font-bold transition-all cursor-pointer whitespace-nowrap border-b-2", activeTab === tab.id ? "border-[#0F69B0] text-[#0F69B0] bg-[#0F69B0]/[0.04]" : "border-transparent text-muted-foreground hover:text-foreground hover:bg-gray-50 dark:hover:bg-white/[0.03]")}>
               {tab.label}
               <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-black", activeTab === tab.id ? "bg-[#0F69B0] text-white" : "bg-gray-100 dark:bg-white/[0.08] text-muted-foreground")}>
                 {tabCounts[tab.id] ?? 0}
@@ -159,8 +170,8 @@ export default function HelpCenterPage() {
             <div className="space-y-5">
               <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <h2 className="text-lg font-black text-foreground">{helpCenter.headerTitle || t("helpCenter.title")}</h2>
-                  {helpCenter.headerSubtitle && <p className="text-sm text-muted-foreground font-medium mt-0.5">{helpCenter.headerSubtitle}</p>}
+                  <h2 className="text-lg font-black text-foreground">{displayHeaderTitle || t("helpCenter.title")}</h2>
+                  {displayHeaderSubtitle && <p className="text-sm text-muted-foreground font-medium mt-0.5">{displayHeaderSubtitle}</p>}
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <span className={cn("text-[11px] font-bold px-2.5 py-1 rounded-full", helpCenter.isActive ? "bg-emerald-500/10 text-emerald-600" : "bg-gray-500/10 text-gray-500")}>
                       {helpCenter.isActive ? t("helpCenter.active") : t("helpCenter.inactive")}
@@ -178,19 +189,19 @@ export default function HelpCenterPage() {
                 </div>
               </div>
 
-              {helpCenter.heroTitle && (
+              {displayHeroTitle && (
                 <div className="p-4 rounded-xl border border-gray-100 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02]">
                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">{t("helpCenter.hero")}</p>
-                  <p className="text-sm font-bold text-foreground">{helpCenter.heroTitle}</p>
-                  {helpCenter.heroDescription && <p className="text-xs text-muted-foreground font-medium mt-1">{helpCenter.heroDescription}</p>}
+                  <p className="text-sm font-bold text-foreground">{displayHeroTitle}</p>
+                  {displayHeroDescription && <p className="text-xs text-muted-foreground font-medium mt-1">{displayHeroDescription}</p>}
                 </div>
               )}
 
-              {helpCenter.supportTitle && (
+              {displaySupportTitle && (
                 <div className="p-4 rounded-xl border border-gray-100 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02]">
                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">{t("helpCenter.support")}</p>
-                  <p className="text-sm font-bold text-foreground">{helpCenter.supportTitle}</p>
-                  {helpCenter.supportDescription && <p className="text-xs text-muted-foreground font-medium mt-1">{helpCenter.supportDescription}</p>}
+                  <p className="text-sm font-bold text-foreground">{displaySupportTitle}</p>
+                  {displaySupportDescription && <p className="text-xs text-muted-foreground font-medium mt-1">{displaySupportDescription}</p>}
                 </div>
               )}
             </div>
@@ -206,25 +217,30 @@ export default function HelpCenterPage() {
                 <p className="text-xs text-muted-foreground font-medium py-8 text-center">{t("helpCenter.noFaqsYet")}</p>
               ) : (
                 <div className="space-y-3">
-                  {safeFaqs.map((faq, i) => (
-                    <div key={faq._id || faq.id || i} className="p-4 rounded-xl border border-gray-100 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02]">
-                      <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0 w-full">
-                          <p className="text-sm font-bold text-foreground break-words">{faq.question || "—"}</p>
-                          <p className="text-xs text-muted-foreground font-medium mt-1 line-clamp-2 break-words">{faq.answer || "—"}</p>
-                          <div className="flex items-center gap-2 mt-2 flex-wrap">
-                            {faq.category && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 truncate max-w-[120px]">{faq.category}</span>}
-                            <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0", faq.isActive ? "bg-emerald-500/10 text-emerald-600" : "bg-gray-500/10 text-gray-500")}>{faq.isActive ? t("helpCenter.active") : t("helpCenter.inactive")}</span>
-                            <span className="text-[10px] text-muted-foreground shrink-0">{t("helpCenter.order")} {faq.order ?? 0}</span>
+                  {safeFaqs.map((faq, i) => {
+                    const displayQuestion = resolveField(faq.questionMultilingual, faq.question, lang);
+                    const displayAnswer = resolveField(faq.answerMultilingual, faq.answer, lang);
+                    return (
+                      <div key={faq._id || faq.id || i} className="p-4 rounded-xl border border-gray-100 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02]">
+                        <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0 w-full">
+                            <p className="text-sm font-bold text-foreground break-words">{displayQuestion || "—"}</p>
+                            <p className="text-xs text-muted-foreground font-medium mt-1 line-clamp-2 break-words">{displayAnswer || "—"}</p>
+                            <div className="flex items-center gap-2 mt-2 flex-wrap">
+                              <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0", faq.isActive ? "bg-emerald-500/10 text-emerald-600" : "bg-gray-500/10 text-gray-500")}>
+                                {faq.isActive ? t("helpCenter.active") : t("helpCenter.inactive")}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground shrink-0">{t("helpCenter.order")} {faq.order ?? 0}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button onClick={() => router.push(`/help-center/add-faq?edit=${faq._id || faq.id}`)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer"><Edit2 className="h-3.5 w-3.5" /></button>
+                            <button onClick={() => setDeleteDialog({ open: true, type: "faq", item: faq })} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500 transition-all cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button onClick={() => router.push(`/help-center/add-faq?edit=${faq._id || faq.id}`)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer" title={t("helpCenter.edit")}><Edit2 className="h-3.5 w-3.5" /></button>
-                          <button onClick={() => setDeleteDialog({ open: true, type: "faq", item: faq })} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500 transition-all cursor-pointer" title={t("helpCenter.delete")}><Trash2 className="h-3.5 w-3.5" /></button>
-                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -240,27 +256,33 @@ export default function HelpCenterPage() {
                 <p className="text-xs text-muted-foreground font-medium py-8 text-center">{t("helpCenter.noCategoriesYet")}</p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                  {safeCats.map((cat, i) => (
-                    <div key={cat._id || cat.id || i} className="p-4 rounded-xl border border-gray-100 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02] overflow-hidden">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0 overflow-hidden">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {cat.icon && <span className="text-[11px] font-bold text-[#0F69B0] bg-[#0F69B0]/10 px-2 py-0.5 rounded-md shrink-0 truncate max-w-[80px]">{cat.icon}</span>}
-                            <p className="text-sm font-bold text-foreground truncate">{cat.title || "—"}</p>
+                  {safeCats.map((cat, i) => {
+                    const displayTitle = resolveField(cat.titleMultilingual, cat.title, lang);
+                    const displayDescription = resolveField(cat.descriptionMultilingual, cat.description, lang);
+                    return (
+                      <div key={cat._id || cat.id || i} className="p-4 rounded-xl border border-gray-100 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02] overflow-hidden">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0 overflow-hidden">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {cat.icon && <span className="text-[11px] font-bold text-[#0F69B0] bg-[#0F69B0]/10 px-2 py-0.5 rounded-md shrink-0 truncate max-w-[80px]">{cat.icon}</span>}
+                              <p className="text-sm font-bold text-foreground truncate">{displayTitle || "—"}</p>
+                            </div>
+                            {displayDescription && <p className="text-xs text-muted-foreground font-medium mt-1.5 line-clamp-2 break-words">{displayDescription}</p>}
+                            <div className="flex items-center gap-2 mt-2 flex-wrap">
+                              <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0", cat.isActive ? "bg-emerald-500/10 text-emerald-600" : "bg-gray-500/10 text-gray-500")}>
+                                {cat.isActive ? t("helpCenter.active") : t("helpCenter.inactive")}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground shrink-0">{t("helpCenter.order")} {cat.order ?? 0}</span>
+                            </div>
                           </div>
-                          {cat.description && <p className="text-xs text-muted-foreground font-medium mt-1.5 line-clamp-2 break-words">{cat.description}</p>}
-                          <div className="flex items-center gap-2 mt-2 flex-wrap">
-                            <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0", cat.isActive ? "bg-emerald-500/10 text-emerald-600" : "bg-gray-500/10 text-gray-500")}>{cat.isActive ? t("helpCenter.active") : t("helpCenter.inactive")}</span>
-                            <span className="text-[10px] text-muted-foreground shrink-0">{t("helpCenter.order")} {cat.order ?? 0}</span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button onClick={() => router.push(`/help-center/add-category?edit=${cat._id || cat.id}`)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer"><Edit2 className="h-3.5 w-3.5" /></button>
+                            <button onClick={() => setDeleteDialog({ open: true, type: "category", item: cat })} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500 transition-all cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button onClick={() => router.push(`/help-center/add-category?edit=${cat._id || cat.id}`)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer" title={t("helpCenter.edit")}><Edit2 className="h-3.5 w-3.5" /></button>
-                          <button onClick={() => setDeleteDialog({ open: true, type: "category", item: cat })} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500 transition-all cursor-pointer" title={t("helpCenter.delete")}><Trash2 className="h-3.5 w-3.5" /></button>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -276,29 +298,33 @@ export default function HelpCenterPage() {
                 <p className="text-xs text-muted-foreground font-medium py-8 text-center">{t("helpCenter.noContactOptionsYet")}</p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                  {safeContacts.map((co, i) => (
-                    <div key={co._id || co.id || i} className="p-4 rounded-xl border border-gray-100 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02] overflow-hidden">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0 overflow-hidden">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {co.icon && <span className="text-[11px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-md shrink-0 truncate max-w-[80px]">{co.icon}</span>}
-                            <p className="text-sm font-bold text-foreground truncate">{co.title || "—"}</p>
+                  {safeContacts.map((co, i) => {
+                    const displayLabel = resolveField(co.labelMultilingual, co.label, lang);
+                    return (
+                      <div key={co._id || co.id || i} className="p-4 rounded-xl border border-gray-100 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02] overflow-hidden">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0 overflow-hidden">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {co.icon && <span className="text-[11px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-md shrink-0 truncate max-w-[80px]">{co.icon}</span>}
+                              <p className="text-sm font-bold text-foreground truncate">{displayLabel || "—"}</p>
+                            </div>
+                            {co.value && <p className="text-xs text-[#0F69B0] font-medium mt-1 truncate">{co.value}</p>}
+                            <div className="flex items-center gap-2 mt-2 flex-wrap">
+                              {co.type && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 shrink-0 truncate max-w-[80px]">{co.type}</span>}
+                              <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0", co.isActive ? "bg-emerald-500/10 text-emerald-600" : "bg-gray-500/10 text-gray-500")}>
+                                {co.isActive ? t("helpCenter.active") : t("helpCenter.inactive")}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground shrink-0">{t("helpCenter.order")} {co.order ?? 0}</span>
+                            </div>
                           </div>
-                          {co.description && <p className="text-xs text-muted-foreground font-medium mt-1.5 line-clamp-2 break-words">{co.description}</p>}
-                          {co.value && <p className="text-xs text-[#0F69B0] font-medium mt-1 truncate">{co.value}</p>}
-                          <div className="flex items-center gap-2 mt-2 flex-wrap">
-                            {co.type && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 shrink-0 truncate max-w-[80px]">{co.type}</span>}
-                            <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0", co.isActive ? "bg-emerald-500/10 text-emerald-600" : "bg-gray-500/10 text-gray-500")}>{co.isActive ? t("helpCenter.active") : t("helpCenter.inactive")}</span>
-                            <span className="text-[10px] text-muted-foreground shrink-0">{t("helpCenter.order")} {co.order ?? 0}</span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button onClick={() => router.push(`/help-center/add-contact?edit=${co._id || co.id}`)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer"><Edit2 className="h-3.5 w-3.5" /></button>
+                            <button onClick={() => setDeleteDialog({ open: true, type: "contact", item: co })} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500 transition-all cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button onClick={() => router.push(`/help-center/add-contact?edit=${co._id || co.id}`)} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#0F69B0]/10 text-muted-foreground hover:text-[#0F69B0] transition-all cursor-pointer" title={t("helpCenter.edit")}><Edit2 className="h-3.5 w-3.5" /></button>
-                          <button onClick={() => setDeleteDialog({ open: true, type: "contact", item: co })} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-500 transition-all cursor-pointer" title={t("helpCenter.delete")}><Trash2 className="h-3.5 w-3.5" /></button>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

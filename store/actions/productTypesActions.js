@@ -18,16 +18,60 @@ import {
   setError,
 } from "@/store/slices/productTypesSlice";
 
+const normalizeMultilingual = (raw) => {
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    return {
+      en: typeof raw.en === "string" ? raw.en.trim() : "",
+      fa: typeof raw.fa === "string" ? raw.fa.trim() : "",
+      ps: typeof raw.ps === "string" ? raw.ps.trim() : "",
+    };
+  }
+  if (typeof raw === "string" && raw.trim() !== "") {
+    return { en: raw.trim(), fa: "", ps: "" };
+  }
+  return { en: "", fa: "", ps: "" };
+};
+
+const getFlatValue = (multiObj) =>
+  multiObj.en || multiObj.fa || multiObj.ps || "";
+
+const resolveRelationName = (raw) => {
+  if (!raw) return "";
+  const nameRaw = raw.name;
+  if (!nameRaw) return "";
+  if (typeof nameRaw === "object" && !Array.isArray(nameRaw)) {
+    return nameRaw.en || nameRaw.fa || nameRaw.ps || "";
+  }
+  return typeof nameRaw === "string" ? nameRaw : "";
+};
+
 const normalizeItem = (item) => {
   if (!item) return null;
+
+  const nameMultilingual = normalizeMultilingual(item.name);
+  const descriptionMultilingual = normalizeMultilingual(item.description);
+
+  const flatName = getFlatValue(nameMultilingual);
+  const flatDescription = getFlatValue(descriptionMultilingual);
+
   return {
     ...item,
     id: item._id || item.id,
+    nameMultilingual,
+    descriptionMultilingual,
+    name: flatName,
+    description: flatDescription,
     slug: item.slug || "",
-    categoryName: item.category?.name || item.categoryName || "",
+    image: item.image || null,
+    sortOrder: item.sortOrder ?? 0,
+    isArchived: item.isArchived ?? false,
     categoryId: item.category?._id || item.category?.id || item.categoryId || "",
-    subCategoryName: item.subCategory?.name || item.subCategoryName || "",
+    categoryName: resolveRelationName(item.category) || item.categoryName || "",
     subCategoryId: item.subCategory?._id || item.subCategory?.id || item.subCategoryId || "",
+    subCategoryName: resolveRelationName(item.subCategory) || item.subCategoryName || "",
+    productCount: item.productCount ?? 0,
+    createdAt: item.createdAt || null,
+    updatedAt: item.updatedAt || null,
   };
 };
 
@@ -50,10 +94,10 @@ export const fetchProductTypes = (params = {}) => async (dispatch) => {
 
     dispatch(setProductTypes(normalized));
     dispatch(setPaginationMeta({
-      page: data.page || data.currentPage || page,
-      limit: data.limit || limit,
-      total: data.total || data.totalCount || normalized.length,
-      totalPages: data.totalPages || 1,
+      page: data.pagination?.page || data.page || data.currentPage || page,
+      limit: data.pagination?.limit || data.limit || limit,
+      total: data.pagination?.total || data.total || data.totalCount || normalized.length,
+      totalPages: data.pagination?.totalPages || data.totalPages || 1,
     }));
     return { success: true };
   } catch (err) {

@@ -19,6 +19,14 @@ const normalizeSection = (item) => {
     ...item,
     id: item._id || item.id,
     key: item.key || item.slug || "",
+    name: typeof item.name === "string" ? item.name : "",
+    description: typeof item.description === "string" ? item.description : "",
+    sortOrder: item.sortOrder ?? 0,
+    isActive: item.isActive ?? true,
+    isArchived: item.isArchived ?? false,
+    productsCount: item.productsCount ?? item.products?.length ?? 0,
+    createdAt: item.createdAt || null,
+    updatedAt: item.updatedAt || null,
   };
 };
 
@@ -35,14 +43,12 @@ export const fetchSections = (params = {}) => async (dispatch) => {
     query.set("page", String(page));
     query.set("limit", String(limit));
     if (search) query.set("search", search);
-    if (isArchived !== undefined)
-      query.set("isArchived", String(isArchived));
+    if (isArchived !== undefined) query.set("isArchived", String(isArchived));
+    else query.set("includeArchived", "true");
 
-    const res = await axiosInstance.get(
-      `/home_sections?${query.toString()}`
-    );
+    const res = await axiosInstance.get(`/home_sections?${query.toString()}`);
     const data = res.data;
-    const raw = data.homeSections || data.sections || data.data || [];
+    const raw = data.sections || data.homeSections || data.data || [];
     const normalized = Array.isArray(raw)
       ? raw.map(normalizeSection).filter(Boolean)
       : [];
@@ -50,20 +56,16 @@ export const fetchSections = (params = {}) => async (dispatch) => {
     dispatch(setSections(normalized));
     dispatch(
       setPaginationMeta({
-        page: data.page || data.currentPage || page,
-        limit: data.limit || limit,
-        total: data.total || data.totalCount || normalized.length,
-        totalPages: data.totalPages || 1,
+        page: data.pagination?.page || data.page || data.currentPage || page,
+        limit: data.pagination?.limit || data.limit || limit,
+        total: data.pagination?.total || data.total || data.totalCount || normalized.length,
+        totalPages: data.pagination?.totalPages || data.totalPages || 1,
       })
     );
     return { success: true };
   } catch (err) {
     dispatch(
-      setError(
-        err.response?.data?.message ||
-          err.message ||
-          "Failed to fetch sections"
-      )
+      setError(err.response?.data?.message || err.message || "Failed to fetch sections")
     );
     return { success: false };
   } finally {
@@ -115,11 +117,7 @@ export const fetchSectionByKey = (key) => async (dispatch) => {
   } catch (err) {
     delete _byKeyCache[key];
     dispatch(
-      setError(
-        err.response?.data?.message ||
-          err.message ||
-          "Failed to fetch section"
-      )
+      setError(err.response?.data?.message || err.message || "Failed to fetch section")
     );
     return {
       success: false,
@@ -148,8 +146,7 @@ export const createSection = (data) => async (dispatch) => {
   } catch (err) {
     return {
       success: false,
-      message:
-        err.response?.data?.message || err.message || "Failed to create",
+      message: err.response?.data?.message || err.message || "Failed to create",
     };
   }
 };
@@ -170,42 +167,36 @@ export const editSection = (id, data) => async (dispatch) => {
   } catch (err) {
     return {
       success: false,
-      message:
-        err.response?.data?.message || err.message || "Failed to update",
+      message: err.response?.data?.message || err.message || "Failed to update",
     };
   }
 };
 
-export const manageSectionProducts =
-  (id, productIds) => async (dispatch) => {
-    try {
-      const res = await axiosInstance.patch(
-        `/home_sections/${id}/products`,
-        { products: productIds }
-      );
-      const raw =
-        res.data?.homeSection ||
-        res.data?.section ||
-        res.data?.data ||
-        res.data;
-      const updated = normalizeSection(raw);
-      dispatch(
-        updateSectionProducts({
-          id,
-          products: updated?.products || productIds,
-        })
-      );
-      return { success: true, data: updated };
-    } catch (err) {
-      return {
-        success: false,
-        message:
-          err.response?.data?.message ||
-          err.message ||
-          "Failed to update products",
-      };
-    }
-  };
+export const manageSectionProducts = (id, productIds) => async (dispatch) => {
+  try {
+    const res = await axiosInstance.patch(`/home_sections/${id}/products`, {
+      products: productIds,
+    });
+    const raw =
+      res.data?.homeSection ||
+      res.data?.section ||
+      res.data?.data ||
+      res.data;
+    const updated = normalizeSection(raw);
+    dispatch(
+      updateSectionProducts({
+        id,
+        products: updated?.products || productIds,
+      })
+    );
+    return { success: true, data: updated };
+  } catch (err) {
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to update products",
+    };
+  }
+};
 
 export const archiveSectionAction = (id) => async (dispatch) => {
   try {
@@ -215,8 +206,7 @@ export const archiveSectionAction = (id) => async (dispatch) => {
   } catch (err) {
     return {
       success: false,
-      message:
-        err.response?.data?.message || err.message || "Failed to archive",
+      message: err.response?.data?.message || err.message || "Failed to archive",
     };
   }
 };
@@ -229,10 +219,7 @@ export const unarchiveSectionAction = (id) => async (dispatch) => {
   } catch (err) {
     return {
       success: false,
-      message:
-        err.response?.data?.message ||
-        err.message ||
-        "Failed to unarchive",
+      message: err.response?.data?.message || err.message || "Failed to unarchive",
     };
   }
 };
@@ -245,8 +232,7 @@ export const deleteSectionAction = (id) => async (dispatch) => {
   } catch (err) {
     return {
       success: false,
-      message:
-        err.response?.data?.message || err.message || "Failed to delete",
+      message: err.response?.data?.message || err.message || "Failed to delete",
     };
   }
 };

@@ -20,10 +20,18 @@ import { formatDate } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
+const resolveField = (multiObj, flatFallback, lang) => {
+  if (multiObj && typeof multiObj === "object" && !Array.isArray(multiObj)) {
+    return multiObj[lang] || multiObj.en || multiObj.fa || multiObj.ps || (typeof flatFallback === "string" ? flatFallback : "") || "";
+  }
+  return typeof flatFallback === "string" ? flatFallback : "";
+};
+
 export default function AboutPage() {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language || "en";
   const { items, isLoading, stats } = useSelector((state) => state.about);
 
   const [deleteDialog, setDeleteDialog] = useState({ open: false, item: null });
@@ -66,22 +74,45 @@ export default function AboutPage() {
   const aboutItem = safeItems[0] || null;
   const hasContent = !!aboutItem;
 
+  const displayHeadline = resolveField(aboutItem?.headlineMultilingual, aboutItem?.headline, lang);
+  const displaySubHeadline = resolveField(aboutItem?.subHeadlineMultilingual, aboutItem?.subHeadline, lang);
+  const displayDescription = resolveField(aboutItem?.descriptionMultilingual, aboutItem?.description, lang);
+  const displayMissionTitle = resolveField(aboutItem?.missionTitleMultilingual, aboutItem?.missionTitle, lang);
+  const displayMissionText = resolveField(aboutItem?.missionTextMultilingual, aboutItem?.missionText, lang);
+  const displayCtaText = resolveField(aboutItem?.ctaTextMultilingual, aboutItem?.ctaText, lang);
+  const displayCtaButtonText = resolveField(aboutItem?.ctaButtonTextMultilingual, aboutItem?.ctaButtonText, lang);
+
   const totalFeatures = aboutItem?.features?.length ?? 0;
   const totalMetrics = aboutItem?.metrics?.length ?? 0;
   const totalWhyChooseUs = aboutItem?.whyChooseUs?.length ?? 0;
-  const statsCount = Array.isArray(stats?.stats) ? stats.stats.length : Array.isArray(aboutItem?.stats) ? aboutItem.stats.length : 0;
+  const statsCount = Array.isArray(stats?.stats)
+    ? stats.stats.length
+    : Array.isArray(aboutItem?.stats)
+    ? aboutItem.stats.length
+    : 0;
 
   return (
     <div className="space-y-5">
       <Breadcrumb />
       <PageHeader title={t("about.title")} description={t("about.description")}>
         <div className="flex items-center gap-2">
-          <button onClick={handleRefresh} className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer border border-gray-200 dark:border-white/[0.08]" title="Refresh">
+          <button
+            onClick={handleRefresh}
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer border border-gray-200 dark:border-white/[0.08]"
+            title="Refresh"
+          >
             <RefreshCw className="h-3.5 w-3.5" />
           </button>
           {!hasContent && !isLoading && (
-            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => router.push("/about/add")} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer shadow-lg shadow-[#0F69B0]/25 whitespace-nowrap" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
-              <Plus className="h-4 w-4" />{t("about.createAbout")}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => router.push("/about/add")}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer shadow-lg shadow-[#0F69B0]/25 whitespace-nowrap"
+              style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
+            >
+              <Plus className="h-4 w-4" />
+              {t("about.createAbout")}
             </motion.button>
           )}
         </div>
@@ -106,8 +137,13 @@ export default function AboutPage() {
               title={t("about.noAboutContentYet")}
               description={t("about.noAboutContentDesc")}
               action={
-                <button onClick={() => router.push("/about/add")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
-                  <Plus className="h-4 w-4" />{t("about.createAboutContent")}
+                <button
+                  onClick={() => router.push("/about/add")}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer"
+                  style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
+                >
+                  <Plus className="h-4 w-4" />
+                  {t("about.createAboutContent")}
                 </button>
               }
             />
@@ -116,37 +152,73 @@ export default function AboutPage() {
           <div className="p-6 space-y-6">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-2xl flex items-center justify-center shrink-0" style={{ background: "rgba(15,105,176,0.1)" }}>
+                <div
+                  className="h-14 w-14 rounded-2xl flex items-center justify-center shrink-0"
+                  style={{ background: "rgba(15,105,176,0.1)" }}
+                >
                   <span className="text-3xl">📄</span>
                 </div>
                 <div>
-                  <h2 className="text-lg font-black text-foreground">{aboutItem.headline || "—"}</h2>
-                  {aboutItem.subHeadline && <p className="text-sm text-muted-foreground font-medium mt-0.5">{aboutItem.subHeadline}</p>}
+                  <h2 className="text-lg font-black text-foreground">
+                    {displayHeadline || "—"}
+                  </h2>
+                  {displaySubHeadline && (
+                    <p className="text-sm text-muted-foreground font-medium mt-0.5">
+                      {displaySubHeadline}
+                    </p>
+                  )}
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <span className={cn("text-[11px] font-bold px-2.5 py-1 rounded-full", aboutItem.isActive ? "bg-emerald-500/10 text-emerald-600" : "bg-gray-500/10 text-gray-500")}>
+                    <span
+                      className={cn(
+                        "text-[11px] font-bold px-2.5 py-1 rounded-full",
+                        aboutItem.isActive
+                          ? "bg-emerald-500/10 text-emerald-600"
+                          : "bg-gray-500/10 text-gray-500"
+                      )}
+                    >
                       {aboutItem.isActive ? t("about.active") : t("about.inactive")}
                     </span>
-                    <span className="text-[10px] text-muted-foreground font-medium">{t("about.updated")} {formatDate(aboutItem.updatedAt)}</span>
+                    <span className="text-[10px] text-muted-foreground font-medium">
+                      {t("about.updated")} {formatDate(aboutItem.updatedAt)}
+                    </span>
                   </div>
                 </div>
               </div>
+
               <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                <button onClick={() => router.push(`/about/${aboutItem.id}`)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-[#0F69B0] hover:bg-[#0F69B0]/[0.08] transition-colors cursor-pointer border border-[#0F69B0]/20">
-                  <Eye className="h-3.5 w-3.5" />{t("about.view")}
+                <button
+                  onClick={() => router.push(`/about/${aboutItem.id}`)}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-[#0F69B0] hover:bg-[#0F69B0]/[0.08] transition-colors cursor-pointer border border-[#0F69B0]/20"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  {t("about.view")}
                 </button>
-                <button onClick={() => router.push(`/about/add?edit=${aboutItem.id}`)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white cursor-pointer shadow-lg shadow-[#0F69B0]/25" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
-                  <Edit2 className="h-3.5 w-3.5" />{t("about.edit")}
+                <button
+                  onClick={() => router.push(`/about/add?edit=${aboutItem.id}`)}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white cursor-pointer shadow-lg shadow-[#0F69B0]/25"
+                  style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                  {t("about.edit")}
                 </button>
-                <button onClick={() => setDeleteDialog({ open: true, item: aboutItem })} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40">
-                  <Trash2 className="h-3.5 w-3.5" />{t("about.delete")}
+                <button
+                  onClick={() => setDeleteDialog({ open: true, item: aboutItem })}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  {t("about.delete")}
                 </button>
               </div>
             </div>
 
-            {aboutItem.description && (
+            {displayDescription && (
               <div className="p-4 rounded-xl border border-gray-100 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02]">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">{t("about.description")}</p>
-                <p className="text-sm text-foreground font-medium leading-relaxed">{aboutItem.description}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">
+                  {t("about.description")}
+                </p>
+                <p className="text-sm text-foreground font-medium leading-relaxed">
+                  {displayDescription}
+                </p>
               </div>
             )}
 
@@ -169,21 +241,39 @@ export default function AboutPage() {
               </div>
             </div>
 
-            {(aboutItem.missionTitle || aboutItem.missionText) && (
+            {(displayMissionTitle || displayMissionText) && (
               <div className="p-4 rounded-xl border border-gray-100 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02]">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">{t("about.mission")}</p>
-                {aboutItem.missionTitle && <p className="text-sm font-black text-foreground mb-1">{aboutItem.missionTitle}</p>}
-                {aboutItem.missionText && <p className="text-sm text-muted-foreground font-medium leading-relaxed">{aboutItem.missionText}</p>}
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">
+                  {t("about.mission")}
+                </p>
+                {displayMissionTitle && (
+                  <p className="text-sm font-black text-foreground mb-1">{displayMissionTitle}</p>
+                )}
+                {displayMissionText && (
+                  <p className="text-sm text-muted-foreground font-medium leading-relaxed">{displayMissionText}</p>
+                )}
               </div>
             )}
 
-            {(aboutItem.ctaText || aboutItem.ctaButtonText || aboutItem.ctaButtonUrl) && (
+            {(displayCtaText || displayCtaButtonText || aboutItem.ctaButtonUrl) && (
               <div className="p-4 rounded-xl border border-amber-100 dark:border-amber-900/20 bg-amber-50/50 dark:bg-amber-900/10">
-                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-2">{t("about.callToAction")}</p>
+                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-2">
+                  {t("about.callToAction")}
+                </p>
                 <div className="flex items-center gap-4 flex-wrap">
-                  {aboutItem.ctaText && <p className="text-sm font-bold text-foreground">{aboutItem.ctaText}</p>}
-                  {aboutItem.ctaButtonText && <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-600">{aboutItem.ctaButtonText}</span>}
-                  {aboutItem.ctaButtonUrl && <span className="text-xs text-[#0F69B0] font-medium truncate max-w-[200px]">{aboutItem.ctaButtonUrl}</span>}
+                  {displayCtaText && (
+                    <p className="text-sm font-bold text-foreground">{displayCtaText}</p>
+                  )}
+                  {displayCtaButtonText && (
+                    <span className="text-xs font-bold px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-600">
+                      {displayCtaButtonText}
+                    </span>
+                  )}
+                  {aboutItem.ctaButtonUrl && (
+                    <span className="text-xs text-[#0F69B0] font-medium truncate max-w-[200px]">
+                      {aboutItem.ctaButtonUrl}
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -196,7 +286,7 @@ export default function AboutPage() {
         onClose={() => setDeleteDialog({ open: false, item: null })}
         onConfirm={handleDeleteConfirm}
         title={t("about.deleteAboutTitle")}
-        description={`${t("about.deleteAboutDesc")} "${deleteDialog.item?.headline}"${t("about.deleteAboutSuffix")}`}
+        description={`${t("about.deleteAboutDesc")} "${resolveField(deleteDialog.item?.headlineMultilingual, deleteDialog.item?.headline, lang)}"${t("about.deleteAboutSuffix")}`}
         confirmLabel={t("about.delete")}
         isLoading={isDeleting}
         variant="danger"

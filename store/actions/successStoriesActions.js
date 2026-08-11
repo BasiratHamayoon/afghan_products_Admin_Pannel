@@ -11,16 +11,44 @@ import {
 
 const BASE = "/success_stories";
 
+const normalizeMultilingual = (raw) => {
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    return {
+      en: typeof raw.en === "string" ? raw.en.trim() : "",
+      fa: typeof raw.fa === "string" ? raw.fa.trim() : "",
+      ps: typeof raw.ps === "string" ? raw.ps.trim() : "",
+    };
+  }
+  if (typeof raw === "string" && raw.trim() !== "") {
+    return { en: raw.trim(), fa: "", ps: "" };
+  }
+  return { en: "", fa: "", ps: "" };
+};
+
+const getFlatValue = (multiObj) =>
+  multiObj?.en || multiObj?.fa || multiObj?.ps || "";
+
 const normalizeStory = (item) => {
   if (!item) return null;
+
+  const fullNameMultilingual = normalizeMultilingual(item.fullName);
+  const companyNameMultilingual = normalizeMultilingual(item.companyName);
+  const storyMultilingual = normalizeMultilingual(item.story);
+  const locationMultilingual = normalizeMultilingual(item.location);
+
   return {
+    ...item,
     id: item._id || item.id,
+    fullNameMultilingual,
+    companyNameMultilingual,
+    storyMultilingual,
+    locationMultilingual,
+    fullName: getFlatValue(fullNameMultilingual),
+    companyName: getFlatValue(companyNameMultilingual),
+    story: getFlatValue(storyMultilingual),
+    location: getFlatValue(locationMultilingual),
     profilePicture: item.profilePicture || "",
-    fullName: item.fullName || "",
-    companyName: item.companyName || "",
     rating: item.rating ?? 5,
-    story: item.story || "",
-    location: item.location || "",
     storyDate: item.storyDate || null,
     isActive: item.isActive ?? true,
     isDeleted: item.isDeleted ?? false,
@@ -45,8 +73,19 @@ export const fetchSuccessStories = (params = {}) => async (dispatch) => {
 
     const res = await axiosInstance.get(`${BASE}/admin/all?${query.toString()}`);
     const data = res.data;
-    const raw = data.stories || data.data || data.items || [];
-    const pagination = data.pagination || {};
+
+    const raw =
+      data.data?.stories ||
+      data.stories ||
+      data.data ||
+      data.items ||
+      [];
+
+    const pagination =
+      data.data?.pagination ||
+      data.pagination ||
+      {};
+
     const normalized = Array.isArray(raw)
       ? raw.map(normalizeStory).filter(Boolean)
       : [];
@@ -62,7 +101,7 @@ export const fetchSuccessStories = (params = {}) => async (dispatch) => {
     );
     return { success: true };
   } catch (err) {
-    dispatch(setError(err.message || "Failed to fetch success stories"));
+    dispatch(setError(err.response?.data?.message || err.message || "Failed to fetch success stories"));
     return { success: false, message: err.message };
   } finally {
     dispatch(setLoading(false));
@@ -93,13 +132,17 @@ export const fetchSuccessStoryById = (id) => async () => {
   _byIdCache[id] = "loading";
   try {
     const res = await axiosInstance.get(`${BASE}/${id}`);
-    const raw = res.data?.story || res.data?.data || res.data;
+    const raw =
+      res.data?.data?.story ||
+      res.data?.story ||
+      res.data?.data ||
+      res.data;
     const normalized = normalizeStory(raw);
     _byIdCache[id] = normalized;
     return { success: true, data: normalized };
   } catch (err) {
     delete _byIdCache[id];
-    return { success: false, message: err.message };
+    return { success: false, message: err.response?.data?.message || err.message };
   }
 };
 
@@ -115,12 +158,21 @@ export const createSuccessStory = (payload) => async (dispatch) => {
         ? { "Content-Type": "multipart/form-data" }
         : { "Content-Type": "application/json" },
     });
-    const raw = res.data?.successStory || res.data?.story || res.data?.data || res.data;
+    const raw =
+      res.data?.data?.successStory ||
+      res.data?.successStory ||
+      res.data?.data?.story ||
+      res.data?.story ||
+      res.data?.data ||
+      res.data;
     const normalized = normalizeStory(raw);
     if (normalized) dispatch(addStory(normalized));
     return { success: true, data: normalized };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to create" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to create",
+    };
   }
 };
 
@@ -132,26 +184,40 @@ export const updateSuccessStory = (id, payload) => async (dispatch) => {
         ? { "Content-Type": "multipart/form-data" }
         : { "Content-Type": "application/json" },
     });
-    const raw = res.data?.story || res.data?.data || res.data;
+    const raw =
+      res.data?.data?.story ||
+      res.data?.story ||
+      res.data?.data ||
+      res.data;
     const normalized = normalizeStory(raw);
     if (normalized) dispatch(updateStoryInList(normalized));
     clearStoryByIdCache(id);
     return { success: true, data: normalized };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to update" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to update",
+    };
   }
 };
 
 export const toggleSuccessStoryStatus = (id) => async (dispatch) => {
   try {
     const res = await axiosInstance.patch(`${BASE}/${id}/toggle-status`);
-    const raw = res.data?.story || res.data?.data || res.data;
+    const raw =
+      res.data?.data?.story ||
+      res.data?.story ||
+      res.data?.data ||
+      res.data;
     const normalized = normalizeStory(raw);
     if (normalized) dispatch(updateStoryInList(normalized));
     clearStoryByIdCache(id);
     return { success: true, data: normalized };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to toggle status" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to toggle status",
+    };
   }
 };
 
@@ -162,7 +228,10 @@ export const deleteSuccessStory = (id) => async (dispatch) => {
     clearStoryByIdCache(id);
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to delete" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to delete",
+    };
   }
 };
 
@@ -173,6 +242,9 @@ export const permanentDeleteSuccessStory = (id) => async (dispatch) => {
     clearStoryByIdCache(id);
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to permanently delete" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to permanently delete",
+    };
   }
 };

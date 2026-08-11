@@ -7,26 +7,27 @@ import { getFileUrl } from "@/lib/fileUrl";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
-const getDisplayName = (item) =>
-  item?.displayName ||
-  (typeof item?.name === "string" ? item.name : null) ||
-  item?.name?.en ||
-  item?.name?.fa ||
-  item?.name?.ps ||
-  "—";
-
-const getDisplayDescription = (item) =>
-  item?.displayDescription ||
-  (typeof item?.description === "string" ? item.description : null) ||
-  item?.description?.en ||
-  item?.description?.fa ||
-  item?.description?.ps ||
-  "";
+const resolveField = (multiObj, flatFallback, lang) => {
+  if (multiObj && typeof multiObj === "object") {
+    return (
+      multiObj[lang] ||
+      multiObj.en ||
+      multiObj.fa ||
+      multiObj.ps ||
+      (typeof flatFallback === "string" ? flatFallback : "") ||
+      ""
+    );
+  }
+  return typeof flatFallback === "string" ? flatFallback : "";
+};
 
 export default function SharedTable({ items, extraColumns, onEdit, onView, onArchive, onUnarchive, onDelete }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language || "en";
+
   const safeItems = Array.isArray(items) ? items.filter(Boolean) : [];
   const safeColumns = Array.isArray(extraColumns) ? extraColumns : [];
+
   const allHeaders = [
     t("categories.item"),
     ...safeColumns.map((c) => c.label),
@@ -58,8 +59,12 @@ export default function SharedTable({ items, extraColumns, onEdit, onView, onArc
           {safeItems.map((item, i) => {
             if (!item) return null;
             const imageUrl = item.image ? getFileUrl(item.image) : null;
-            const displayName = getDisplayName(item);
-            const displayDescription = getDisplayDescription(item);
+
+            const displayName =
+              resolveField(item.nameMultilingual, item.name, lang) || "—";
+
+            const displayDescription =
+              resolveField(item.descriptionMultilingual, item.description, lang) || "—";
 
             return (
               <motion.tr
@@ -110,7 +115,7 @@ export default function SharedTable({ items, extraColumns, onEdit, onView, onArc
                 ))}
                 <td className="py-4 px-4 max-w-[180px]">
                   <p className="text-xs text-muted-foreground font-medium line-clamp-2">
-                    {displayDescription || "—"}
+                    {displayDescription}
                   </p>
                 </td>
                 <td className="py-4 px-4">

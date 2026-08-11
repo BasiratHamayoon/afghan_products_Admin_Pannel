@@ -114,13 +114,20 @@ export default function SectionsPage() {
 
   const handleArchiveConfirm = async () => {
     const { item, action } = archiveDialog;
-    if (!item?.id) { setArchiveDialog({ open: false, item: null, action: null }); return; }
+    if (!item?.id) {
+      setArchiveDialog({ open: false, item: null, action: null });
+      return;
+    }
     setIsActioning(true);
     try {
       const fn = action === "archive" ? archiveSectionAction : unarchiveSectionAction;
       const res = await dispatch(fn(item.id));
       if (res?.success) {
-        toast.success(action === "archive" ? t("sections.sectionArchived") : t("sections.sectionUnarchived"));
+        toast.success(
+          action === "archive"
+            ? t("sections.sectionArchived")
+            : t("sections.sectionUnarchived")
+        );
       } else {
         toast.error(res?.message || t("sections.actionFailed"));
       }
@@ -134,7 +141,10 @@ export default function SectionsPage() {
 
   const handleDeleteConfirm = async () => {
     const { item } = deleteDialog;
-    if (!item?.id) { setDeleteDialog({ open: false, item: null }); return; }
+    if (!item?.id) {
+      setDeleteDialog({ open: false, item: null });
+      return;
+    }
     setIsDeleting(true);
     try {
       const res = await dispatch(deleteSectionAction(item.id));
@@ -227,26 +237,45 @@ export default function SectionsPage() {
         <div className="p-4 border-b border-gray-50 dark:border-white/[0.04]">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex-1 min-w-[180px]">
-              <SearchInput value={searchQuery} onChange={handleSearchChange} placeholder={t("sections.searchPlaceholder")} />
+              <SearchInput
+                value={searchQuery}
+                onChange={handleSearchChange}
+                placeholder={t("sections.searchPlaceholder")}
+              />
             </div>
             {searchQuery && (
-              <button onClick={handleClearSearch} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40">
-                <X className="h-3.5 w-3.5" />{t("sections.clear")}
+              <button
+                onClick={handleClearSearch}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40"
+              >
+                <X className="h-3.5 w-3.5" />
+                {t("sections.clear")}
               </button>
             )}
-            <button onClick={handleRefresh} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer border border-gray-200 dark:border-white/[0.08]" title="Refresh">
+            <button
+              onClick={handleRefresh}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer border border-gray-200 dark:border-white/[0.08]"
+              title="Refresh"
+            >
               <RefreshCw className="h-3.5 w-3.5" />
             </button>
             <div className="flex items-center border border-gray-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
-              <button onClick={() => setViewMode("table")} className={cn("h-9 w-9 flex items-center justify-center transition-colors cursor-pointer", viewMode === "table" ? "bg-[#0F69B0] text-white" : "text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04]")}>
+              <button
+                onClick={() => setViewMode("table")}
+                className={cn("h-9 w-9 flex items-center justify-center transition-colors cursor-pointer", viewMode === "table" ? "bg-[#0F69B0] text-white" : "text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04]")}
+              >
                 <List className="h-4 w-4" />
               </button>
-              <button onClick={() => setViewMode("grid")} className={cn("h-9 w-9 flex items-center justify-center transition-colors cursor-pointer", viewMode === "grid" ? "bg-[#0F69B0] text-white" : "text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04]")}>
+              <button
+                onClick={() => setViewMode("grid")}
+                className={cn("h-9 w-9 flex items-center justify-center transition-colors cursor-pointer", viewMode === "grid" ? "bg-[#0F69B0] text-white" : "text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04]")}
+              >
                 <Grid3X3 className="h-4 w-4" />
               </button>
             </div>
             <p className="text-[11px] text-muted-foreground font-medium">
-              {filteredItems.length} {filteredItems.length !== 1 ? t("sections.resultsPlural") : t("sections.results")}
+              {filteredItems.length}{" "}
+              {filteredItems.length !== 1 ? t("sections.resultsPlural") : t("sections.results")}
             </p>
           </div>
         </div>
@@ -259,20 +288,31 @@ export default function SectionsPage() {
               icon={LayoutGrid}
               title={t("sections.noSectionsFound")}
               description={
-                searchQuery ? t("sections.tryAdjustingSearch")
-                  : activeTab === "archived" ? t("sections.noArchivedSections")
-                  : activeTab === "active" ? t("sections.noActiveSections")
+                searchQuery
+                  ? t("sections.tryAdjustingSearch")
+                  : activeTab === "archived"
+                  ? t("sections.noArchivedSections")
+                  : activeTab === "active"
+                  ? t("sections.noActiveSections")
                   : t("sections.createFirstSection")
               }
               action={
                 <div className="flex items-center gap-3 flex-wrap justify-center">
                   {searchQuery && (
-                    <button onClick={handleClearSearch} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
+                    <button
+                      onClick={handleClearSearch}
+                      className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
+                    >
                       {t("sections.clearSearch")}
                     </button>
                   )}
-                  <button onClick={() => router.push("/sections/add")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
-                    <Plus className="h-4 w-4" />{t("sections.addSection")}
+                  <button
+                    onClick={() => router.push("/sections/add")}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer"
+                    style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    {t("sections.addSection")}
                   </button>
                 </div>
               }
@@ -304,17 +344,26 @@ export default function SectionsPage() {
         onClose={() => setArchiveDialog({ open: false, item: null, action: null })}
         onConfirm={handleArchiveConfirm}
         title={archiveDialog.action === "archive" ? t("sections.archiveSection") : t("sections.unarchiveSection")}
-        description={archiveDialog.item ? `${archiveDialog.action === "archive" ? t("sections.archiveDesc") : t("sections.unarchiveDesc")} "${archiveDialog.item.name}"?` : t("sections.areYouSure")}
+        description={
+          archiveDialog.item
+            ? `${archiveDialog.action === "archive" ? t("sections.archiveDesc") : t("sections.unarchiveDesc")} "${archiveDialog.item.name}"?`
+            : t("sections.areYouSure")
+        }
         confirmLabel={archiveDialog.action === "archive" ? t("sections.archive") : t("sections.unarchive")}
         isLoading={isActioning}
         variant={archiveDialog.action === "archive" ? "warning" : "primary"}
       />
+
       <ConfirmDialog
         open={deleteDialog.open}
         onClose={() => setDeleteDialog({ open: false, item: null })}
         onConfirm={handleDeleteConfirm}
         title={t("sections.deleteSection")}
-        description={deleteDialog.item ? `${t("sections.deleteSectionDesc")} "${deleteDialog.item.name}"${t("sections.deleteSuffix")}` : t("sections.areYouSure")}
+        description={
+          deleteDialog.item
+            ? `${t("sections.deleteSectionDesc")} "${deleteDialog.item.name}"${t("sections.deleteSuffix")}`
+            : t("sections.areYouSure")
+        }
         confirmLabel={t("sections.delete")}
         isLoading={isDeleting}
         variant="danger"

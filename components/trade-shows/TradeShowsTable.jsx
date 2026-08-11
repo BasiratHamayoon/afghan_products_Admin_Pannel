@@ -6,8 +6,17 @@ import { formatDate } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
+const resolveField = (multiObj, flatFallback, lang) => {
+  if (multiObj && typeof multiObj === "object" && !Array.isArray(multiObj)) {
+    return multiObj[lang] || multiObj.en || multiObj.fa || multiObj.ps || (typeof flatFallback === "string" ? flatFallback : "") || "";
+  }
+  return typeof flatFallback === "string" ? flatFallback : "";
+};
+
 export default function TradeShowsTable({ items = [], onView, onEdit, onDelete }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language || "en";
+
   const safeItems = Array.isArray(items) ? items.filter(Boolean) : [];
   if (safeItems.length === 0) return null;
 
@@ -57,6 +66,11 @@ export default function TradeShowsTable({ items = [], onView, onEdit, onDelete }
             const hasImage = !!item.image;
             const galleryCount = item.gallery?.length || 0;
 
+            const displayTitle = resolveField(item.titleMultilingual, item.title, lang) || "—";
+            const displayOrganizer = resolveField(item.organizerMultilingual, item.organizer, lang);
+            const displayCity = resolveField(item.cityMultilingual, item.city, lang);
+            const displayCountry = resolveField(item.countryMultilingual, item.country, lang);
+
             return (
               <motion.tr
                 key={item.id}
@@ -69,15 +83,15 @@ export default function TradeShowsTable({ items = [], onView, onEdit, onDelete }
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl overflow-hidden border border-gray-100 dark:border-white/[0.08] shrink-0 bg-gray-50 dark:bg-white/[0.04] flex items-center justify-center">
                       {hasImage ? (
-                        <img src={item.image} alt={item.title} className="object-cover w-full h-full" onError={(e) => { e.target.style.display = "none"; if (e.target.nextSibling) e.target.nextSibling.style.display = "flex"; }} />
+                        <img src={item.image} alt={displayTitle} className="object-cover w-full h-full" onError={(e) => { e.target.style.display = "none"; if (e.target.nextSibling) e.target.nextSibling.style.display = "flex"; }} />
                       ) : null}
                       <span className="text-xl" style={{ display: hasImage ? "none" : "flex" }}>🎪</span>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-foreground truncate max-w-[180px]">{item.title || "—"}</p>
-                      {item.organizer && (
+                      <p className="text-sm font-bold text-foreground truncate max-w-[180px]">{displayTitle}</p>
+                      {displayOrganizer && (
                         <p className="text-[10px] text-muted-foreground font-medium mt-0.5 truncate max-w-[160px]">
-                          {t("tradeShows.byOrganizer")} {item.organizer}
+                          {t("tradeShows.byOrganizer")} {displayOrganizer}
                         </p>
                       )}
                     </div>
@@ -87,7 +101,7 @@ export default function TradeShowsTable({ items = [], onView, onEdit, onDelete }
                   <div className="flex items-center gap-1.5">
                     <MapPin className="h-3 w-3 text-muted-foreground/50 shrink-0" />
                     <span className="text-xs font-medium text-muted-foreground truncate max-w-[120px]">
-                      {[item.city, item.country].filter(Boolean).join(", ") || "—"}
+                      {[displayCity, displayCountry].filter(Boolean).join(", ") || "—"}
                     </span>
                   </div>
                 </td>

@@ -6,20 +6,31 @@ import { Save, X, Loader2, Star, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
-const BACKEND_SUPPORTS_FILE_UPLOAD = true;
-
 export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLoading }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLang = i18n.language || "en";
+  const isRTL = currentLang === "fa" || currentLang === "ps";
+
   const safe = initialData && typeof initialData === "object" ? initialData : {};
 
-  const [fullName, setFullName] = useState(safe.fullName || "");
-  const [companyName, setCompanyName] = useState(safe.companyName || "");
+  const getFieldValue = (multiKey, flatKey) => {
+    if (safe[multiKey] && typeof safe[multiKey] === "object") {
+      return safe[multiKey][currentLang] || safe[multiKey].en || safe[multiKey].fa || safe[multiKey].ps || "";
+    }
+    if (safe[flatKey] && typeof safe[flatKey] === "object") {
+      return safe[flatKey][currentLang] || safe[flatKey].en || safe[flatKey].fa || safe[flatKey].ps || "";
+    }
+    return typeof safe[flatKey] === "string" ? safe[flatKey] : "";
+  };
+
+  const [fullName, setFullName] = useState(getFieldValue("fullNameMultilingual", "fullName"));
+  const [companyName, setCompanyName] = useState(getFieldValue("companyNameMultilingual", "companyName"));
+  const [story, setStory] = useState(getFieldValue("storyMultilingual", "story"));
+  const [location, setLocation] = useState(getFieldValue("locationMultilingual", "location"));
   const [profilePicture, setProfilePicture] = useState(safe.profilePicture || "");
   const [profilePictureFile, setProfilePictureFile] = useState(null);
   const [profilePicturePreview, setProfilePicturePreview] = useState(safe.profilePicture || "");
   const [rating, setRating] = useState(safe.rating ?? 5);
-  const [story, setStory] = useState(safe.story || "");
-  const [location, setLocation] = useState(safe.location || "");
   const [storyDate, setStoryDate] = useState(
     safe.storyDate
       ? new Date(safe.storyDate).toISOString().split("T")[0]
@@ -52,40 +63,6 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
     if (profilePictureRef.current) profilePictureRef.current.value = "";
   };
 
-  const buildFormData = (fields) => {
-    const formData = new FormData();
-    formData.append("fullName", fields.fullName);
-    formData.append("companyName", fields.companyName);
-    formData.append("rating", String(fields.rating));
-    formData.append("story", fields.story);
-    formData.append("location", fields.location);
-    formData.append("storyDate", fields.storyDate);
-    formData.append("displayOrder", String(fields.displayOrder));
-    formData.append("isActive", String(fields.isActive));
-
-    if (profilePictureFile) {
-      formData.append("profilePicture", profilePictureFile, profilePictureFile.name);
-    } else if (profilePicture && !profilePicture.startsWith("blob:")) {
-      formData.append("profilePicture", profilePicture);
-    }
-
-    return formData;
-  };
-
-  const buildJsonPayload = (fields) => {
-    return {
-      fullName: fields.fullName,
-      companyName: fields.companyName,
-      profilePicture: profilePicture.trim() || null,
-      rating: fields.rating,
-      story: fields.story,
-      location: fields.location,
-      storyDate: fields.storyDate,
-      displayOrder: fields.displayOrder,
-      isActive: fields.isActive,
-    };
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -96,38 +73,31 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
     if (!story.trim()) errs.story = t("successStories.storyRequired");
     if (!location.trim()) errs.location = t("successStories.locationRequired");
     if (!storyDate) errs.storyDate = t("successStories.storyDateRequired");
-
-    if (BACKEND_SUPPORTS_FILE_UPLOAD) {
-      if (!profilePictureFile && !profilePicture.trim()) {
-        errs.profilePicture = t("successStories.profilePictureRequired");
-      }
-    } else {
-      if (!profilePicture.trim()) {
-        errs.profilePicture = t("successStories.profilePictureRequired");
-      }
+    if (!profilePictureFile && !profilePicture.trim()) {
+      errs.profilePicture = t("successStories.profilePictureRequired");
     }
 
-    if (Object.keys(errs).length > 0) {
-      setErrors(errs);
-      return;
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+
+    const lang = currentLang === "ps" ? "ps" : currentLang === "fa" ? "fa" : "en";
+
+    const formData = new FormData();
+    formData.append(`fullName[${lang}]`, fullName.trim());
+    formData.append(`companyName[${lang}]`, companyName.trim());
+    formData.append(`story[${lang}]`, story.trim());
+    formData.append(`location[${lang}]`, location.trim());
+    formData.append("rating", String(rating));
+    formData.append("storyDate", storyDate);
+    formData.append("displayOrder", String(displayOrder));
+    formData.append("isActive", String(isActive));
+
+    if (profilePictureFile) {
+      formData.append("profilePicture", profilePictureFile, profilePictureFile.name);
+    } else if (profilePicture && !profilePicture.startsWith("blob:")) {
+      formData.append("profilePicture", profilePicture);
     }
 
-    const fields = {
-      fullName: fullName.trim(),
-      companyName: companyName.trim(),
-      rating,
-      story: story.trim(),
-      location: location.trim(),
-      storyDate,
-      displayOrder,
-      isActive,
-    };
-
-    if (BACKEND_SUPPORTS_FILE_UPLOAD) {
-      onSubmit(buildFormData(fields));
-    } else {
-      onSubmit(buildJsonPayload(fields));
-    }
+    onSubmit(formData);
   };
 
   const inputClass = (err) =>
@@ -163,11 +133,10 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
               onChange={(e) => { setFullName(e.target.value); clearErr("fullName"); }}
               placeholder={t("successStories.fullNamePlaceholder")}
               disabled={isLoading}
+              dir={isRTL ? "rtl" : "ltr"}
               className={inputClass(errors.fullName)}
             />
-            {errors.fullName && (
-              <p className="text-[11px] text-red-500 font-semibold">{errors.fullName}</p>
-            )}
+            {errors.fullName && <p className="text-[11px] text-red-500 font-semibold">{errors.fullName}</p>}
           </div>
 
           <div className="space-y-1.5">
@@ -180,11 +149,10 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
               onChange={(e) => { setCompanyName(e.target.value); clearErr("companyName"); }}
               placeholder={t("successStories.companyNamePlaceholder")}
               disabled={isLoading}
+              dir={isRTL ? "rtl" : "ltr"}
               className={inputClass(errors.companyName)}
             />
-            {errors.companyName && (
-              <p className="text-[11px] text-red-500 font-semibold">{errors.companyName}</p>
-            )}
+            {errors.companyName && <p className="text-[11px] text-red-500 font-semibold">{errors.companyName}</p>}
           </div>
 
           <div className="space-y-1.5">
@@ -197,18 +165,16 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
               onChange={(e) => { setLocation(e.target.value); clearErr("location"); }}
               placeholder={t("successStories.locationPlaceholder")}
               disabled={isLoading}
+              dir={isRTL ? "rtl" : "ltr"}
               className={inputClass(errors.location)}
             />
-            {errors.location && (
-              <p className="text-[11px] text-red-500 font-semibold">{errors.location}</p>
-            )}
+            {errors.location && <p className="text-[11px] text-red-500 font-semibold">{errors.location}</p>}
           </div>
 
           <div className="space-y-1.5 lg:col-span-2">
             <label className="text-xs font-bold text-foreground uppercase tracking-widest">
               {t("successStories.profilePictureUrl")} <span className="text-red-500">*</span>
             </label>
-
             <input
               ref={profilePictureRef}
               type="file"
@@ -217,7 +183,6 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
               disabled={isLoading}
               onChange={handleProfilePictureFileChange}
             />
-
             {!displayImage ? (
               <button
                 type="button"
@@ -233,12 +198,8 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
                 <div className="h-16 w-16 rounded-full bg-gray-100 dark:bg-white/[0.06] flex items-center justify-center">
                   <ImageIcon className="h-7 w-7 text-muted-foreground/30" />
                 </div>
-                <span className="text-xs font-bold text-muted-foreground">
-                  Click to select profile picture
-                </span>
-                <span className="text-[10px] text-muted-foreground/60">
-                  PNG, JPG, WEBP up to 5MB
-                </span>
+                <span className="text-xs font-bold text-muted-foreground">Click to select profile picture</span>
+                <span className="text-[10px] text-muted-foreground/60">PNG, JPG, WEBP up to 5MB</span>
               </button>
             ) : (
               <div className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.02]">
@@ -260,31 +221,18 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
                     </p>
                   )}
                   <div className="flex items-center gap-2 mt-2">
-                    <button
-                      type="button"
-                      onClick={() => profilePictureRef.current?.click()}
-                      disabled={isLoading}
-                      className="text-[11px] font-bold text-[#0F69B0] hover:underline cursor-pointer disabled:opacity-60"
-                    >
+                    <button type="button" onClick={() => profilePictureRef.current?.click()} disabled={isLoading} className="text-[11px] font-bold text-[#0F69B0] hover:underline cursor-pointer disabled:opacity-60">
                       Change
                     </button>
                     <span className="text-muted-foreground/30">·</span>
-                    <button
-                      type="button"
-                      onClick={handleRemoveProfilePicture}
-                      disabled={isLoading}
-                      className="text-[11px] font-bold text-red-500 hover:underline cursor-pointer disabled:opacity-60"
-                    >
+                    <button type="button" onClick={handleRemoveProfilePicture} disabled={isLoading} className="text-[11px] font-bold text-red-500 hover:underline cursor-pointer disabled:opacity-60">
                       Remove
                     </button>
                   </div>
                 </div>
               </div>
             )}
-
-            {errors.profilePicture && (
-              <p className="text-[11px] text-red-500 font-semibold">{errors.profilePicture}</p>
-            )}
+            {errors.profilePicture && <p className="text-[11px] text-red-500 font-semibold">{errors.profilePicture}</p>}
           </div>
         </div>
       </div>
@@ -305,11 +253,10 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
               rows={5}
               placeholder={t("successStories.successStoryPlaceholder")}
               disabled={isLoading}
+              dir={isRTL ? "rtl" : "ltr"}
               className={cn(inputClass(errors.story), "resize-none")}
             />
-            {errors.story && (
-              <p className="text-[11px] text-red-500 font-semibold">{errors.story}</p>
-            )}
+            {errors.story && <p className="text-[11px] text-red-500 font-semibold">{errors.story}</p>}
           </div>
         </div>
       </div>
@@ -326,21 +273,8 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
             </label>
             <div className="flex items-center gap-1 p-3 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.04]">
               {[1, 2, 3, 4, 5].map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setRating(s)}
-                  disabled={isLoading}
-                  className="p-1 cursor-pointer disabled:opacity-60"
-                >
-                  <Star
-                    className={cn(
-                      "h-6 w-6 transition-colors",
-                      s <= rating
-                        ? "text-amber-500 fill-amber-500"
-                        : "text-gray-300 dark:text-white/20"
-                    )}
-                  />
+                <button key={s} type="button" onClick={() => setRating(s)} disabled={isLoading} className="p-1 cursor-pointer disabled:opacity-60">
+                  <Star className={cn("h-6 w-6 transition-colors", s <= rating ? "text-amber-500 fill-amber-500" : "text-gray-300 dark:text-white/20")} />
                 </button>
               ))}
               <span className="ml-2 text-sm font-bold text-foreground">{rating}/5</span>
@@ -358,9 +292,7 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
               disabled={isLoading}
               className={inputClass(errors.storyDate)}
             />
-            {errors.storyDate && (
-              <p className="text-[11px] text-red-500 font-semibold">{errors.storyDate}</p>
-            )}
+            {errors.storyDate && <p className="text-[11px] text-red-500 font-semibold">{errors.storyDate}</p>}
           </div>
 
           <div className="space-y-1.5">
@@ -382,22 +314,12 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
               type="button"
               onClick={() => setIsActive(!isActive)}
               disabled={isLoading}
-              className={cn(
-                "relative w-11 h-6 rounded-full transition-all cursor-pointer flex-shrink-0 disabled:opacity-60",
-                isActive ? "bg-emerald-500" : "bg-gray-300 dark:bg-white/20"
-              )}
+              className={cn("relative w-11 h-6 rounded-full transition-all cursor-pointer flex-shrink-0 disabled:opacity-60", isActive ? "bg-emerald-500" : "bg-gray-300 dark:bg-white/20")}
             >
-              <span
-                className={cn(
-                  "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200",
-                  isActive ? "translate-x-5" : "translate-x-0"
-                )}
-              />
+              <span className={cn("absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200", isActive ? "translate-x-5" : "translate-x-0")} />
             </button>
             <div>
-              <p className="text-sm font-bold text-foreground">
-                {t("successStories.activeLabel")}
-              </p>
+              <p className="text-sm font-bold text-foreground">{t("successStories.activeLabel")}</p>
               <p className="text-[11px] text-muted-foreground font-medium">
                 {isActive ? t("successStories.visibleToUsers") : t("successStories.hidden")}
               </p>
@@ -408,34 +330,15 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
 
       <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-white/[0.06]">
         {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isLoading}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            <X className="h-4 w-4" />
-            {t("successStories.cancel")}
+          <button type="button" onClick={onCancel} disabled={isLoading} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+            <X className="h-4 w-4" />{t("successStories.cancel")}
           </button>
         )}
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all cursor-pointer shadow-lg shadow-[#0F69B0]/25 disabled:opacity-60 disabled:cursor-not-allowed"
-          style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
-        >
+        <button type="submit" disabled={isLoading} className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all cursor-pointer shadow-lg shadow-[#0F69B0]/25 disabled:opacity-60 disabled:cursor-not-allowed" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
           {isLoading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {t("successStories.saving")}
-            </>
+            <><Loader2 className="h-4 w-4 animate-spin" />{t("successStories.saving")}</>
           ) : (
-            <>
-              <Save className="h-4 w-4" />
-              {safe.id || safe._id
-                ? t("successStories.update")
-                : t("successStories.create")}
-            </>
+            <><Save className="h-4 w-4" />{safe.id || safe._id ? t("successStories.update") : t("successStories.create")}</>
           )}
         </button>
       </div>

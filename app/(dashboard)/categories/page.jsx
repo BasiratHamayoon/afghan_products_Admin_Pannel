@@ -35,7 +35,8 @@ const PAGE_LIMIT = 10;
 export default function CategoriesPage() {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language || "en";
   const { categories, isLoading, pagination, stats } = useSelector((state) => state.categories);
 
   const [activeTab, setActiveTab] = useState("all");
@@ -114,12 +115,13 @@ export default function CategoriesPage() {
     triggerFetch(currentPage, searchQuery, activeTab);
   };
 
-  const getDisplayName = (item) =>
-    item?.displayName ||
-    item?.name?.en ||
-    item?.name?.fa ||
-    item?.name?.ps ||
-    "";
+  const getDisplayName = (item) => {
+    const multi = item?.nameMultilingual;
+    if (multi && typeof multi === "object") {
+      return multi[lang] || multi.en || multi.fa || multi.ps || "";
+    }
+    return typeof item?.name === "string" ? item.name : "";
+  };
 
   const handleArchiveConfirm = async () => {
     const { item, action } = archiveDialog;
@@ -221,34 +223,10 @@ export default function CategoriesPage() {
       </PageHeader>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatsCard
-          title={t("categories.total")}
-          value={totalFromStats}
-          icon={FolderOpen}
-          color="rgba(15,105,176,0.08)"
-          index={0}
-        />
-        <StatsCard
-          title={t("categories.active")}
-          value={activeFromStats}
-          icon={TrendingUp}
-          color="rgba(16,185,129,0.08)"
-          index={1}
-        />
-        <StatsCard
-          title={t("categories.archived")}
-          value={archivedFromStats}
-          icon={FolderTree}
-          color="rgba(245,158,11,0.08)"
-          index={2}
-        />
-        <StatsCard
-          title={t("categories.subcategories")}
-          value={subCategoryCount}
-          icon={BarChart3}
-          color="rgba(124,58,237,0.08)"
-          index={3}
-        />
+        <StatsCard title={t("categories.total")} value={totalFromStats} icon={FolderOpen} color="rgba(15,105,176,0.08)" index={0} />
+        <StatsCard title={t("categories.active")} value={activeFromStats} icon={TrendingUp} color="rgba(16,185,129,0.08)" index={1} />
+        <StatsCard title={t("categories.archived")} value={archivedFromStats} icon={FolderTree} color="rgba(245,158,11,0.08)" index={2} />
+        <StatsCard title={t("categories.subcategories")} value={subCategoryCount} icon={BarChart3} color="rgba(124,58,237,0.08)" index={3} />
       </div>
 
       <div className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden">
@@ -339,11 +317,7 @@ export default function CategoriesPage() {
 
         <div className="p-4">
           {isLoading ? (
-            <LoadingSpinner
-              size="lg"
-              text={t("categories.loadingCategories")}
-              className="py-16"
-            />
+            <LoadingSpinner size="lg" text={t("categories.loadingCategories")} className="py-16" />
           ) : filteredCategories.length === 0 ? (
             <EmptyState
               icon={FolderOpen}
@@ -392,32 +366,14 @@ export default function CategoriesPage() {
                 ))}
               </div>
               <div className="mt-4 border-t border-gray-50 dark:border-white/[0.04] pt-4">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                  from={from}
-                  to={to}
-                  total={total}
-                />
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} from={from} to={to} total={total} />
               </div>
             </>
           ) : (
             <>
-              <SharedTable
-                items={filteredCategories}
-                extraColumns={[]}
-                {...commonCardProps}
-              />
+              <SharedTable items={filteredCategories} extraColumns={[]} {...commonCardProps} />
               <div className="mt-4 border-t border-gray-50 dark:border-white/[0.04] pt-4">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                  from={from}
-                  to={to}
-                  total={total}
-                />
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} from={from} to={to} total={total} />
               </div>
             </>
           )}
@@ -435,11 +391,7 @@ export default function CategoriesPage() {
         }
         description={
           archiveDialog.item
-            ? `${
-                archiveDialog.action === "archive"
-                  ? t("categories.archiveDesc")
-                  : t("categories.unarchiveDesc")
-              } "${getDisplayName(archiveDialog.item)}"?`
+            ? `${archiveDialog.action === "archive" ? t("categories.archiveDesc") : t("categories.unarchiveDesc")} "${getDisplayName(archiveDialog.item)}"?`
             : t("categories.areYouSure")
         }
         confirmLabel={

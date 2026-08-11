@@ -11,12 +11,36 @@ import {
 
 const BASE = "/banners";
 
+const normalizeMultilingual = (raw) => {
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    return {
+      en: typeof raw.en === "string" ? raw.en.trim() : "",
+      fa: typeof raw.fa === "string" ? raw.fa.trim() : "",
+      ps: typeof raw.ps === "string" ? raw.ps.trim() : "",
+    };
+  }
+  if (typeof raw === "string" && raw.trim() !== "") {
+    return { en: raw.trim(), fa: "", ps: "" };
+  }
+  return { en: "", fa: "", ps: "" };
+};
+
+const getFlatValue = (multiObj) =>
+  multiObj?.en || multiObj?.fa || multiObj?.ps || "";
+
 const normalizeBanner = (item) => {
   if (!item) return null;
+
+  const titleMultilingual = normalizeMultilingual(item.title);
+  const subtitleMultilingual = normalizeMultilingual(item.subtitle);
+
   return {
+    ...item,
     id: item._id || item.id,
-    title: item.title || "",
-    subtitle: item.subtitle || "",
+    titleMultilingual,
+    subtitleMultilingual,
+    title: getFlatValue(titleMultilingual),
+    subtitle: getFlatValue(subtitleMultilingual),
     media: item.media || "",
     mediaType: item.mediaType || "IMAGE",
     position: item.position || "",
@@ -36,7 +60,6 @@ const normalizeBanner = (item) => {
 
 const _byIdCache = {};
 
-// ─── Fetch All ────────────────────────────────────────────────────────────────
 export const fetchBanners = (params = {}) => async (dispatch) => {
   dispatch(setLoading(true));
   try {
@@ -84,7 +107,6 @@ export const fetchBanners = (params = {}) => async (dispatch) => {
   }
 };
 
-// ─── Fetch By ID ──────────────────────────────────────────────────────────────
 export const fetchBannerById = (id) => async () => {
   if (!id) return { success: false };
   if (_byIdCache[id] && _byIdCache[id] !== "loading") {
@@ -123,7 +145,6 @@ export const clearBannerByIdCache = (id) => {
   if (id && _byIdCache[id]) delete _byIdCache[id];
 };
 
-// ─── Create (multipart — supports file upload) ───────────────────────────────
 export const createBanner = (formData) => async (dispatch) => {
   try {
     const res = await axiosInstance.post(BASE, formData, {
@@ -134,11 +155,10 @@ export const createBanner = (formData) => async (dispatch) => {
     if (normalized) dispatch(addBanner(normalized));
     return { success: true, data: normalized };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to create banner" };
+    return { success: false, message: err.response?.data?.message || err.message || "Failed to create banner" };
   }
 };
 
-// ─── Update (multipart — supports file upload) ───────────────────────────────
 export const updateBanner = (id, formData) => async (dispatch) => {
   try {
     const res = await axiosInstance.patch(`${BASE}/${id}`, formData, {
@@ -150,11 +170,10 @@ export const updateBanner = (id, formData) => async (dispatch) => {
     clearBannerByIdCache(id);
     return { success: true, data: normalized };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to update banner" };
+    return { success: false, message: err.response?.data?.message || err.message || "Failed to update banner" };
   }
 };
 
-// ─── Toggle Status ────────────────────────────────────────────────────────────
 export const toggleBannerStatus = (id) => async (dispatch) => {
   try {
     const res = await axiosInstance.patch(`${BASE}/${id}/toggle_status`);
@@ -164,22 +183,20 @@ export const toggleBannerStatus = (id) => async (dispatch) => {
     clearBannerByIdCache(id);
     return { success: true, data: normalized };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to toggle status" };
+    return { success: false, message: err.response?.data?.message || err.message || "Failed to toggle status" };
   }
 };
 
-// ─── Reorder ──────────────────────────────────────────────────────────────────
 export const reorderBanners = (banners) => async (dispatch) => {
   try {
     await axiosInstance.post(`${BASE}/reorder`, { banners });
     dispatch(fetchBanners());
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to reorder" };
+    return { success: false, message: err.response?.data?.message || err.message || "Failed to reorder" };
   }
 };
 
-// ─── Delete ───────────────────────────────────────────────────────────────────
 export const deleteBanner = (id) => async (dispatch) => {
   try {
     await axiosInstance.delete(`${BASE}/${id}`);
@@ -187,6 +204,6 @@ export const deleteBanner = (id) => async (dispatch) => {
     clearBannerByIdCache(id);
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to delete banner" };
+    return { success: false, message: err.response?.data?.message || err.message || "Failed to delete" };
   }
 };

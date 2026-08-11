@@ -10,9 +10,22 @@ import {
   setProductTypeOptionsForId,
 } from "@/store/slices/selectSlice";
 
+const resolveMultilingualName = (raw) => {
+  if (!raw) return "";
+  if (typeof raw === "string") return raw;
+  if (typeof raw === "object" && !Array.isArray(raw)) {
+    return raw.en || raw.fa || raw.ps || "";
+  }
+  return "";
+};
+
 const normalizeSelectItem = (item) => {
   if (!item) return null;
-  return { ...item, id: item._id || item.id };
+  return {
+    ...item,
+    id: item._id || item.id,
+    name: resolveMultilingualName(item.name),
+  };
 };
 
 const extractArray = (data, keys = []) => {
@@ -59,9 +72,16 @@ export const loadSubCategoryOptions = (categoryId) => async (dispatch, getState)
 
   dispatch(setSubCategoryOptionsLoading(true));
   dispatch(setSubCategoryOptions([]));
+  dispatch(setSubCategoryOptionsForId(null));
   try {
-    const res = await axiosInstance.get(`/select/categories/${categoryId}/sub_categories`);
-    const raw = extractArray(res.data, ["subCategories", "subcategories", "data"]);
+    const res = await axiosInstance.get(
+      `/sub_categories?categoryId=${categoryId}&limit=100&page=1`
+    );
+    const raw = extractArray(res.data, [
+      "subCategories",
+      "subcategories",
+      "data",
+    ]);
     const normalized = raw.map(normalizeSelectItem).filter(Boolean);
     dispatch(setSubCategoryOptions(normalized));
     dispatch(setSubCategoryOptionsForId(categoryId));
@@ -89,7 +109,9 @@ export const loadProductTypeOptions = (subCategoryId) => async (dispatch, getSta
   dispatch(setProductTypeOptionsLoading(true));
   dispatch(setProductTypeOptions([]));
   try {
-    const res = await axiosInstance.get(`/select/sub_categories/${subCategoryId}/product_types`);
+    const res = await axiosInstance.get(
+      `/product_types?subCategoryId=${subCategoryId}&limit=100&page=1`
+    );
     const raw = extractArray(res.data, ["productTypes", "data"]);
     const normalized = raw.map(normalizeSelectItem).filter(Boolean);
     dispatch(setProductTypeOptions(normalized));
@@ -117,8 +139,8 @@ export const fetchCategorySelectList = async () => {
 export const fetchSubCategorySelectList = async (categoryId) => {
   try {
     const url = categoryId
-      ? `/select/categories/${categoryId}/sub_categories`
-      : "/select/sub_categories";
+      ? `/sub_categories?categoryId=${categoryId}&limit=100&page=1`
+      : "/sub_categories?limit=100&page=1";
     const res = await axiosInstance.get(url);
     const raw = extractArray(res.data, ["subCategories", "data"]);
     return raw.map(normalizeSelectItem).filter(Boolean);
@@ -130,8 +152,8 @@ export const fetchSubCategorySelectList = async (categoryId) => {
 export const fetchProductTypeSelectList = async (subCategoryId) => {
   try {
     const url = subCategoryId
-      ? `/select/sub_categories/${subCategoryId}/product_types`
-      : "/select/product_types";
+      ? `/product_types?subCategoryId=${subCategoryId}&limit=100&page=1`
+      : "/product_types?limit=100&page=1";
     const res = await axiosInstance.get(url);
     const raw = extractArray(res.data, ["productTypes", "data"]);
     return raw.map(normalizeSelectItem).filter(Boolean);

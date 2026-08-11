@@ -7,7 +7,12 @@ import { useDispatch } from "react-redux";
 import { ArrowLeft, HelpCircle, Loader2, Save, X } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import Breadcrumb from "@/components/layout/Breadcrumb";
-import { createHelpCenter, updateHelpCenter, fetchHelpCenterById, fetchHelpCenter } from "@/store/actions/helpCenterActions";
+import {
+  createHelpCenter,
+  updateHelpCenter,
+  fetchHelpCenterById,
+  fetchHelpCenter,
+} from "@/store/actions/helpCenterActions";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
@@ -16,7 +21,10 @@ function AddHelpCenterContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dispatch = useDispatch();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLang = i18n.language || "en";
+  const isRTL = currentLang === "fa" || currentLang === "ps";
+
   const editId = searchParams.get("edit") || null;
   const isEditMode = !!editId;
 
@@ -35,13 +43,50 @@ function AddHelpCenterContent() {
   const fetchKeyRef = useRef(null);
   const isMountedRef = useRef(true);
 
-  useEffect(() => { isMountedRef.current = true; return () => { isMountedRef.current = false; }; }, []);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const getFieldValue = (item, multiKey, flatKey) => {
+    if (!item) return "";
+    if (
+      item[multiKey] &&
+      typeof item[multiKey] === "object" &&
+      !Array.isArray(item[multiKey])
+    ) {
+      return (
+        item[multiKey][currentLang] ||
+        item[multiKey].en ||
+        item[multiKey].fa ||
+        item[multiKey].ps ||
+        ""
+      );
+    }
+    if (
+      item[flatKey] &&
+      typeof item[flatKey] === "object" &&
+      !Array.isArray(item[flatKey])
+    ) {
+      return (
+        item[flatKey][currentLang] ||
+        item[flatKey].en ||
+        item[flatKey].fa ||
+        item[flatKey].ps ||
+        ""
+      );
+    }
+    return typeof item[flatKey] === "string" ? item[flatKey] : "";
+  };
 
   useEffect(() => {
     if (!editId) return;
     const key = `hc:${editId}`;
     if (fetchKeyRef.current === key) return;
     fetchKeyRef.current = key;
+
     const load = async () => {
       setIsFetching(true);
       try {
@@ -49,117 +94,328 @@ function AddHelpCenterContent() {
         if (!isMountedRef.current) return;
         if (res?.success && res.data) {
           const d = res.data;
-          setHeaderTitle(d.headerTitle || "");
-          setHeaderSubtitle(d.headerSubtitle || "");
-          setHeroTitle(d.heroTitle || "");
-          setHeroDescription(d.heroDescription || "");
+          setHeaderTitle(
+            getFieldValue(d, "headerTitleMultilingual", "headerTitle")
+          );
+          setHeaderSubtitle(
+            getFieldValue(d, "headerSubtitleMultilingual", "headerSubtitle")
+          );
+          setHeroTitle(
+            getFieldValue(d, "heroTitleMultilingual", "heroTitle")
+          );
+          setHeroDescription(
+            getFieldValue(d, "heroDescriptionMultilingual", "heroDescription")
+          );
           setHeroImage(d.heroImage || "");
-          setSupportTitle(d.supportTitle || "");
-          setSupportDescription(d.supportDescription || "");
+          setSupportTitle(
+            getFieldValue(d, "supportTitleMultilingual", "supportTitle")
+          );
+          setSupportDescription(
+            getFieldValue(
+              d,
+              "supportDescriptionMultilingual",
+              "supportDescription"
+            )
+          );
           setIsActive(d.isActive ?? true);
-        } else { toast.error(t("helpCenter.failedAction")); }
-      } catch { if (isMountedRef.current) toast.error(t("helpCenter.somethingWentWrong")); }
-      finally { if (isMountedRef.current) setIsFetching(false); }
+        } else {
+          toast.error(t("helpCenter.failedAction"));
+        }
+      } catch {
+        if (isMountedRef.current)
+          toast.error(t("helpCenter.somethingWentWrong"));
+      } finally {
+        if (isMountedRef.current) setIsFetching(false);
+      }
     };
     load();
   }, [editId, dispatch, t]);
 
+  const buildMultilingualField = (value) => {
+    const lang =
+      currentLang === "ps" ? "ps" : currentLang === "fa" ? "fa" : "en";
+    return { [lang]: value.trim() };
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     e.stopPropagation();
+
     const errs = {};
-    if (!headerTitle.trim()) errs.headerTitle = t("helpCenter.headerTitleRequired");
-    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+    if (!headerTitle.trim())
+      errs.headerTitle = t("helpCenter.headerTitleRequired");
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      return;
+    }
 
     const payload = {
-      headerTitle: headerTitle.trim(),
-      headerSubtitle: headerSubtitle.trim(),
-      heroTitle: heroTitle.trim(),
-      heroDescription: heroDescription.trim(),
-      heroImage: heroImage.trim(),
-      supportTitle: supportTitle.trim(),
-      supportDescription: supportDescription.trim(),
+      headerTitle: buildMultilingualField(headerTitle),
       isActive,
     };
+
+    if (headerSubtitle.trim())
+      payload.headerSubtitle = buildMultilingualField(headerSubtitle);
+    if (heroTitle.trim())
+      payload.heroTitle = buildMultilingualField(heroTitle);
+    if (heroDescription.trim())
+      payload.heroDescription = buildMultilingualField(heroDescription);
+    if (heroImage.trim()) payload.heroImage = heroImage.trim();
+    if (supportTitle.trim())
+      payload.supportTitle = buildMultilingualField(supportTitle);
+    if (supportDescription.trim())
+      payload.supportDescription = buildMultilingualField(supportDescription);
 
     setIsLoading(true);
     try {
       const res = isEditMode
         ? await dispatch(updateHelpCenter(editId, payload))
         : await dispatch(createHelpCenter(payload));
+
       if (res?.success) {
-        toast.success(isEditMode ? t("helpCenter.updated2") : t("helpCenter.created"));
+        toast.success(
+          isEditMode ? t("helpCenter.updated2") : t("helpCenter.created")
+        );
         dispatch(fetchHelpCenter());
         router.push("/help-center");
-      } else { toast.error(res?.message || t("helpCenter.failedAction")); }
-    } catch { toast.error(t("helpCenter.somethingWentWrong")); }
-    finally { setIsLoading(false); }
+      } else {
+        toast.error(res?.message || t("helpCenter.failedAction"));
+      }
+    } catch {
+      toast.error(t("helpCenter.somethingWentWrong"));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isFetching) {
-    return <div className="flex items-center justify-center py-32"><Loader2 className="h-8 w-8 animate-spin text-[#0F69B0]" /></div>;
+    return (
+      <div className="flex items-center justify-center py-32">
+        <Loader2 className="h-8 w-8 animate-spin text-[#0F69B0]" />
+      </div>
+    );
   }
 
-  const inputClass = (err) => cn("w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all border bg-white dark:bg-white/[0.04] text-foreground placeholder:text-muted-foreground/40 cursor-text disabled:opacity-60", err ? "border-red-400" : "border-gray-200 dark:border-white/[0.08] focus:border-[#0F69B0]/40 focus:shadow-[0_0_0_3px_rgba(15,105,176,0.08)]");
-  const title = isEditMode ? t("helpCenter.editHelpCenterTitle") : t("helpCenter.addHelpCenterTitle");
+  const inputClass = (err) =>
+    cn(
+      "w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all border bg-white dark:bg-white/[0.04] text-foreground placeholder:text-muted-foreground/40 cursor-text disabled:opacity-60",
+      err
+        ? "border-red-400"
+        : "border-gray-200 dark:border-white/[0.08] focus:border-[#0F69B0]/40 focus:shadow-[0_0_0_3px_rgba(15,105,176,0.08)]"
+    );
+
+  const title = isEditMode
+    ? t("helpCenter.editHelpCenterTitle")
+    : t("helpCenter.addHelpCenterTitle");
 
   return (
     <div className="space-y-5">
       <Breadcrumb />
       <PageHeader title={title} description={t("helpCenter.helpCenterFormDesc")}>
-        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => router.push("/help-center")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
-          <ArrowLeft className="h-4 w-4 rtl-mirror" />{t("helpCenter.back")}
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={() => router.push("/help-center")}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="h-4 w-4 rtl-mirror" />
+          {t("helpCenter.back")}
         </motion.button>
       </PageHeader>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] p-6">
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] p-6"
+      >
         <div className="flex items-center gap-3 mb-6 pb-5 border-b border-gray-100 dark:border-white/[0.06]">
-          <div className="h-11 w-11 rounded-xl flex items-center justify-center" style={{ background: "rgba(15,105,176,0.1)" }}><HelpCircle className="h-5 w-5 text-[#0F69B0]" /></div>
-          <div><h2 className="text-base font-black text-foreground">{title}</h2></div>
+          <div
+            className="h-11 w-11 rounded-xl flex items-center justify-center"
+            style={{ background: "rgba(15,105,176,0.1)" }}
+          >
+            <HelpCircle className="h-5 w-5 text-[#0F69B0]" />
+          </div>
+          <div>
+            <h2 className="text-base font-black text-foreground">{title}</h2>
+          </div>
         </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground uppercase tracking-widest">{t("helpCenter.headerTitleLabel")} <span className="text-red-500">*</span></label>
-              <input type="text" value={headerTitle} onChange={(e) => { setHeaderTitle(e.target.value); if (errors.headerTitle) setErrors((p) => ({ ...p, headerTitle: "" })); }} placeholder={t("helpCenter.headerTitlePlaceholder")} disabled={isLoading} className={inputClass(errors.headerTitle)} />
-              {errors.headerTitle && <p className="text-[11px] text-red-500 font-semibold">{errors.headerTitle}</p>}
+              <label className="text-xs font-bold text-foreground uppercase tracking-widest">
+                {t("helpCenter.headerTitleLabel")}{" "}
+                <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={headerTitle}
+                onChange={(e) => {
+                  setHeaderTitle(e.target.value);
+                  if (errors.headerTitle)
+                    setErrors((p) => ({ ...p, headerTitle: "" }));
+                }}
+                placeholder={t("helpCenter.headerTitlePlaceholder")}
+                disabled={isLoading}
+                dir={isRTL ? "rtl" : "ltr"}
+                className={inputClass(errors.headerTitle)}
+              />
+              {errors.headerTitle && (
+                <p className="text-[11px] text-red-500 font-semibold">
+                  {errors.headerTitle}
+                </p>
+              )}
             </div>
+
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground uppercase tracking-widest">{t("helpCenter.headerSubtitleLabel")}</label>
-              <input type="text" value={headerSubtitle} onChange={(e) => setHeaderSubtitle(e.target.value)} placeholder={t("helpCenter.headerSubtitlePlaceholder")} disabled={isLoading} className={inputClass()} />
+              <label className="text-xs font-bold text-foreground uppercase tracking-widest">
+                {t("helpCenter.headerSubtitleLabel")}
+              </label>
+              <input
+                type="text"
+                value={headerSubtitle}
+                onChange={(e) => setHeaderSubtitle(e.target.value)}
+                placeholder={t("helpCenter.headerSubtitlePlaceholder")}
+                disabled={isLoading}
+                dir={isRTL ? "rtl" : "ltr"}
+                className={inputClass()}
+              />
             </div>
+
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground uppercase tracking-widest">{t("helpCenter.heroTitleLabel")}</label>
-              <input type="text" value={heroTitle} onChange={(e) => setHeroTitle(e.target.value)} placeholder={t("helpCenter.heroTitlePlaceholder")} disabled={isLoading} className={inputClass()} />
+              <label className="text-xs font-bold text-foreground uppercase tracking-widest">
+                {t("helpCenter.heroTitleLabel")}
+              </label>
+              <input
+                type="text"
+                value={heroTitle}
+                onChange={(e) => setHeroTitle(e.target.value)}
+                placeholder={t("helpCenter.heroTitlePlaceholder")}
+                disabled={isLoading}
+                dir={isRTL ? "rtl" : "ltr"}
+                className={inputClass()}
+              />
             </div>
+
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground uppercase tracking-widest">{t("helpCenter.heroImageLabel")}</label>
-              <input type="text" value={heroImage} onChange={(e) => setHeroImage(e.target.value)} placeholder={t("helpCenter.heroImagePlaceholder")} disabled={isLoading} className={inputClass()} />
+              <label className="text-xs font-bold text-foreground uppercase tracking-widest">
+                {t("helpCenter.heroImageLabel")}
+              </label>
+              <input
+                type="text"
+                value={heroImage}
+                onChange={(e) => setHeroImage(e.target.value)}
+                placeholder={t("helpCenter.heroImagePlaceholder")}
+                disabled={isLoading}
+                className={inputClass()}
+              />
             </div>
+
             <div className="space-y-1.5 lg:col-span-2">
-              <label className="text-xs font-bold text-foreground uppercase tracking-widest">{t("helpCenter.heroDescriptionLabel")}</label>
-              <textarea value={heroDescription} onChange={(e) => setHeroDescription(e.target.value)} rows={3} placeholder={t("helpCenter.heroDescriptionPlaceholder")} disabled={isLoading} className={cn(inputClass(), "resize-none")} />
+              <label className="text-xs font-bold text-foreground uppercase tracking-widest">
+                {t("helpCenter.heroDescriptionLabel")}
+              </label>
+              <textarea
+                value={heroDescription}
+                onChange={(e) => setHeroDescription(e.target.value)}
+                rows={3}
+                placeholder={t("helpCenter.heroDescriptionPlaceholder")}
+                disabled={isLoading}
+                dir={isRTL ? "rtl" : "ltr"}
+                className={cn(inputClass(), "resize-none")}
+              />
             </div>
+
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground uppercase tracking-widest">{t("helpCenter.supportTitleLabel")}</label>
-              <input type="text" value={supportTitle} onChange={(e) => setSupportTitle(e.target.value)} placeholder={t("helpCenter.supportTitlePlaceholder")} disabled={isLoading} className={inputClass()} />
+              <label className="text-xs font-bold text-foreground uppercase tracking-widest">
+                {t("helpCenter.supportTitleLabel")}
+              </label>
+              <input
+                type="text"
+                value={supportTitle}
+                onChange={(e) => setSupportTitle(e.target.value)}
+                placeholder={t("helpCenter.supportTitlePlaceholder")}
+                disabled={isLoading}
+                dir={isRTL ? "rtl" : "ltr"}
+                className={inputClass()}
+              />
             </div>
+
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground uppercase tracking-widest">{t("helpCenter.supportDescriptionLabel")}</label>
-              <textarea value={supportDescription} onChange={(e) => setSupportDescription(e.target.value)} rows={2} disabled={isLoading} className={cn(inputClass(), "resize-none")} />
+              <label className="text-xs font-bold text-foreground uppercase tracking-widest">
+                {t("helpCenter.supportDescriptionLabel")}
+              </label>
+              <textarea
+                value={supportDescription}
+                onChange={(e) => setSupportDescription(e.target.value)}
+                rows={2}
+                disabled={isLoading}
+                dir={isRTL ? "rtl" : "ltr"}
+                className={cn(inputClass(), "resize-none")}
+              />
             </div>
+
             <div className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.02] lg:col-span-2">
-              <button type="button" onClick={() => setIsActive(!isActive)} disabled={isLoading} className={cn("relative w-11 h-6 rounded-full transition-all cursor-pointer flex-shrink-0 disabled:opacity-60", isActive ? "bg-emerald-500" : "bg-gray-300 dark:bg-white/20")}>
-                <span className={cn("absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200", isActive ? "translate-x-5" : "translate-x-0")} />
+              <button
+                type="button"
+                onClick={() => setIsActive(!isActive)}
+                disabled={isLoading}
+                className={cn(
+                  "relative w-11 h-6 rounded-full transition-all cursor-pointer flex-shrink-0 disabled:opacity-60",
+                  isActive ? "bg-emerald-500" : "bg-gray-300 dark:bg-white/20"
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200",
+                    isActive ? "translate-x-5" : "translate-x-0"
+                  )}
+                />
               </button>
-              <div><p className="text-sm font-bold text-foreground">{t("helpCenter.activeLabel")}</p><p className="text-[11px] text-muted-foreground font-medium">{isActive ? t("helpCenter.visibleLabel") : t("helpCenter.hiddenLabel")}</p></div>
+              <div>
+                <p className="text-sm font-bold text-foreground">
+                  {t("helpCenter.activeLabel")}
+                </p>
+                <p className="text-[11px] text-muted-foreground font-medium">
+                  {isActive
+                    ? t("helpCenter.visibleLabel")
+                    : t("helpCenter.hiddenLabel")}
+                </p>
+              </div>
             </div>
           </div>
+
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-white/[0.06]">
-            <button type="button" onClick={() => router.push("/help-center")} disabled={isLoading} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer disabled:opacity-60">
-              <X className="h-4 w-4" />{t("helpCenter.cancelLabel")}
+            <button
+              type="button"
+              onClick={() => router.push("/help-center")}
+              disabled={isLoading}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer disabled:opacity-60"
+            >
+              <X className="h-4 w-4" />
+              {t("helpCenter.cancelLabel")}
             </button>
-            <button type="submit" disabled={isLoading} className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer shadow-lg shadow-[#0F69B0]/25 disabled:opacity-60" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
-              {isLoading ? <><Loader2 className="h-4 w-4 animate-spin" />{t("helpCenter.savingLabel")}</> : <><Save className="h-4 w-4" />{isEditMode ? t("helpCenter.updateLabel") : t("helpCenter.createLabel")}</>}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer shadow-lg shadow-[#0F69B0]/25 disabled:opacity-60"
+              style={{
+                background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)",
+              }}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {t("helpCenter.savingLabel")}
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  {isEditMode
+                    ? t("helpCenter.updateLabel")
+                    : t("helpCenter.createLabel")}
+                </>
+              )}
             </button>
           </div>
         </form>
@@ -169,5 +425,9 @@ function AddHelpCenterContent() {
 }
 
 export default function AddHelpCenterPage() {
-  return <Suspense fallback={null}><AddHelpCenterContent /></Suspense>;
+  return (
+    <Suspense fallback={null}>
+      <AddHelpCenterContent />
+    </Suspense>
+  );
 }

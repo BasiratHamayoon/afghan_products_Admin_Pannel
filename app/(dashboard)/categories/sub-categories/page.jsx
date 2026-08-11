@@ -37,7 +37,8 @@ const PAGE_LIMIT = 10;
 export default function SubCategoriesPage() {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language || "en";
 
   const { subCategories, isLoading, pagination, stats } = useSelector((state) => state.subCategories);
   const { categoryOptions: reduxCatOptions } = useSelector((state) => state.select);
@@ -63,7 +64,10 @@ export default function SubCategoriesPage() {
 
   const categoryFilterOptions = [
     { value: "all", label: t("categories.allCategories") },
-    ...reduxCatOptions.map((c) => ({ value: c.id || c._id, label: c.name })),
+    ...reduxCatOptions.map((c) => ({
+      value: c.id || c._id,
+      label: c.displayName || c.name || "",
+    })),
   ];
 
   const buildParams = useCallback((page, search, tab, catId) => {
@@ -133,15 +137,30 @@ export default function SubCategoriesPage() {
     dispatch(fetchSubCategoryStats());
   };
 
+  const getDisplayName = (item) => {
+    const multi = item?.nameMultilingual;
+    if (multi && typeof multi === "object") {
+      return multi[lang] || multi.en || multi.fa || multi.ps || "";
+    }
+    return typeof item?.name === "string" ? item.name : "";
+  };
+
   const handleArchiveConfirm = async () => {
     const { item, action } = archiveDialog;
-    if (!item?.id) { setArchiveDialog({ open: false, item: null, action: null }); return; }
+    if (!item?.id) {
+      setArchiveDialog({ open: false, item: null, action: null });
+      return;
+    }
     setIsActioning(true);
     try {
       const fn = action === "archive" ? archiveSubCategoryAction : unarchiveSubCategoryAction;
       const res = await dispatch(fn(item.id));
       if (res?.success) {
-        toast.success(action === "archive" ? t("categories.subcategoryArchived") : t("categories.subcategoryUnarchived"));
+        toast.success(
+          action === "archive"
+            ? t("categories.subcategoryArchived")
+            : t("categories.subcategoryUnarchived")
+        );
       } else {
         toast.error(res?.message || t("categories.actionFailed"));
       }
@@ -194,9 +213,9 @@ export default function SubCategoriesPage() {
   const archivedCount = safeItems.filter((s) => s.isArchived).length;
   const tabCounts = { all: allCount, active: activeCount, archived: archivedCount };
 
-  const totalFromStats = stats?.total ?? total;
-  const activeFromStats = stats?.active ?? activeCount;
-  const archivedFromStats = stats?.archived ?? archivedCount;
+  const totalFromStats = stats?.totalSubCategories ?? stats?.total ?? total;
+  const activeFromStats = stats?.activeSubCategories ?? stats?.active ?? activeCount;
+  const archivedFromStats = stats?.archivedSubCategories ?? stats?.archived ?? archivedCount;
 
   const commonProps = {
     onView: (it) => { if (it?.slug) router.push(`/categories/sub-categories/${it.slug}`); },
@@ -255,27 +274,51 @@ export default function SubCategoriesPage() {
         <div className="p-4 border-b border-gray-50 dark:border-white/[0.04]">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex-1 min-w-[180px]">
-              <SearchInput value={searchQuery} onChange={handleSearchChange} placeholder={t("categories.searchSubcategoriesPlaceholder")} />
+              <SearchInput
+                value={searchQuery}
+                onChange={handleSearchChange}
+                placeholder={t("categories.searchSubcategoriesPlaceholder")}
+              />
             </div>
-            <FilterDropdown label={t("categories.categoryField")} value={categoryFilter} options={categoryFilterOptions} onChange={handleCategoryFilterChange} />
+            <FilterDropdown
+              label={t("categories.categoryField")}
+              value={categoryFilter}
+              options={categoryFilterOptions}
+              onChange={handleCategoryFilterChange}
+            />
             {searchQuery && (
-              <button onClick={handleClearSearch} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40">
-                <X className="h-3.5 w-3.5" />{t("categories.clear")}
+              <button
+                onClick={handleClearSearch}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40"
+              >
+                <X className="h-3.5 w-3.5" />
+                {t("categories.clear")}
               </button>
             )}
-            <button onClick={handleRefresh} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer border border-gray-200 dark:border-white/[0.08]" title="Refresh">
+            <button
+              onClick={handleRefresh}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer border border-gray-200 dark:border-white/[0.08]"
+              title="Refresh"
+            >
               <RefreshCw className="h-3.5 w-3.5" />
             </button>
             <div className="flex items-center border border-gray-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
-              <button onClick={() => setViewMode("table")} className={cn("h-9 w-9 flex items-center justify-center transition-colors cursor-pointer", viewMode === "table" ? "bg-[#0F69B0] text-white" : "text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04]")}>
+              <button
+                onClick={() => setViewMode("table")}
+                className={cn("h-9 w-9 flex items-center justify-center transition-colors cursor-pointer", viewMode === "table" ? "bg-[#0F69B0] text-white" : "text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04]")}
+              >
                 <List className="h-4 w-4" />
               </button>
-              <button onClick={() => setViewMode("grid")} className={cn("h-9 w-9 flex items-center justify-center transition-colors cursor-pointer", viewMode === "grid" ? "bg-[#0F69B0] text-white" : "text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04]")}>
+              <button
+                onClick={() => setViewMode("grid")}
+                className={cn("h-9 w-9 flex items-center justify-center transition-colors cursor-pointer", viewMode === "grid" ? "bg-[#0F69B0] text-white" : "text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04]")}
+              >
                 <Grid3X3 className="h-4 w-4" />
               </button>
             </div>
             <p className="text-[11px] text-muted-foreground font-medium">
-              {filteredItems.length} {filteredItems.length !== 1 ? t("categories.resultsPlural") : t("categories.results")}
+              {filteredItems.length}{" "}
+              {filteredItems.length !== 1 ? t("categories.resultsPlural") : t("categories.results")}
             </p>
           </div>
         </div>
@@ -296,12 +339,20 @@ export default function SubCategoriesPage() {
               action={
                 <div className="flex items-center gap-3 flex-wrap justify-center">
                   {searchQuery && (
-                    <button onClick={handleClearSearch} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
+                    <button
+                      onClick={handleClearSearch}
+                      className="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/[0.08] text-sm font-bold text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
+                    >
                       {t("categories.clearSearch")}
                     </button>
                   )}
-                  <button onClick={() => router.push("/categories/sub-categories/add")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
-                    <Plus className="h-4 w-4" />{t("categories.addSubcategory")}
+                  <button
+                    onClick={() => router.push("/categories/sub-categories/add")}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer"
+                    style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    {t("categories.addSubcategory")}
                   </button>
                 </div>
               }
@@ -310,7 +361,14 @@ export default function SubCategoriesPage() {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                 {filteredItems.map((item, i) => (
-                  <SharedGridCard key={item.id} item={item} index={i} defaultEmoji="📁" extraInfo={[{ key: "categoryName", color: "#0F69B0", prefix: "↳" }]} {...commonProps} />
+                  <SharedGridCard
+                    key={item.id}
+                    item={item}
+                    index={i}
+                    defaultEmoji="📁"
+                    extraInfo={[{ key: "categoryName", color: "#0F69B0", prefix: "↳" }]}
+                    {...commonProps}
+                  />
                 ))}
               </div>
               <div className="mt-4 border-t border-gray-50 dark:border-white/[0.04] pt-4">
@@ -319,7 +377,11 @@ export default function SubCategoriesPage() {
             </>
           ) : (
             <>
-              <SharedTable items={filteredItems} extraColumns={[{ key: "categoryName", label: t("categories.categoryField") }]} {...commonProps} />
+              <SharedTable
+                items={filteredItems}
+                extraColumns={[{ key: "categoryName", label: t("categories.categoryField") }]}
+                {...commonProps}
+              />
               <div className="mt-4 border-t border-gray-50 dark:border-white/[0.04] pt-4">
                 <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} from={from} to={to} total={total} />
               </div>
@@ -333,7 +395,11 @@ export default function SubCategoriesPage() {
         onClose={() => setArchiveDialog({ open: false, item: null, action: null })}
         onConfirm={handleArchiveConfirm}
         title={archiveDialog.action === "archive" ? t("categories.archiveSubcategory") : t("categories.unarchiveSubcategory")}
-        description={archiveDialog.item ? `${archiveDialog.action === "archive" ? t("categories.archiveDesc") : t("categories.unarchiveDesc")} "${archiveDialog.item.name}"?` : t("categories.areYouSure")}
+        description={
+          archiveDialog.item
+            ? `${archiveDialog.action === "archive" ? t("categories.archiveDesc") : t("categories.unarchiveDesc")} "${getDisplayName(archiveDialog.item)}"?`
+            : t("categories.areYouSure")
+        }
         confirmLabel={archiveDialog.action === "archive" ? t("categories.archive") : t("categories.unarchive")}
         isLoading={isActioning}
         variant={archiveDialog.action === "archive" ? "warning" : "primary"}
@@ -344,7 +410,11 @@ export default function SubCategoriesPage() {
         onClose={() => setDeleteDialog({ open: false, item: null })}
         onConfirm={handleDeleteConfirm}
         title={t("categories.deleteSubcategory")}
-        description={deleteDialog.item ? `${t("categories.deleteSubcategoryDesc")} "${deleteDialog.item.name}"${t("categories.deleteSuffix")}` : t("categories.areYouSure")}
+        description={
+          deleteDialog.item
+            ? `${t("categories.deleteSubcategoryDesc")} "${getDisplayName(deleteDialog.item)}"${t("categories.deleteSuffix")}`
+            : t("categories.areYouSure")
+        }
         confirmLabel={t("categories.delete")}
         isLoading={isDeleting}
         variant="danger"

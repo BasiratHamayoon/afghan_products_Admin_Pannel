@@ -28,7 +28,8 @@ const PAGE_LIMIT = 10;
 export default function TradeShowsPage() {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language || "en";
   const { tradeShows, isLoading, pagination } = useSelector((state) => state.tradeShows);
 
   const [activeTab, setActiveTab] = useState("all");
@@ -103,6 +104,14 @@ export default function TradeShowsPage() {
 
   const handleRefresh = () => {
     triggerFetch(currentPage, searchQuery, activeTab);
+  };
+
+  const getDisplayTitle = (item) => {
+    const multi = item?.titleMultilingual;
+    if (multi && typeof multi === "object") {
+      return multi[lang] || multi.en || multi.fa || multi.ps || "";
+    }
+    return typeof item?.title === "string" ? item.title : "";
   };
 
   const handleDeleteConfirm = async () => {
@@ -242,7 +251,11 @@ export default function TradeShowsPage() {
         onClose={() => setDeleteDialog({ open: false, item: null })}
         onConfirm={handleDeleteConfirm}
         title={t("tradeShows.deleteTradeShow")}
-        description={deleteDialog.item ? `${t("tradeShows.deleteTradeShowDesc")} "${deleteDialog.item.title}"${t("tradeShows.deleteTradeShowSuffix")}` : t("tradeShows.areYouSure")}
+        description={
+          deleteDialog.item
+            ? `${t("tradeShows.deleteTradeShowDesc")} "${getDisplayTitle(deleteDialog.item)}"${t("tradeShows.deleteTradeShowSuffix")}`
+            : t("tradeShows.areYouSure")
+        }
         confirmLabel={t("tradeShows.delete")}
         isLoading={isDeleting}
         variant="danger"

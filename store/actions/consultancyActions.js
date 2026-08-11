@@ -14,14 +14,40 @@ import {
 
 const BASE = "/consultancy";
 
+const normalizeMultilingual = (raw) => {
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    return {
+      en: typeof raw.en === "string" ? raw.en.trim() : "",
+      fa: typeof raw.fa === "string" ? raw.fa.trim() : "",
+      ps: typeof raw.ps === "string" ? raw.ps.trim() : "",
+    };
+  }
+  if (typeof raw === "string" && raw.trim() !== "") {
+    return { en: raw.trim(), fa: "", ps: "" };
+  }
+  return { en: "", fa: "", ps: "" };
+};
+
+const getFlatValue = (multiObj) =>
+  multiObj?.en || multiObj?.fa || multiObj?.ps || "";
+
 const normalizeConsultant = (item) => {
   if (!item) return null;
+
+  const nameMultilingual = normalizeMultilingual(item.name);
+  const titleMultilingual = normalizeMultilingual(item.title);
+  const descriptionMultilingual = normalizeMultilingual(item.description);
+
   return {
+    ...item,
     id: item._id || item.id,
-    name: item.name || "",
-    title: item.title || "",
+    nameMultilingual,
+    titleMultilingual,
+    descriptionMultilingual,
+    name: getFlatValue(nameMultilingual),
+    title: getFlatValue(titleMultilingual),
+    description: getFlatValue(descriptionMultilingual),
     specialization: item.specialization || "",
-    description: item.description || "",
     profileImage: item.profileImage || null,
     hourlyRateMin: item.hourlyRateMin ?? 0,
     hourlyRateMax: item.hourlyRateMax ?? 0,
@@ -40,10 +66,18 @@ const normalizeConsultant = (item) => {
 
 const normalizeSession = (item) => {
   if (!item) return null;
+
+  const consultantName = (() => {
+    const n = item.consultant?.name;
+    if (!n) return "";
+    if (typeof n === "object") return n.en || n.fa || n.ps || "";
+    return typeof n === "string" ? n : "";
+  })();
+
   return {
     id: item._id || item.id,
     consultant: item.consultant || null,
-    consultantName: item.consultant?.name || "",
+    consultantName,
     user: item.user || null,
     userName: item.user
       ? `${item.user.firstName || ""} ${item.user.lastName || ""}`.trim()
@@ -148,7 +182,10 @@ export const createConsultant = (formData) => async (dispatch) => {
     if (normalized) dispatch(addConsultant(normalized));
     return { success: true, data: normalized };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to create" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to create",
+    };
   }
 };
 
@@ -163,7 +200,10 @@ export const updateConsultant = (id, formData) => async (dispatch) => {
     clearConsultantByIdCache(id);
     return { success: true, data: normalized };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to update" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to update",
+    };
   }
 };
 
@@ -174,7 +214,10 @@ export const deleteConsultant = (id) => async (dispatch) => {
     clearConsultantByIdCache(id);
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to delete" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to delete",
+    };
   }
 };
 
@@ -212,7 +255,10 @@ export const updateSessionStatus = (id, status) => async (dispatch) => {
     if (normalized) dispatch(updateSessionInList(normalized));
     return { success: true, data: normalized };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to update status" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to update status",
+    };
   }
 };
 
@@ -224,6 +270,9 @@ export const cancelSession = (id) => async (dispatch) => {
     if (normalized) dispatch(updateSessionInList(normalized));
     return { success: true, data: normalized };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to cancel" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to cancel",
+    };
   }
 };

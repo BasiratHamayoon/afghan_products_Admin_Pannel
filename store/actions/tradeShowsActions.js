@@ -11,29 +11,82 @@ import {
 
 const BASE = "/trade_shows";
 
+const normalizeMultilingual = (raw) => {
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    return {
+      en: typeof raw.en === "string" ? raw.en.trim() : "",
+      fa: typeof raw.fa === "string" ? raw.fa.trim() : "",
+      ps: typeof raw.ps === "string" ? raw.ps.trim() : "",
+    };
+  }
+  if (typeof raw === "string" && raw.trim() !== "") {
+    return { en: raw.trim(), fa: "", ps: "" };
+  }
+  return { en: "", fa: "", ps: "" };
+};
+
+const getFlatValue = (multiObj) =>
+  multiObj?.en || multiObj?.fa || multiObj?.ps || "";
+
+const normalizeMultilingualTags = (raw) => {
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    return {
+      en: Array.isArray(raw.en) ? raw.en : [],
+      fa: Array.isArray(raw.fa) ? raw.fa : [],
+      ps: Array.isArray(raw.ps) ? raw.ps : [],
+    };
+  }
+  if (Array.isArray(raw)) {
+    return { en: raw, fa: [], ps: [] };
+  }
+  return { en: [], fa: [], ps: [] };
+};
+
 const normalizeTradeShow = (item) => {
   if (!item) return null;
+
+  const titleMultilingual = normalizeMultilingual(item.title);
+  const descriptionMultilingual = normalizeMultilingual(item.description);
+  const countryMultilingual = normalizeMultilingual(item.country);
+  const cityMultilingual = normalizeMultilingual(item.city);
+  const venueMultilingual = normalizeMultilingual(item.venue);
+  const addressMultilingual = normalizeMultilingual(item.address);
+  const organizerMultilingual = normalizeMultilingual(item.organizer);
+  const categoryMultilingual = normalizeMultilingual(item.category);
+  const tagsMultilingual = normalizeMultilingualTags(item.tags);
+
   return {
+    ...item,
     id: item._id || item.id,
-    title: item.title || "",
-    description: item.description || "",
+    titleMultilingual,
+    descriptionMultilingual,
+    countryMultilingual,
+    cityMultilingual,
+    venueMultilingual,
+    addressMultilingual,
+    organizerMultilingual,
+    categoryMultilingual,
+    tagsMultilingual,
+    title: getFlatValue(titleMultilingual),
+    description: getFlatValue(descriptionMultilingual),
+    country: getFlatValue(countryMultilingual),
+    city: getFlatValue(cityMultilingual),
+    venue: getFlatValue(venueMultilingual),
+    address: getFlatValue(addressMultilingual),
+    organizer: getFlatValue(organizerMultilingual),
+    category: getFlatValue(categoryMultilingual),
+    tags: tagsMultilingual.en || tagsMultilingual.fa || tagsMultilingual.ps || [],
     image: item.image || "",
     gallery: Array.isArray(item.gallery) ? item.gallery : [],
-    country: item.country || "",
-    city: item.city || "",
-    venue: item.venue || "",
-    address: item.address || "",
     startDate: item.startDate || null,
     endDate: item.endDate || null,
-    organizer: item.organizer || "",
     organizerEmail: item.organizerEmail || "",
     organizerPhone: item.organizerPhone || "",
     website: item.website || "",
-    category: item.category || "",
-    tags: Array.isArray(item.tags) ? item.tags : [],
     isFeatured: item.isFeatured ?? false,
     isActive: item.isActive ?? true,
-    bookmarkedBy: Array.isArray(item.bookmarkedBy) ? item.bookmarkedBy : [],
+    isBookmarked: item.isBookmarked ?? false,
+    bookmarkCount: item.bookmarkCount ?? 0,
     createdAt: item.createdAt || null,
     updatedAt: item.updatedAt || null,
   };
@@ -163,7 +216,10 @@ export const createTradeShow = (payload) => async (dispatch) => {
     if (normalized) dispatch(addTradeShow(normalized));
     return { success: true, data: normalized };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to create trade show" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to create trade show",
+    };
   }
 };
 
@@ -181,7 +237,10 @@ export const updateTradeShow = (id, payload) => async (dispatch) => {
     clearTradeShowByIdCache(id);
     return { success: true, data: normalized };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to update trade show" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to update trade show",
+    };
   }
 };
 
@@ -192,6 +251,9 @@ export const deleteTradeShow = (id) => async (dispatch) => {
     clearTradeShowByIdCache(id);
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to delete trade show" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to delete trade show",
+    };
   }
 };
