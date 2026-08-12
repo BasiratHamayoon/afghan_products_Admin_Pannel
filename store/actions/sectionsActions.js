@@ -13,14 +13,37 @@ import {
   setError,
 } from "@/store/slices/sectionsSlice";
 
+const normalizeMultilingual = (raw) => {
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    return {
+      en: typeof raw.en === "string" ? raw.en.trim() : "",
+      fa: typeof raw.fa === "string" ? raw.fa.trim() : "",
+      ps: typeof raw.ps === "string" ? raw.ps.trim() : "",
+    };
+  }
+  if (typeof raw === "string" && raw.trim() !== "") {
+    return { en: raw.trim(), fa: "", ps: "" };
+  }
+  return { en: "", fa: "", ps: "" };
+};
+
+const getFlatValue = (multiObj) =>
+  multiObj?.en || multiObj?.fa || multiObj?.ps || "";
+
 const normalizeSection = (item) => {
   if (!item) return null;
+
+  const nameMultilingual = normalizeMultilingual(item.name);
+  const descriptionMultilingual = normalizeMultilingual(item.description);
+
   return {
     ...item,
     id: item._id || item.id,
     key: item.key || item.slug || "",
-    name: typeof item.name === "string" ? item.name : "",
-    description: typeof item.description === "string" ? item.description : "",
+    nameMultilingual,
+    descriptionMultilingual,
+    name: getFlatValue(nameMultilingual),
+    description: getFlatValue(descriptionMultilingual),
     sortOrder: item.sortOrder ?? 0,
     isActive: item.isActive ?? true,
     isArchived: item.isArchived ?? false,
@@ -43,8 +66,14 @@ export const fetchSections = (params = {}) => async (dispatch) => {
     query.set("page", String(page));
     query.set("limit", String(limit));
     if (search) query.set("search", search);
-    if (isArchived !== undefined) query.set("isArchived", String(isArchived));
-    else query.set("includeArchived", "true");
+
+    if (isArchived === true) {
+      query.set("includeArchived", "true");
+    } else if (isArchived === false) {
+      query.set("includeArchived", "false");
+    } else {
+      query.set("includeArchived", "true");
+    }
 
     const res = await axiosInstance.get(`/home_sections?${query.toString()}`);
     const data = res.data;
@@ -200,8 +229,17 @@ export const manageSectionProducts = (id, productIds) => async (dispatch) => {
 
 export const archiveSectionAction = (id) => async (dispatch) => {
   try {
-    await axiosInstance.patch(`/home_sections/${id}/archive`);
-    dispatch(archiveSectionInList(id));
+    const res = await axiosInstance.patch(`/home_sections/${id}/archive`);
+    const raw =
+      res.data?.homeSection ||
+      res.data?.section ||
+      res.data?.data ||
+      res.data;
+    if (raw && (raw._id || raw.id)) {
+      dispatch(updateSectionInList(normalizeSection(raw)));
+    } else {
+      dispatch(archiveSectionInList(id));
+    }
     return { success: true };
   } catch (err) {
     return {
@@ -213,8 +251,17 @@ export const archiveSectionAction = (id) => async (dispatch) => {
 
 export const unarchiveSectionAction = (id) => async (dispatch) => {
   try {
-    await axiosInstance.patch(`/home_sections/${id}/unarchive`);
-    dispatch(unarchiveSectionInList(id));
+    const res = await axiosInstance.patch(`/home_sections/${id}/unarchive`);
+    const raw =
+      res.data?.homeSection ||
+      res.data?.section ||
+      res.data?.data ||
+      res.data;
+    if (raw && (raw._id || raw.id)) {
+      dispatch(updateSectionInList(normalizeSection(raw)));
+    } else {
+      dispatch(unarchiveSectionInList(id));
+    }
     return { success: true };
   } catch (err) {
     return {

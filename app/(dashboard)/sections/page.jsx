@@ -34,7 +34,8 @@ const PAGE_LIMIT = 10;
 export default function SectionsPage() {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language || "en";
   const { sections, isLoading, pagination } = useSelector((state) => state.sections);
 
   const [activeTab, setActiveTab] = useState("all");
@@ -112,6 +113,14 @@ export default function SectionsPage() {
     triggerFetch(currentPage, searchQuery, activeTab);
   };
 
+  const getDisplayName = (item) => {
+    const multi = item?.nameMultilingual;
+    if (multi && typeof multi === "object") {
+      return multi[lang] || multi.en || multi.fa || multi.ps || "";
+    }
+    return typeof item?.name === "string" ? item.name : "";
+  };
+
   const handleArchiveConfirm = async () => {
     const { item, action } = archiveDialog;
     if (!item?.id) {
@@ -128,6 +137,7 @@ export default function SectionsPage() {
             ? t("sections.sectionArchived")
             : t("sections.sectionUnarchived")
         );
+        triggerFetch(currentPage, searchQuery, activeTab);
       } else {
         toast.error(res?.message || t("sections.actionFailed"));
       }
@@ -346,7 +356,7 @@ export default function SectionsPage() {
         title={archiveDialog.action === "archive" ? t("sections.archiveSection") : t("sections.unarchiveSection")}
         description={
           archiveDialog.item
-            ? `${archiveDialog.action === "archive" ? t("sections.archiveDesc") : t("sections.unarchiveDesc")} "${archiveDialog.item.name}"?`
+            ? `${archiveDialog.action === "archive" ? t("sections.archiveDesc") : t("sections.unarchiveDesc")} "${getDisplayName(archiveDialog.item)}"?`
             : t("sections.areYouSure")
         }
         confirmLabel={archiveDialog.action === "archive" ? t("sections.archive") : t("sections.unarchive")}
@@ -361,7 +371,7 @@ export default function SectionsPage() {
         title={t("sections.deleteSection")}
         description={
           deleteDialog.item
-            ? `${t("sections.deleteSectionDesc")} "${deleteDialog.item.name}"${t("sections.deleteSuffix")}`
+            ? `${t("sections.deleteSectionDesc")} "${getDisplayName(deleteDialog.item)}"${t("sections.deleteSuffix")}`
             : t("sections.areYouSure")
         }
         confirmLabel={t("sections.delete")}

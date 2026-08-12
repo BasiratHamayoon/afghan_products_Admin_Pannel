@@ -176,7 +176,9 @@ function AddEditSectionContent() {
   }
 
   const title = isProductsMode ? t("sections.manageProductsTitle") : isEditMode ? t("sections.editSectionTitle") : t("sections.addSectionTitle");
-  const description = isProductsMode ? `${t("sections.manageProductsDesc")} "${sectionData?.name || "section"}"` : isEditMode ? t("sections.editSectionDesc") : t("sections.addSectionDesc");
+  const description = isProductsMode
+    ? `${t("sections.manageProductsDesc")} "${sectionData?.name || "section"}"`
+    : isEditMode ? t("sections.editSectionDesc") : t("sections.addSectionDesc");
   const TitleIcon = isProductsMode ? Package : isEditMode ? Edit2 : LayoutGrid;
 
   return (
@@ -214,7 +216,9 @@ function AddEditSectionContent() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <p className="text-xs text-muted-foreground font-medium">
-                {selectedProductIds.length} {selectedProductIds.length !== 1 ? t("sections.productsSelected") : t("sections.productSelected")} {t("sections.selectedCount")}
+                {selectedProductIds.length}{" "}
+                {selectedProductIds.length !== 1 ? t("sections.productsSelected") : t("sections.productSelected")}{" "}
+                {t("sections.selectedCount")}
               </p>
               <button
                 onClick={handleSaveProducts}
@@ -234,7 +238,9 @@ function AddEditSectionContent() {
               <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-[#0F69B0]/[0.05] border border-[#0F69B0]/20">
                 <AlertCircle className="h-4 w-4 text-[#0F69B0] shrink-0" />
                 <p className="text-xs font-semibold text-[#0F69B0]">
-                  {selectedProductIds.length} {selectedProductIds.length !== 1 ? t("sections.productsSelected") : t("sections.productSelected")} {t("sections.selectedCount")}. {t("sections.clickSaveToApply")}
+                  {selectedProductIds.length}{" "}
+                  {selectedProductIds.length !== 1 ? t("sections.productsSelected") : t("sections.productSelected")}{" "}
+                  {t("sections.selectedCount")}. {t("sections.clickSaveToApply")}
                 </p>
               </div>
             )}
@@ -249,7 +255,10 @@ function AddEditSectionContent() {
                 className="w-full ps-10 pe-4 py-2.5 rounded-xl text-sm font-medium outline-none transition-all border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.04] text-foreground placeholder:text-muted-foreground/40 cursor-text focus:border-[#0F69B0]/40 focus:shadow-[0_0_0_3px_rgba(15,105,176,0.08)]"
               />
               {productSearch && (
-                <button onClick={() => setProductSearch("")} className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground cursor-pointer">
+                <button
+                  onClick={() => setProductSearch("")}
+                  className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground cursor-pointer"
+                >
                   <X className="h-3.5 w-3.5" />
                 </button>
               )}
@@ -277,7 +286,9 @@ function AddEditSectionContent() {
                       onClick={() => toggleProduct(pid)}
                       className={cn(
                         "flex items-center gap-3 p-3 rounded-xl border-2 transition-all cursor-pointer text-start w-full",
-                        isSelected ? "border-[#0F69B0] bg-[#0F69B0]/[0.04]" : "border-gray-100 dark:border-white/[0.06] hover:border-[#0F69B0]/30 bg-gray-50/50 dark:bg-white/[0.02]"
+                        isSelected
+                          ? "border-[#0F69B0] bg-[#0F69B0]/[0.04]"
+                          : "border-gray-100 dark:border-white/[0.06] hover:border-[#0F69B0]/30 bg-gray-50/50 dark:bg-white/[0.02]"
                       )}
                     >
                       <div className="h-10 w-10 rounded-lg overflow-hidden border border-gray-100 dark:border-white/[0.08] shrink-0 bg-white dark:bg-white/[0.04] flex items-center justify-center">
@@ -311,12 +322,19 @@ function AddEditSectionContent() {
                 </p>
                 <div className="flex items-center gap-2">
                   {selectedProductIds.length > 0 && (
-                    <button onClick={() => setSelectedProductIds([])} className="text-xs font-bold text-red-500 hover:underline cursor-pointer px-2 py-1">
+                    <button
+                      onClick={() => setSelectedProductIds([])}
+                      className="text-xs font-bold text-red-500 hover:underline cursor-pointer px-2 py-1"
+                    >
                       {t("sections.clearAll")}
                     </button>
                   )}
-                  <button onClick={handleBack} className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border border-gray-200 dark:border-white/[0.08] text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer">
-                    <X className="h-3.5 w-3.5" />{t("sections.cancel")}
+                  <button
+                    onClick={handleBack}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border border-gray-200 dark:border-white/[0.08] text-muted-foreground hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    {t("sections.cancel")}
                   </button>
                   <button
                     onClick={handleSaveProducts}
