@@ -5,7 +5,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import {
   Unlock, RefreshCw, CheckCircle, XCircle, Clock,
-  Mail, Building2, MapPin, AlertTriangle, ChevronRight,
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import Breadcrumb from "@/components/layout/Breadcrumb";
@@ -27,41 +26,8 @@ import toast from "react-hot-toast";
 
 const PAGE_LIMIT = 10;
 
-function getInitials(name) {
-  if (!name) return "?";
-  return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-}
-
-function Avatar({ name, image, size = "md" }) {
-  const sizeClass = size === "sm" ? "h-7 w-7 text-[9px]" : "h-9 w-9 text-[11px]";
-  const baseUrl =
-    process.env.NEXT_PUBLIC_API_DIRECT_URL?.replace("/v1", "") ||
-    "https://api-afghanproduct.sanzylimited.com";
-
-  if (image) {
-    return (
-      <img
-        src={`${baseUrl}/uploads/${image}`}
-        alt={name || ""}
-        className={cn(sizeClass, "rounded-full object-cover shrink-0")}
-        onError={(e) => { e.target.style.display = "none"; }}
-      />
-    );
-  }
-
-  return (
-    <div
-      className={cn(sizeClass, "rounded-full flex items-center justify-center font-black text-white shrink-0")}
-      style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
-    >
-      {getInitials(name)}
-    </div>
-  );
-}
-
 export default function UnlockRequestsPage() {
   const dispatch = useDispatch();
-  const router = useRouter();
   const { t } = useTranslation();
 
   const { unlockRequests, unlockRequestsLoading, unlockPagination } = useSelector(
@@ -84,27 +50,21 @@ export default function UnlockRequestsPage() {
     PENDING: {
       label: t("tradeLeads.statusPending"),
       bg: "bg-amber-500/10",
-      text: "text-amber-600 dark:text-amber-400",
+      text: "text-amber-600",
       dot: "bg-amber-500",
     },
     APPROVED: {
       label: t("tradeLeads.statusApproved"),
       bg: "bg-emerald-500/10",
-      text: "text-emerald-600 dark:text-emerald-400",
+      text: "text-emerald-600",
       dot: "bg-emerald-500",
     },
     REJECTED: {
       label: t("tradeLeads.statusRejected"),
       bg: "bg-red-500/10",
-      text: "text-red-500 dark:text-red-400",
+      text: "text-red-500",
       dot: "bg-red-500",
     },
-  };
-
-  const urgencyConfig = {
-    HIGH: { label: t("tradeLeads.urgencyHigh"), color: "text-red-500", bg: "bg-red-500/10" },
-    MEDIUM: { label: t("tradeLeads.urgencyMedium"), color: "text-amber-500", bg: "bg-amber-500/10" },
-    LOW: { label: t("tradeLeads.urgencyLow"), color: "text-emerald-500", bg: "bg-emerald-500/10" },
   };
 
   const TABS = [
@@ -175,6 +135,7 @@ export default function UnlockRequestsPage() {
             ? t("tradeLeads.statusApproved")
             : t("tradeLeads.statusRejected")
         );
+        triggerFetch(currentPage, activeTab);
       } else {
         toast.error(res?.message || t("tradeLeads.somethingWentWrong"));
       }
@@ -276,8 +237,8 @@ export default function UnlockRequestsPage() {
               {t("tradeLeads.refresh")}
             </button>
             <p className="text-[11px] text-muted-foreground font-medium">
-              {safeRequests.length}{" "}
-              {safeRequests.length !== 1
+              {total}{" "}
+              {total !== 1
                 ? t("tradeLeads.requestsPlural")
                 : t("tradeLeads.requests")}
             </p>
@@ -304,10 +265,7 @@ export default function UnlockRequestsPage() {
                   <thead>
                     <tr style={{ borderBottom: "2px solid rgba(15,105,176,0.06)" }}>
                       {[
-                        t("tradeLeads.seller"),
-                        t("tradeLeads.tradeLead"),
-                        t("tradeLeads.postedBy"),
-                        t("tradeLeads.urgency"),
+                        "#",
                         t("tradeLeads.status"),
                         t("tradeLeads.requestedAt"),
                         t("tradeLeads.actions"),
@@ -325,10 +283,9 @@ export default function UnlockRequestsPage() {
                     {safeRequests.map((req, i) => {
                       if (!req?.id) return null;
                       const sc = statusConfig[req.status] || statusConfig.PENDING;
-                      const urgency = req.tradeLead?.urgency
-                        ? urgencyConfig[req.tradeLead.urgency]
-                        : null;
                       const isPending = req.status === "PENDING";
+                      const isApproved = req.status === "APPROVED";
+                      const isRejected = req.status === "REJECTED";
 
                       return (
                         <motion.tr
@@ -338,99 +295,19 @@ export default function UnlockRequestsPage() {
                           transition={{ delay: i * 0.03 }}
                           className="border-b border-gray-50 dark:border-white/[0.03] last:border-0 hover:bg-gray-50/50 dark:hover:bg-white/[0.015] transition-colors"
                         >
+                          {/* Row Number + ID */}
                           <td className="py-4 px-4">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <Avatar
-                                name={req.requestedBy?.fullName}
-                                image={req.requestedBy?.image}
-                              />
-                              <div className="min-w-0">
-                                <p className="text-[11px] font-bold text-foreground truncate max-w-[140px]">
-                                  {req.requestedBy?.fullName || "—"}
-                                </p>
-                                <div className="flex items-center gap-1 mt-0.5">
-                                  <Mail className="h-3 w-3 text-muted-foreground/50 shrink-0" />
-                                  <p className="text-[10px] text-muted-foreground font-medium truncate max-w-[140px]">
-                                    {req.requestedBy?.email || "—"}
-                                  </p>
-                                </div>
-                                {req.requestedBy?.businessName && (
-                                  <div className="flex items-center gap-1 mt-0.5">
-                                    <Building2 className="h-3 w-3 text-muted-foreground/50 shrink-0" />
-                                    <p className="text-[10px] text-muted-foreground font-medium truncate max-w-[140px]">
-                                      {req.requestedBy.businessName}
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-
-                          <td className="py-4 px-4">
-                            <div className="space-y-1 min-w-0">
-                              <button
-                                onClick={() =>
-                                  req.tradeLead?.id &&
-                                  router.push(`/trade-leads/${req.tradeLead.id}`)
-                                }
-                                className="flex items-center gap-1 text-[11px] font-bold text-[#0F69B0] hover:underline cursor-pointer"
-                              >
-                                <ChevronRight className="h-3 w-3 shrink-0" />
-                                <span className="truncate max-w-[140px]">
-                                  {req.tradeLead?.category || t("tradeLeads.tradeLead")}
-                                </span>
-                              </button>
-                              {req.tradeLead?.location && (
-                                <div className="flex items-center gap-1">
-                                  <MapPin className="h-3 w-3 text-muted-foreground/50 shrink-0" />
-                                  <span className="text-[10px] text-muted-foreground font-medium">
-                                    {req.tradeLead.location}
-                                  </span>
-                                </div>
-                              )}
-                              {req.tradeLead?.detailDescription && (
-                                <p className="text-[10px] text-muted-foreground font-medium truncate max-w-[150px]">
-                                  {req.tradeLead.detailDescription}
-                                </p>
-                              )}
-                            </div>
-                          </td>
-
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <Avatar
-                                name={req.tradeLead?.postedBy?.fullName}
-                                image={req.tradeLead?.postedBy?.image}
-                                size="sm"
-                              />
-                              <div className="min-w-0">
-                                <p className="text-[11px] font-bold text-foreground truncate max-w-[120px]">
-                                  {req.tradeLead?.postedBy?.fullName || "—"}
-                                </p>
-                                <p className="text-[10px] text-muted-foreground font-medium truncate max-w-[120px]">
-                                  {req.tradeLead?.postedBy?.email || "—"}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-
-                          <td className="py-4 px-4">
-                            {urgency ? (
-                              <span
-                                className={cn(
-                                  "inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap",
-                                  urgency.bg,
-                                  urgency.color
-                                )}
-                              >
-                                <AlertTriangle className="h-3 w-3" />
-                                {urgency.label}
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-xs font-bold text-foreground">
+                                #{(currentPage - 1) * PAGE_LIMIT + i + 1}
                               </span>
-                            ) : (
-                              <span className="text-[10px] text-muted-foreground">—</span>
-                            )}
+                              <span className="text-[10px] font-mono text-muted-foreground bg-gray-100 dark:bg-white/[0.06] px-1.5 py-0.5 rounded w-fit">
+                                {req.id.slice(-8).toUpperCase()}
+                              </span>
+                            </div>
                           </td>
 
+                          {/* Status */}
                           <td className="py-4 px-4">
                             <span
                               className={cn(
@@ -444,12 +321,21 @@ export default function UnlockRequestsPage() {
                             </span>
                           </td>
 
+                          {/* Date */}
                           <td className="py-4 px-4">
-                            <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
-                              {formatDate(req.createdAt)}
-                            </span>
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-xs font-medium text-foreground whitespace-nowrap">
+                                {formatDate(req.createdAt)}
+                              </span>
+                              {req.updatedAt && req.updatedAt !== req.createdAt && (
+                                <span className="text-[10px] text-muted-foreground font-medium whitespace-nowrap">
+                                  {t("tradeLeads.updated") || "Updated"}: {formatDate(req.updatedAt)}
+                                </span>
+                              )}
+                            </div>
                           </td>
 
+                          {/* Actions */}
                           <td className="py-4 px-4">
                             {isPending ? (
                               <div className="flex items-center gap-2">
@@ -458,7 +344,7 @@ export default function UnlockRequestsPage() {
                                     openConfirm(
                                       "approve",
                                       req.id,
-                                      req.requestedBy?.fullName || t("tradeLeads.tradeLead")
+                                      `#${req.id.slice(-6).toUpperCase()}`
                                     )
                                   }
                                   className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-bold text-emerald-600 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors cursor-pointer border border-emerald-200 dark:border-emerald-800/40 whitespace-nowrap"
@@ -471,7 +357,7 @@ export default function UnlockRequestsPage() {
                                     openConfirm(
                                       "reject",
                                       req.id,
-                                      req.requestedBy?.fullName || t("tradeLeads.tradeLead")
+                                      `#${req.id.slice(-6).toUpperCase()}`
                                     )
                                   }
                                   className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-bold text-red-500 bg-red-500/10 hover:bg-red-500/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40 whitespace-nowrap"
@@ -480,13 +366,17 @@ export default function UnlockRequestsPage() {
                                   {t("tradeLeads.reject")}
                                 </button>
                               </div>
-                            ) : (
-                              <span className="text-[10px] text-muted-foreground font-medium italic">
-                                {req.status === "APPROVED"
-                                  ? t("tradeLeads.statusApproved")
-                                  : t("tradeLeads.statusRejected")}
+                            ) : isApproved ? (
+                              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 whitespace-nowrap">
+                                <CheckCircle className="h-3 w-3" />
+                                {t("tradeLeads.statusApproved")}
                               </span>
-                            )}
+                            ) : isRejected ? (
+                              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-lg bg-red-500/10 text-red-500 whitespace-nowrap">
+                                <XCircle className="h-3 w-3" />
+                                {t("tradeLeads.statusRejected")}
+                              </span>
+                            ) : null}
                           </td>
                         </motion.tr>
                       );
@@ -530,7 +420,7 @@ export default function UnlockRequestsPage() {
             : t("tradeLeads.reject")
         }
         isLoading={actionLoading}
-        variant={confirmDialog.type === "approve" ? "success" : "danger"}
+        variant={confirmDialog.type === "approve" ? "primary" : "danger"}
       />
     </div>
   );

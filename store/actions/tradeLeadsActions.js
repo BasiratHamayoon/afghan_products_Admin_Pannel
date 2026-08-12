@@ -18,34 +18,33 @@ import {
 
 const BASE = "/trade_lead";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BACKEND FEATURE FLAGS
-// When backend developer adds the new endpoints, flip these to true
-// ─────────────────────────────────────────────────────────────────────────────
-
-// Current endpoint:  PATCH /trade_lead/unlock-request/:id  { status: "APPROVED" | "REJECTED" }
-// New endpoints:     PATCH /trade_lead/unlock-request/:id/approve
-//                    PATCH /trade_lead/unlock-request/:id/reject
 const BACKEND_HAS_SEPARATE_APPROVE_REJECT = false;
 
-// ─────────────────────────────────────────────────────────────────────────────
+const resolveMultilingual = (raw) => {
+  if (!raw) return "";
+  if (typeof raw === "string") return raw;
+  if (typeof raw === "object" && !Array.isArray(raw)) {
+    return raw.en || raw.fa || raw.ps || "";
+  }
+  return "";
+};
 
 const normalizeLead = (item) => {
   if (!item) return null;
   return {
     id: item._id || item.id,
     productId: item.product?._id || item.product?.id || item.product,
-    productName: item.product?.name || "",
+    productName: resolveMultilingual(item.product?.name) || resolveMultilingual(item.productName) || "",
     productSlug: item.product?.slug || "",
     categoryId: item.category?._id || item.category?.id || item.category,
-    categoryName: item.category?.name || "",
+    categoryName: resolveMultilingual(item.category?.name) || resolveMultilingual(item.categoryName) || "",
     quantity: item.quantity || 0,
     unit: item.unit || "",
     minBudget: item.budgetRange?.min ?? item.minBudget ?? 0,
     maxBudget: item.budgetRange?.max ?? item.maxBudget ?? 0,
-    location: item.location || "",
+    location: resolveMultilingual(item.location) || "",
     urgency: item.urgency || "LOW",
-    detailDescription: item.detailDescription || "",
+    detailDescription: resolveMultilingual(item.detailDescription) || resolveMultilingual(item.description) || "",
     attachment: item.attachment || null,
     status: item.status || "PENDING",
     createdByName:
@@ -80,11 +79,11 @@ const normalizeUnlockRequest = (item) => {
       ? {
           id: item.tradeLead._id || item.tradeLead.id || "",
           product: item.tradeLead.product || null,
-          category: item.tradeLead.category?.name || null,
+          category: resolveMultilingual(item.tradeLead.category?.name) || resolveMultilingual(item.tradeLead.category) || null,
           categoryId: item.tradeLead.category?._id || null,
-          location: item.tradeLead.location || null,
+          location: resolveMultilingual(item.tradeLead.location) || null,
           urgency: item.tradeLead.urgency || null,
-          detailDescription: item.tradeLead.detailDescription || null,
+          detailDescription: resolveMultilingual(item.tradeLead.detailDescription) || null,
           status: item.tradeLead.status || null,
           postedBy: item.tradeLead.postedBy
             ? {
@@ -112,7 +111,9 @@ export const fetchTradeLeads = (params = {}) => async (dispatch) => {
     const res = await axiosInstance.get(`${BASE}?${query.toString()}`);
     const data = res.data;
     const raw = data.tradeLeads || data.data || [];
-    const normalized = Array.isArray(raw) ? raw.map(normalizeLead).filter(Boolean) : [];
+    const normalized = Array.isArray(raw)
+      ? raw.map(normalizeLead).filter(Boolean)
+      : [];
 
     dispatch(setTradeLeads(normalized));
     dispatch(
@@ -125,7 +126,9 @@ export const fetchTradeLeads = (params = {}) => async (dispatch) => {
     );
     return { success: true };
   } catch (err) {
-    dispatch(setError(err.response?.data?.message || err.message || "Failed to fetch trade leads"));
+    dispatch(
+      setError(err.response?.data?.message || err.message || "Failed to fetch trade leads")
+    );
     return { success: false };
   } finally {
     dispatch(setLoading(false));
@@ -141,7 +144,9 @@ export const fetchTradeLeadById = (id) => async (dispatch) => {
     dispatch(setSelectedLead(normalized));
     return { success: true, data: normalized };
   } catch (err) {
-    dispatch(setError(err.response?.data?.message || err.message || "Failed to fetch trade lead"));
+    dispatch(
+      setError(err.response?.data?.message || err.message || "Failed to fetch trade lead")
+    );
     return { success: false, message: err.response?.data?.message || err.message };
   } finally {
     dispatch(setDetailLoading(false));
@@ -267,9 +272,6 @@ export const fetchUnlockRequests = (params = {}) => async (dispatch) => {
   }
 };
 
-// ─── Current: single endpoint with status in body ────────────────────────────
-// PATCH /trade_lead/unlock-request/:id  →  { status: "APPROVED" | "REJECTED" }
-// ─────────────────────────────────────────────────────────────────────────────
 export const respondToUnlockRequest = (requestId, status) => async (dispatch) => {
   try {
     const res = await axiosInstance.patch(
@@ -291,13 +293,6 @@ export const respondToUnlockRequest = (requestId, status) => async (dispatch) =>
   }
 };
 
-// ─── Approve ──────────────────────────────────────────────────────────────────
-// When BACKEND_HAS_SEPARATE_APPROVE_REJECT = false:
-//   calls PATCH /trade_lead/unlock-request/:id  { status: "APPROVED" }
-//
-// When BACKEND_HAS_SEPARATE_APPROVE_REJECT = true:
-//   calls PATCH /trade_lead/unlock-request/:id/approve
-// ─────────────────────────────────────────────────────────────────────────────
 export const approveUnlockRequest = (requestId) => async (dispatch) => {
   if (BACKEND_HAS_SEPARATE_APPROVE_REJECT) {
     try {
@@ -318,17 +313,9 @@ export const approveUnlockRequest = (requestId) => async (dispatch) => {
       };
     }
   }
-
   return dispatch(respondToUnlockRequest(requestId, "APPROVED"));
 };
 
-// ─── Reject ───────────────────────────────────────────────────────────────────
-// When BACKEND_HAS_SEPARATE_APPROVE_REJECT = false:
-//   calls PATCH /trade_lead/unlock-request/:id  { status: "REJECTED" }
-//
-// When BACKEND_HAS_SEPARATE_APPROVE_REJECT = true:
-//   calls PATCH /trade_lead/unlock-request/:id/reject
-// ─────────────────────────────────────────────────────────────────────────────
 export const rejectUnlockRequest = (requestId) => async (dispatch) => {
   if (BACKEND_HAS_SEPARATE_APPROVE_REJECT) {
     try {
@@ -349,6 +336,5 @@ export const rejectUnlockRequest = (requestId) => async (dispatch) => {
       };
     }
   }
-
   return dispatch(respondToUnlockRequest(requestId, "REJECTED"));
 };

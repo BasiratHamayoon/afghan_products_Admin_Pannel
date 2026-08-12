@@ -12,6 +12,15 @@ import {
   setError,
 } from "@/store/slices/businessesSlice";
 
+const resolveMultilingual = (raw) => {
+  if (!raw) return "";
+  if (typeof raw === "string") return raw;
+  if (typeof raw === "object" && !Array.isArray(raw)) {
+    return raw.en || raw.fa || raw.ps || "";
+  }
+  return "";
+};
+
 const normalizeBusiness = (item) => {
   if (!item) return null;
   return {
@@ -22,10 +31,10 @@ const normalizeBusiness = (item) => {
       : item.ownerName || item.userName || "Unknown",
     ownerEmail: item.owner?.email || item.ownerEmail || item.userEmail || "",
     ownerId: item.owner?._id || item.owner?.id || item.userId || null,
-    businessName: item.businessName || "",
+    businessName: resolveMultilingual(item.businessName) || "",
     tin: item.tin || "",
-    ownershipType: item.ownershipType || "",
-    description: item.description || "",
+    ownershipType: resolveMultilingual(item.ownershipType) || item.ownershipType || "",
+    description: resolveMultilingual(item.description) || "",
     yearOfEstablishment: item.yearOfEstablishment || null,
     verificationStatus: item.verificationStatus || "UNVERIFIED",
     averageRating: item.averageRating || 0,
@@ -34,6 +43,8 @@ const normalizeBusiness = (item) => {
     tradeLicense: item.tradeLicense || null,
     nationalIdOrPassport: item.nationalIdOrPassport || null,
     taxCertificate: item.taxCertificate || null,
+    createdAt: item.createdAt || null,
+    updatedAt: item.updatedAt || null,
   };
 };
 
@@ -49,20 +60,22 @@ export const fetchBusinesses = (params = {}) => async (dispatch) => {
     const res = await axiosInstance.get(`/businesses?${query.toString()}`);
     const data = res.data;
     const raw = data.businesses || data.data || [];
-    const normalized = Array.isArray(raw) ? raw.map(normalizeBusiness).filter(Boolean) : [];
+    const normalized = Array.isArray(raw)
+      ? raw.map(normalizeBusiness).filter(Boolean)
+      : [];
 
     dispatch(setBusinesses(normalized));
     dispatch(
       setPaginationMeta({
-        page: data.page || data.currentPage || page,
-        limit: data.limit || limit,
-        total: data.total || data.totalCount || normalized.length,
-        totalPages: data.totalPages || 1,
+        page: data.pagination?.page || data.page || data.currentPage || page,
+        limit: data.pagination?.limit || data.limit || limit,
+        total: data.pagination?.total || data.total || data.totalCount || normalized.length,
+        totalPages: data.pagination?.totalPages || data.totalPages || 1,
       })
     );
     return { success: true };
   } catch (err) {
-    dispatch(setError(err.message || "Failed to fetch businesses"));
+    dispatch(setError(err.response?.data?.message || err.message || "Failed to fetch businesses"));
     return { success: false };
   } finally {
     dispatch(setLoading(false));
@@ -75,11 +88,13 @@ export const fetchPendingSellers = () => async (dispatch) => {
     const res = await axiosInstance.get("/businesses/pendingSellers");
     const data = res.data;
     const raw = data.businesses || data.sellers || data.data || [];
-    const normalized = Array.isArray(raw) ? raw.map(normalizeBusiness).filter(Boolean) : [];
+    const normalized = Array.isArray(raw)
+      ? raw.map(normalizeBusiness).filter(Boolean)
+      : [];
     dispatch(setPendingSellers(normalized));
     return { success: true };
   } catch (err) {
-    dispatch(setError(err.message || "Failed to fetch pending sellers"));
+    dispatch(setError(err.response?.data?.message || err.message || "Failed to fetch pending sellers"));
     return { success: false };
   } finally {
     dispatch(setLoading(false));
@@ -92,11 +107,13 @@ export const fetchVerifiedSellers = () => async (dispatch) => {
     const res = await axiosInstance.get("/businesses/verifiedSellers");
     const data = res.data;
     const raw = data.businesses || data.sellers || data.data || [];
-    const normalized = Array.isArray(raw) ? raw.map(normalizeBusiness).filter(Boolean) : [];
+    const normalized = Array.isArray(raw)
+      ? raw.map(normalizeBusiness).filter(Boolean)
+      : [];
     dispatch(setVerifiedSellers(normalized));
     return { success: true };
   } catch (err) {
-    dispatch(setError(err.message || "Failed to fetch verified sellers"));
+    dispatch(setError(err.response?.data?.message || err.message || "Failed to fetch verified sellers"));
     return { success: false };
   } finally {
     dispatch(setLoading(false));
@@ -112,8 +129,8 @@ export const fetchBusinessById = (id) => async (dispatch) => {
     dispatch(setSelectedBusiness(normalized));
     return { success: true, data: normalized };
   } catch (err) {
-    dispatch(setError(err.message || "Failed to fetch business"));
-    return { success: false, message: err.message };
+    dispatch(setError(err.response?.data?.message || err.message || "Failed to fetch business"));
+    return { success: false, message: err.response?.data?.message || err.message };
   } finally {
     dispatch(setDetailLoading(false));
   }
@@ -153,7 +170,10 @@ export const updateVerificationStatus = (id, action) => async (dispatch) => {
     dispatch(updateBusinessInList(updated));
     return { success: true, data: updated };
   } catch (err) {
-    return { success: false, message: err.message };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to update verification status",
+    };
   }
 };
 
@@ -163,6 +183,9 @@ export const deleteBusinessAction = (id) => async (dispatch) => {
     dispatch(removeBusinessFromList(id));
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.message };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to delete business",
+    };
   }
 };

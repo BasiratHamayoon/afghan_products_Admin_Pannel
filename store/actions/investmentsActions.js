@@ -10,32 +10,45 @@ import {
 
 const BASE = "/investments";
 
+const resolveMultilingual = (raw) => {
+  if (!raw) return "";
+  if (typeof raw === "string") return raw;
+  if (typeof raw === "object" && !Array.isArray(raw)) {
+    return raw.en || raw.fa || raw.ps || "";
+  }
+  return "";
+};
+
 const normalizeInvestment = (item) => {
   if (!item) return null;
+
+  const city = resolveMultilingual(item.location?.city) || resolveMultilingual(item.city) || "";
+  const country = resolveMultilingual(item.location?.country) || resolveMultilingual(item.country) || "";
+
   return {
     id: item._id || item.id,
-    title: item.title || "",
+    title: resolveMultilingual(item.title) || "",
     slug: item.slug || "",
-    description: item.description || "",
-    category: item.category || "",
-    riskLevel: (item.riskLevel || "medium").toLowerCase(),
+    description: resolveMultilingual(item.description) || "",
+    category: resolveMultilingual(item.category) || "",
+    riskLevel: (resolveMultilingual(item.riskLevel) || item.riskLevel || "medium").toLowerCase(),
     location: item.location || { city: "", country: "" },
-    city: item.location?.city || "",
-    country: item.location?.country || "",
+    city,
+    country,
     requiredAmount: item.requiredAmount ?? 0,
     raisedAmount: item.raisedAmount ?? 0,
     minInvestment: item.minInvestment ?? 0,
     expectedROI: item.expectedROI ?? 0,
     durationMonths: item.durationMonths ?? 0,
     images: Array.isArray(item.images) ? item.images : [],
-    tags: Array.isArray(item.tags) ? item.tags : [],
-    status: (item.status || "pending").toUpperCase(),
-    approvalStatus: (item.approvalStatus || "PENDING").toUpperCase(),
+    tags: Array.isArray(item.tags) ? item.tags.map((t) => resolveMultilingual(t) || t) : [],
+    status: (resolveMultilingual(item.status) || item.status || "pending").toUpperCase(),
+    approvalStatus: (resolveMultilingual(item.approvalStatus) || item.approvalStatus || "PENDING").toUpperCase(),
     isActive: item.isActive ?? true,
     isArchived: item.isArchived ?? false,
     isDeleted: item.isDeleted ?? false,
     business: item.business || null,
-    businessName: item.business?.businessName || "",
+    businessName: resolveMultilingual(item.business?.businessName) || resolveMultilingual(item.businessName) || "",
     ownerName: item.business?.owner
       ? `${item.business.owner.firstName || ""} ${item.business.owner.lastName || ""}`.trim()
       : "",
@@ -89,7 +102,7 @@ export const fetchInvestments = (params = {}) => async (dispatch) => {
     );
     return { success: true };
   } catch (err) {
-    dispatch(setError(err.message || "Failed to fetch investments"));
+    dispatch(setError(err.response?.data?.message || err.message || "Failed to fetch investments"));
     return { success: false, message: err.message };
   } finally {
     dispatch(setLoading(false));
@@ -126,7 +139,7 @@ export const fetchInvestmentById = (id) => async () => {
     return { success: true, data: normalized };
   } catch (err) {
     delete _byIdCache[id];
-    return { success: false, message: err.message };
+    return { success: false, message: err.response?.data?.message || err.message };
   }
 };
 
@@ -155,7 +168,10 @@ export const toggleInvestmentApproval = (id, approvalStatus) => async (dispatch)
     clearInvestmentByIdCache(id);
     return { success: true, data: normalized };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to update approval" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to update approval",
+    };
   }
 };
 
@@ -166,6 +182,9 @@ export const deleteInvestment = (id) => async (dispatch) => {
     clearInvestmentByIdCache(id);
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.message || "Failed to delete" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to delete",
+    };
   }
 };
