@@ -14,19 +14,50 @@ import {
   setError,
 } from "@/store/slices/productsSlice";
 
+const resolveMultilingual = (raw) => {
+  if (!raw) return "";
+  if (typeof raw === "string") return raw;
+  if (typeof raw === "object" && !Array.isArray(raw)) {
+    return raw.en || raw.fa || raw.ps || "";
+  }
+  return "";
+};
+
 const normalizeProduct = (item) => {
   if (!item) return null;
   return {
     ...item,
     id: item._id || item.id,
-    name: item.name || "",
+    name: resolveMultilingual(item.name) || "",
     slug: item.slug || "",
-    categoryId: item.categoryId?._id || item.categoryId?.id || item.category?._id || item.category?.id || item.categoryId || item.category,
-    subCategoryId: item.subCategoryId?._id || item.subCategoryId?.id || item.subCategory?._id || item.subCategory?.id || item.subCategoryId || item.subCategory,
-    productTypeId: item.productTypeId?._id || item.productTypeId?.id || item.productType?._id || item.productType?.id || item.productTypeId || item.productType,
-    categoryName: item.categoryId?.name || item.category?.name || item.categoryName || "",
-    subCategoryName: item.subCategoryId?.name || item.subCategory?.name || item.subCategoryName || "",
-    productTypeName: item.productTypeId?.name || item.productType?.name || item.productTypeName || "",
+    description: resolveMultilingual(item.description) || "",
+    categoryId:
+      item.categoryId?._id || item.categoryId?.id ||
+      item.category?._id || item.category?.id ||
+      item.categoryId || item.category,
+    subCategoryId:
+      item.subCategoryId?._id || item.subCategoryId?.id ||
+      item.subCategory?._id || item.subCategory?.id ||
+      item.subCategoryId || item.subCategory,
+    productTypeId:
+      item.productTypeId?._id || item.productTypeId?.id ||
+      item.productType?._id || item.productType?.id ||
+      item.productTypeId || item.productType,
+    categoryName:
+      resolveMultilingual(item.categoryId?.name) ||
+      resolveMultilingual(item.category?.name) ||
+      resolveMultilingual(item.categoryName) ||
+      "",
+    subCategoryName:
+      resolveMultilingual(item.subCategoryId?.name) ||
+      resolveMultilingual(item.subCategory?.name) ||
+      resolveMultilingual(item.subCategoryName) ||
+      "",
+    productTypeName:
+      resolveMultilingual(item.productTypeId?.name) ||
+      resolveMultilingual(item.productType?.name) ||
+      resolveMultilingual(item.productTypeName) ||
+      "",
     sellerName: item.sellerId
       ? `${item.sellerId.firstName || ""} ${item.sellerId.lastName || ""}`.trim()
       : item.sellerName || "",
@@ -39,7 +70,6 @@ const normalizeProduct = (item) => {
     images: item.images || [],
   };
 };
-
 
 let _listFetchInProgress = false;
 let _statsFetchInProgress = false;
@@ -71,18 +101,24 @@ export const fetchProducts = (params = {}) => async (dispatch) => {
     const res = await axiosInstance.get(`/products?${query.toString()}`);
     const data = res.data;
     const raw = data.products || data.data || [];
-    const normalized = Array.isArray(raw) ? raw.map(normalizeProduct).filter(Boolean) : [];
+    const normalized = Array.isArray(raw)
+      ? raw.map(normalizeProduct).filter(Boolean)
+      : [];
 
     dispatch(setProducts(normalized));
-    dispatch(setPaginationMeta({
-      page: data.page || data.currentPage || page,
-      limit: data.limit || limit,
-      total: data.total || data.totalCount || normalized.length,
-      totalPages: data.totalPages || 1,
-    }));
+    dispatch(
+      setPaginationMeta({
+        page: data.pagination?.page || data.page || data.currentPage || page,
+        limit: data.pagination?.limit || data.limit || limit,
+        total: data.pagination?.total || data.total || data.totalCount || normalized.length,
+        totalPages: data.pagination?.totalPages || data.totalPages || 1,
+      })
+    );
     return { success: true };
   } catch (err) {
-    dispatch(setError(err.response?.data?.message || err.message || "Failed to fetch products"));
+    dispatch(
+      setError(err.response?.data?.message || err.message || "Failed to fetch products")
+    );
     return { success: false };
   } finally {
     dispatch(setLoading(false));
@@ -102,7 +138,10 @@ export const fetchProductStats = () => async (dispatch) => {
     return { success: true, data };
   } catch (err) {
     _statsFetchDone = false;
-    return { success: false, message: err.response?.data?.message || err.message };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message,
+    };
   } finally {
     dispatch(setStatsLoading(false));
     _statsFetchInProgress = false;
@@ -139,15 +178,24 @@ export const fetchProductBySlug = (slug) => async (dispatch) => {
   dispatch(setLoading(true));
   try {
     const res = await axiosInstance.get(`/products/slug/${slug}`);
-    const raw = res.data?.product || res.data?.data?.product || res.data?.data || res.data;
+    const raw =
+      res.data?.product ||
+      res.data?.data?.product ||
+      res.data?.data ||
+      res.data;
     const normalized = normalizeProduct(raw);
     _bySlugCache[slug] = normalized;
     dispatch(setSelectedProduct(normalized));
     return { success: true, data: normalized };
   } catch (err) {
     delete _bySlugCache[slug];
-    dispatch(setError(err.response?.data?.message || err.message || "Failed to fetch product"));
-    return { success: false, message: err.response?.data?.message || err.message };
+    dispatch(
+      setError(err.response?.data?.message || err.message || "Failed to fetch product")
+    );
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message,
+    };
   } finally {
     dispatch(setLoading(false));
   }
@@ -158,13 +206,22 @@ export const fetchProductById = (id) => async (dispatch) => {
   dispatch(setLoading(true));
   try {
     const res = await axiosInstance.get(`/products/${id}`);
-    const raw = res.data?.product || res.data?.data?.product || res.data?.data || res.data;
+    const raw =
+      res.data?.product ||
+      res.data?.data?.product ||
+      res.data?.data ||
+      res.data;
     const normalized = normalizeProduct(raw);
     dispatch(setSelectedProduct(normalized));
     return { success: true, data: normalized };
   } catch (err) {
-    dispatch(setError(err.response?.data?.message || err.message || "Failed to fetch product"));
-    return { success: false, message: err.response?.data?.message || err.message };
+    dispatch(
+      setError(err.response?.data?.message || err.message || "Failed to fetch product")
+    );
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message,
+    };
   } finally {
     dispatch(setLoading(false));
   }
@@ -211,31 +268,34 @@ export const editProduct = (id, data) => async (dispatch) => {
 
 export const toggleProductStatus = (id, currentStatus) => async (dispatch) => {
   const nextStatus = currentStatus === "APPROVED" ? "PENDING" : "APPROVED";
-
   dispatch(toggleProductStatusInList({ id, status: nextStatus }));
-
   try {
     const res = await axiosInstance.patch(
       `/products/${id}/toggle_status`,
       { status: nextStatus },
       { headers: { "Content-Type": "application/json" } }
     );
-
-    const raw = res.data?.product || res.data?.data?.product || res.data?.data || res.data;
-
+    const raw =
+      res.data?.product ||
+      res.data?.data?.product ||
+      res.data?.data ||
+      res.data;
     if (raw && (raw._id || raw.id)) {
       const normalized = normalizeProduct(raw);
-      const finalStatus = normalized.status === currentStatus ? nextStatus : normalized.status;
+      const finalStatus =
+        normalized.status === currentStatus ? nextStatus : normalized.status;
       const corrected = { ...normalized, status: finalStatus };
       dispatch(updateProductInList(corrected));
       dispatch(setSelectedProduct(corrected));
       if (corrected?.slug) clearProductSlugCache(corrected.slug);
     }
-
     return { success: true };
   } catch (err) {
     dispatch(toggleProductStatusInList({ id, status: currentStatus }));
-    return { success: false, message: err.response?.data?.message || err.message || "Failed to toggle" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to toggle",
+    };
   }
 };
 
@@ -245,7 +305,10 @@ export const archiveProduct = (id) => async (dispatch) => {
     dispatch(archiveProductInList(id));
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.response?.data?.message || err.message || "Failed to archive" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to archive",
+    };
   }
 };
 
@@ -255,7 +318,10 @@ export const unarchiveProduct = (id) => async (dispatch) => {
     dispatch(unarchiveProductInList(id));
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.response?.data?.message || err.message || "Failed to unarchive" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to unarchive",
+    };
   }
 };
 
@@ -265,6 +331,9 @@ export const deleteProduct = (id) => async (dispatch) => {
     dispatch(removeProduct(id));
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.response?.data?.message || err.message || "Failed to delete" };
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Failed to delete",
+    };
   }
 };
