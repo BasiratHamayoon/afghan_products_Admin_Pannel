@@ -46,13 +46,21 @@ export const loadCategoryOptions = (forceRefresh = false) => async (dispatch, ge
   _categoryFetchInProgress = true;
   dispatch(setCategoryOptionsLoading(true));
   try {
-    const res = await axiosInstance.get("/select/categories");
+    const res = await axiosInstance.get("/categories?limit=200&page=1");
     const raw = extractArray(res.data, ["categories", "data"]);
     const normalized = raw.map(normalizeSelectItem).filter(Boolean);
     dispatch(setCategoryOptions(normalized));
     return normalized;
   } catch {
-    return [];
+    try {
+      const res2 = await axiosInstance.get("/select/categories");
+      const raw2 = extractArray(res2.data, ["categories", "data"]);
+      const normalized2 = raw2.map(normalizeSelectItem).filter(Boolean);
+      dispatch(setCategoryOptions(normalized2));
+      return normalized2;
+    } catch {
+      return [];
+    }
   } finally {
     _categoryFetchInProgress = false;
     dispatch(setCategoryOptionsLoading(false));
@@ -77,11 +85,7 @@ export const loadSubCategoryOptions = (categoryId) => async (dispatch, getState)
     const res = await axiosInstance.get(
       `/sub_categories?categoryId=${categoryId}&limit=100&page=1`
     );
-    const raw = extractArray(res.data, [
-      "subCategories",
-      "subcategories",
-      "data",
-    ]);
+    const raw = extractArray(res.data, ["subCategories", "subcategories", "data"]);
     const normalized = raw.map(normalizeSelectItem).filter(Boolean);
     dispatch(setSubCategoryOptions(normalized));
     dispatch(setSubCategoryOptionsForId(categoryId));
@@ -128,7 +132,7 @@ export const loadProductTypeOptions = (subCategoryId) => async (dispatch, getSta
 
 export const fetchCategorySelectList = async () => {
   try {
-    const res = await axiosInstance.get("/select/categories");
+    const res = await axiosInstance.get("/categories?limit=200&page=1");
     const raw = extractArray(res.data, ["categories", "data"]);
     return raw.map(normalizeSelectItem).filter(Boolean);
   } catch {

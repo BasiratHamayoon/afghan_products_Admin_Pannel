@@ -667,7 +667,16 @@
     "failedToUpdateProductType": "د محصول ډول تازه کول ناکام شو",
     "failedToLoadProductType": "د محصول ډول بارول ناکام شو",
     "allSubcategories": "ټولې فرعي کټګورۍ",
-    "slugNotAvailable": "سلګ شتون نلري"
+    "slugNotAvailable": "سلګ شتون نلري",
+    "languageContent": "د ژبې منځپانګه",
+    "atLeastOneLangRequired": "لږترلږه یوه ژبه اړینه ده",
+    "filled": "ډک شوی",
+    "translationStatus": "د ژباړې حالت",
+    "empty": "خالي",
+    "translationGuide": "د ژباړو زیاتولو لارښود",
+    "guideStep1": "د ژبې بدلولو لپاره EN، FA یا PS ټب کلیک کړئ",
+    "guideStep2": "د کټګورۍ نوم پدې ژبه ولیکئ",
+    "guideStep3": "د لږترلږه یوې ژبې نوم اړین دی"
   },
   "sections": {
     "title": "د برخې مدیریت",

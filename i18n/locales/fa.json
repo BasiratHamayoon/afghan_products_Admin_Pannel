@@ -667,7 +667,16 @@
     "failedToUpdateProductType": "به‌روزرسانی نوع محصول ناموفق بود",
     "failedToLoadProductType": "بارگذاری نوع محصول ناموفق بود",
     "allSubcategories": "همه زیر دسته‌بندی‌ها",
-    "slugNotAvailable": "اسلاگ در دسترس نیست"
+    "slugNotAvailable": "اسلاگ در دسترس نیست",
+    "languageContent": "محتوای زبان",
+    "atLeastOneLangRequired": "حداقل یک زبان الزامی است",
+    "filled": "پر شده",
+    "translationStatus": "وضعیت ترجمه",
+    "empty": "خالی",
+    "translationGuide": "نحوه افزودن ترجمه",
+    "guideStep1": "برای تغییر زبان روی تب EN، FA یا PS کلیک کنید",
+    "guideStep2": "نام دسته‌بندی را به آن زبان تایپ کنید",
+    "guideStep3": "حداقل نام یک زبان الزامی است"
   },
   "sections": {
     "title": "مدیریت بخش",

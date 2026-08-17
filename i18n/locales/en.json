@@ -667,7 +667,16 @@
     "failedToUpdateProductType": "Failed to update product type",
     "failedToLoadProductType": "Failed to load product type",
     "allSubcategories": "All Subcategories",
-    "slugNotAvailable": "Slug not available"
+    "slugNotAvailable": "Slug not available",
+    "languageContent": "Language Content",
+    "atLeastOneLangRequired": "At least one language required",
+    "filled": "filled",
+    "translationStatus": "Translation Status",
+    "empty": "Empty",
+    "translationGuide": "How to add translations",
+    "guideStep1": "Click EN, FA, or PS tab to switch language",
+    "guideStep2": "Type the category name in that language",
+    "guideStep3": "At least one language name is required"
   },
   "sections": {
     "title": "Section Management",
