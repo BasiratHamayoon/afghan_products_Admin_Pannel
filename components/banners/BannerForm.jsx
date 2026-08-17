@@ -2,36 +2,38 @@
 
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Save, X, Loader2, ImageIcon, Upload } from "lucide-react";
+import { Save, X, Loader2, ImageIcon, Upload, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getFileUrl } from "@/lib/fileUrl";
 import { useTranslation } from "react-i18next";
 
-export default function BannerForm({ initialData, onSubmit, onCancel, isLoading }) {
-  const { t, i18n } = useTranslation();
-  const currentLang = i18n.language || "en";
-  const isRTL = currentLang === "fa" || currentLang === "ps";
+const LANGUAGES = [
+  { code: "en", label: "EN", fullLabel: "English", dir: "ltr" },
+  { code: "fa", label: "FA", fullLabel: "فارسی", dir: "rtl" },
+  { code: "ps", label: "PS", fullLabel: "پښتو", dir: "rtl" },
+];
 
+export default function BannerForm({ initialData, onSubmit, onCancel, isLoading }) {
+  const { t } = useTranslation();
   const safe = initialData && typeof initialData === "object" ? initialData : {};
 
-  const getTitleValue = () => {
-    if (safe.titleMultilingual && typeof safe.titleMultilingual === "object") {
-      return safe.titleMultilingual[currentLang] || safe.titleMultilingual.en || safe.titleMultilingual.fa || safe.titleMultilingual.ps || "";
+  const getMultiValue = (multiKey, flatKey) => {
+    if (safe[multiKey] && typeof safe[multiKey] === "object") {
+      return {
+        en: safe[multiKey].en || "",
+        fa: safe[multiKey].fa || "",
+        ps: safe[multiKey].ps || "",
+      };
     }
-    if (safe.title && typeof safe.title === "object") {
-      return safe.title[currentLang] || safe.title.en || safe.title.fa || safe.title.ps || "";
+    if (safe[flatKey] && typeof safe[flatKey] === "object") {
+      return {
+        en: safe[flatKey].en || "",
+        fa: safe[flatKey].fa || "",
+        ps: safe[flatKey].ps || "",
+      };
     }
-    return typeof safe.title === "string" ? safe.title : "";
-  };
-
-  const getSubtitleValue = () => {
-    if (safe.subtitleMultilingual && typeof safe.subtitleMultilingual === "object") {
-      return safe.subtitleMultilingual[currentLang] || safe.subtitleMultilingual.en || safe.subtitleMultilingual.fa || safe.subtitleMultilingual.ps || "";
-    }
-    if (safe.subtitle && typeof safe.subtitle === "object") {
-      return safe.subtitle[currentLang] || safe.subtitle.en || safe.subtitle.fa || safe.subtitle.ps || "";
-    }
-    return typeof safe.subtitle === "string" ? safe.subtitle : "";
+    const flat = typeof safe[flatKey] === "string" ? safe[flatKey] : "";
+    return { en: flat, fa: "", ps: "" };
   };
 
   const POSITIONS = [
@@ -57,8 +59,9 @@ export default function BannerForm({ initialData, onSubmit, onCancel, isLoading 
     { value: "external", label: t("banners.linkExternal") },
   ];
 
-  const [title, setTitle] = useState(getTitleValue());
-  const [subtitle, setSubtitle] = useState(getSubtitleValue());
+  const [activeLang, setActiveLang] = useState("en");
+  const [title, setTitle] = useState(getMultiValue("titleMultilingual", "title"));
+  const [subtitle, setSubtitle] = useState(getMultiValue("subtitleMultilingual", "subtitle"));
   const [position, setPosition] = useState(safe.position || "HOME_TOP");
   const [mediaType, setMediaType] = useState(safe.mediaType || "IMAGE");
   const [linkType, setLinkType] = useState(safe.linkType || "none");
@@ -77,6 +80,14 @@ export default function BannerForm({ initialData, onSubmit, onCancel, isLoading 
   );
   const [errors, setErrors] = useState({});
   const fileInputRef = useRef(null);
+
+  const hasAtLeastOneTitle = () =>
+    LANGUAGES.some((l) => title[l.code]?.trim() !== "");
+
+  const getFilledCount = (fieldObj) =>
+    LANGUAGES.filter((l) => fieldObj[l.code]?.trim() !== "").length;
+
+  const currentLangObj = LANGUAGES.find((l) => l.code === activeLang) || LANGUAGES[0];
 
   const handleMediaChange = (e) => {
     const file = e.target.files?.[0];
@@ -102,16 +113,22 @@ export default function BannerForm({ initialData, onSubmit, onCancel, isLoading 
     e.stopPropagation();
 
     const errs = {};
-    if (!title.trim()) errs.title = t("banners.titleRequired");
+    if (!hasAtLeastOneTitle()) errs.title = t("banners.titleRequired");
     if (!position) errs.position = t("banners.positionRequired");
     if (!mediaFile && !safe.media) errs.media = t("banners.mediaRequired");
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
-    const lang = currentLang === "ps" ? "ps" : currentLang === "fa" ? "fa" : "en";
-
     const formData = new FormData();
-    formData.append(`title[${lang}]`, title.trim());
-    formData.append(`subtitle[${lang}]`, subtitle.trim());
+
+    LANGUAGES.forEach((l) => {
+      if (title[l.code]?.trim()) {
+        formData.append(`title[${l.code}]`, title[l.code].trim());
+      }
+      if (subtitle[l.code]?.trim()) {
+        formData.append(`subtitle[${l.code}]`, subtitle[l.code].trim());
+      }
+    });
+
     formData.append("position", position);
     formData.append("mediaType", mediaType);
     formData.append("linkType", linkType);
@@ -139,44 +156,150 @@ export default function BannerForm({ initialData, onSubmit, onCancel, isLoading 
       onSubmit={handleSubmit}
       className="space-y-8"
     >
+      {/* Basic Information with Language Tabs */}
       <div>
         <h3 className="text-xs font-black text-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-[#0F69B0]" />
           {t("banners.basicInformation")}
         </h3>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground uppercase tracking-widest">
-              {t("banners.titleLabel")} <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => { setTitle(e.target.value); clearErr("title"); }}
-              placeholder={t("banners.titlePlaceholder")}
-              disabled={isLoading}
-              dir={isRTL ? "rtl" : "ltr"}
-              className={inputClass(errors.title)}
-            />
-            {errors.title && <p className="text-[11px] text-red-500 font-semibold">{errors.title}</p>}
+
+        <div className="space-y-4">
+          {/* Language Tabs */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Globe className="h-4 w-4 text-[#0F69B0]" />
+              <label className="text-xs font-bold text-foreground uppercase tracking-widest">
+                {t("categories.languageContent")}
+              </label>
+            </div>
+
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-100 dark:bg-white/[0.06]">
+              {LANGUAGES.map((lang) => {
+                const isFilled = !!title[lang.code]?.trim();
+                const isActive = activeLang === lang.code;
+                return (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    onClick={() => setActiveLang(lang.code)}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                      isActive
+                        ? "bg-white dark:bg-white/[0.12] text-[#0F69B0] shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <span>{lang.label}</span>
+                    {isFilled && (
+                      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", isActive ? "bg-[#0F69B0]" : "bg-emerald-500")} />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="text-[10px] text-muted-foreground font-medium">
+              {currentLangObj.fullLabel} · {t("categories.atLeastOneLangRequired")}
+              {" "}({getFilledCount(title)}/3 {t("categories.filled")})
+            </p>
           </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground uppercase tracking-widest">
-              {t("banners.subtitleLabel")}
-            </label>
-            <input
-              type="text"
-              value={subtitle}
-              onChange={(e) => setSubtitle(e.target.value)}
-              placeholder={t("banners.subtitlePlaceholder")}
-              disabled={isLoading}
-              dir={isRTL ? "rtl" : "ltr"}
-              className={inputClass()}
-            />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* Title */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground uppercase tracking-widest">
+                {t("banners.titleLabel")} <span className="text-red-500">*</span>
+                <span className="ml-1.5 text-[10px] font-medium text-muted-foreground normal-case tracking-normal">
+                  ({currentLangObj.fullLabel})
+                </span>
+              </label>
+              {LANGUAGES.map((lang) => (
+                <div key={lang.code} className={cn(activeLang === lang.code ? "block" : "hidden")}>
+                  <input
+                    type="text"
+                    value={title[lang.code]}
+                    onChange={(e) => {
+                      setTitle((prev) => ({ ...prev, [lang.code]: e.target.value }));
+                      clearErr("title");
+                    }}
+                    placeholder={t("banners.titlePlaceholder")}
+                    disabled={isLoading}
+                    dir={lang.dir}
+                    className={inputClass(errors.title)}
+                  />
+                </div>
+              ))}
+              {errors.title && <p className="text-[11px] text-red-500 font-semibold">{errors.title}</p>}
+            </div>
+
+            {/* Subtitle */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground uppercase tracking-widest">
+                {t("banners.subtitleLabel")}
+                <span className="ml-1.5 text-[10px] font-medium text-muted-foreground normal-case tracking-normal">
+                  ({currentLangObj.fullLabel})
+                </span>
+              </label>
+              {LANGUAGES.map((lang) => (
+                <div key={lang.code} className={cn(activeLang === lang.code ? "block" : "hidden")}>
+                  <input
+                    type="text"
+                    value={subtitle[lang.code]}
+                    onChange={(e) =>
+                      setSubtitle((prev) => ({ ...prev, [lang.code]: e.target.value }))
+                    }
+                    placeholder={t("banners.subtitlePlaceholder")}
+                    disabled={isLoading}
+                    dir={lang.dir}
+                    className={inputClass()}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Translation Status */}
+          <div className="p-3 rounded-xl border border-gray-100 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02] space-y-2">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+              {t("categories.translationStatus")}
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {LANGUAGES.map((lang) => {
+                const hasTitle = !!title[lang.code]?.trim();
+                const hasSub = !!subtitle[lang.code]?.trim();
+                return (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    onClick={() => setActiveLang(lang.code)}
+                    className={cn(
+                      "flex flex-col items-center gap-1 p-2 rounded-lg border transition-all cursor-pointer",
+                      activeLang === lang.code
+                        ? "border-[#0F69B0]/40 bg-[#0F69B0]/[0.04]"
+                        : "border-gray-200 dark:border-white/[0.06] hover:border-[#0F69B0]/20"
+                    )}
+                  >
+                    <span className={cn("text-xs font-black", activeLang === lang.code ? "text-[#0F69B0]" : "text-foreground")}>
+                      {lang.label}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className={cn("h-1.5 w-1.5 rounded-full", hasTitle ? "bg-emerald-500" : "bg-gray-300 dark:bg-white/20")} />
+                      <span className={cn("h-1.5 w-1.5 rounded-full", hasSub ? "bg-blue-500" : "bg-gray-300 dark:bg-white/20")} />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-medium">
+              <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{t("banners.titleLabel")}</span>
+              <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-blue-500" />{t("banners.subtitleLabel")}</span>
+              <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-gray-300 dark:bg-white/20" />{t("categories.empty")}</span>
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Position and Type */}
       <div>
         <h3 className="text-xs font-black text-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
@@ -221,6 +344,7 @@ export default function BannerForm({ initialData, onSubmit, onCancel, isLoading 
         </div>
       </div>
 
+      {/* Link Settings */}
       <div>
         <h3 className="text-xs font-black text-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
@@ -253,6 +377,7 @@ export default function BannerForm({ initialData, onSubmit, onCancel, isLoading 
         </div>
       </div>
 
+      {/* Schedule */}
       <div>
         <h3 className="text-xs font-black text-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
@@ -274,6 +399,7 @@ export default function BannerForm({ initialData, onSubmit, onCancel, isLoading 
         </div>
       </div>
 
+      {/* Media and Settings */}
       <div>
         <h3 className="text-xs font-black text-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -364,10 +490,11 @@ export default function BannerForm({ initialData, onSubmit, onCancel, isLoading 
           className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all cursor-pointer shadow-lg shadow-[#0F69B0]/25 disabled:opacity-60 disabled:cursor-not-allowed"
           style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}
         >
-          {isLoading
-            ? <><Loader2 className="h-4 w-4 animate-spin" />{t("banners.saving")}</>
-            : <><Save className="h-4 w-4" />{safe.id || safe._id ? t("banners.update") : t("banners.create")}</>
-          }
+          {isLoading ? (
+            <><Loader2 className="h-4 w-4 animate-spin" />{t("banners.saving")}</>
+          ) : (
+            <><Save className="h-4 w-4" />{safe.id || safe._id ? t("banners.update") : t("banners.create")}</>
+          )}
         </button>
       </div>
     </motion.form>

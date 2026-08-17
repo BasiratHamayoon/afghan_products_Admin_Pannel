@@ -53,6 +53,46 @@ const normalizeSection = (item) => {
   };
 };
 
+const buildPayloadFromForm = (data) => {
+  if (!data || typeof data !== "object") return data;
+
+  const langs = ["en", "fa", "ps"];
+  const payload = {};
+
+  const nameObj = {};
+  langs.forEach((l) => {
+    if (data[`name[${l}]`]?.trim()) {
+      nameObj[l] = data[`name[${l}]`].trim();
+    }
+  });
+
+  const descObj = {};
+  langs.forEach((l) => {
+    if (data[`description[${l}]`]?.trim()) {
+      descObj[l] = data[`description[${l}]`].trim();
+    }
+  });
+
+  if (Object.keys(nameObj).length > 0) {
+    payload.name = nameObj;
+  } else if (typeof data.name === "string" && data.name.trim()) {
+    payload.name = data.name.trim();
+  }
+
+  if (Object.keys(descObj).length > 0) {
+    payload.description = descObj;
+  } else if (typeof data.description === "string" && data.description.trim()) {
+    payload.description = data.description.trim();
+  }
+
+  if (data.sortOrder !== undefined) payload.sortOrder = data.sortOrder;
+  if (data.isActive !== undefined) payload.isActive = data.isActive;
+  if (data.isArchived !== undefined) payload.isArchived = data.isArchived;
+  if (data.key !== undefined) payload.key = data.key;
+
+  return payload;
+};
+
 let _listFetchInProgress = false;
 const _byKeyCache = {};
 
@@ -163,7 +203,8 @@ export const clearSectionKeyCache = (key) => {
 
 export const createSection = (data) => async (dispatch) => {
   try {
-    const res = await axiosInstance.post("/home_sections", data);
+    const payload = buildPayloadFromForm(data);
+    const res = await axiosInstance.post("/home_sections", payload);
     const raw =
       res.data?.homeSection ||
       res.data?.section ||
@@ -182,7 +223,8 @@ export const createSection = (data) => async (dispatch) => {
 
 export const editSection = (id, data) => async (dispatch) => {
   try {
-    const res = await axiosInstance.patch(`/home_sections/${id}`, data);
+    const payload = buildPayloadFromForm(data);
+    const res = await axiosInstance.patch(`/home_sections/${id}`, payload);
     const raw =
       res.data?.homeSection ||
       res.data?.section ||

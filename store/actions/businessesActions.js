@@ -21,6 +21,25 @@ const resolveMultilingual = (raw) => {
   return "";
 };
 
+const resolveDate = (val) => {
+  if (!val) return null;
+  if (typeof val === "string") return val;
+  if (typeof val === "number") return String(val);
+  if (typeof val === "object" && !Array.isArray(val)) {
+    return val.gregorian || val.display || val.hijri || null;
+  }
+  return null;
+};
+
+const resolveScalar = (val) => {
+  if (!val && val !== 0) return null;
+  if (typeof val === "string" || typeof val === "number") return val;
+  if (typeof val === "object" && !Array.isArray(val)) {
+    return val.gregorian || val.display || val.hijri || val.en || val.fa || val.ps || String(val) || null;
+  }
+  return null;
+};
+
 const normalizeBusiness = (item) => {
   if (!item) return null;
   return {
@@ -33,18 +52,20 @@ const normalizeBusiness = (item) => {
     ownerId: item.owner?._id || item.owner?.id || item.userId || null,
     businessName: resolveMultilingual(item.businessName) || "",
     tin: item.tin || "",
-    ownershipType: resolveMultilingual(item.ownershipType) || item.ownershipType || "",
+    ownershipType: resolveMultilingual(item.ownershipType) || resolveScalar(item.ownershipType) || "",
     description: resolveMultilingual(item.description) || "",
-    yearOfEstablishment: item.yearOfEstablishment || null,
+    yearOfEstablishment: resolveScalar(item.yearOfEstablishment) || null,
     verificationStatus: item.verificationStatus || "UNVERIFIED",
-    averageRating: item.averageRating || 0,
+    averageRating: resolveScalar(item.averageRating) || 0,
     isDocumentUploaded: item.isDocumentUploaded || false,
     logo: item.logo || null,
     tradeLicense: item.tradeLicense || null,
     nationalIdOrPassport: item.nationalIdOrPassport || null,
     taxCertificate: item.taxCertificate || null,
-    createdAt: item.createdAt || null,
-    updatedAt: item.updatedAt || null,
+    createdAt: resolveDate(item.createdAt),
+    updatedAt: resolveDate(item.updatedAt),
+    verifiedAt: resolveDate(item.verifiedAt),
+    rejectedAt: resolveDate(item.rejectedAt),
   };
 };
 
