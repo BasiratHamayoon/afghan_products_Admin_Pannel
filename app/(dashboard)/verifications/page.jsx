@@ -38,11 +38,14 @@ function getInitials(name) {
 export default function VerificationsPage() {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language || "en";
+
   const { pendingSellers, verifiedSellers, businesses, isLoading } = useSelector(
     (state) => state.businesses
   );
 
+  const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -52,6 +55,18 @@ export default function VerificationsPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const debounceRef = useRef(null);
   const hasFetched = useRef(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const getBusinessName = useCallback((biz) => {
+    const multi = biz?.businessNameMultilingual;
+    if (multi && typeof multi === "object") {
+      return multi[lang] || multi.en || multi.fa || multi.ps || biz?.businessName || "—";
+    }
+    return biz?.businessName || "—";
+  }, [lang]);
 
   const TABS = [
     { id: "all", label: t("verifications.allBusinesses"), icon: Building },
@@ -145,18 +160,21 @@ export default function VerificationsPage() {
     if (activeTab === "all") data = Array.isArray(businesses) ? businesses : [];
     else if (activeTab === "pending") data = Array.isArray(pendingSellers) ? pendingSellers : [];
     else if (activeTab === "verified") data = Array.isArray(verifiedSellers) ? verifiedSellers : [];
+
     if (debouncedSearch.trim()) {
       const q = debouncedSearch.toLowerCase();
-      data = data.filter(
-        (b) =>
-          b.businessName?.toLowerCase().includes(q) ||
+      data = data.filter((b) => {
+        const name = getBusinessName(b).toLowerCase();
+        return (
+          name.includes(q) ||
           b.ownerName?.toLowerCase().includes(q) ||
           b.ownerEmail?.toLowerCase().includes(q) ||
           b.ownershipType?.toLowerCase().includes(q)
-      );
+        );
+      });
     }
     return data;
-  }, [activeTab, businesses, pendingSellers, verifiedSellers, debouncedSearch]);
+  }, [activeTab, businesses, pendingSellers, verifiedSellers, debouncedSearch, getBusinessName]);
 
   const displayData = getDisplayData();
   const total = displayData.length;
@@ -170,6 +188,21 @@ export default function VerificationsPage() {
     pending: Array.isArray(pendingSellers) ? pendingSellers.length : 0,
     verified: Array.isArray(verifiedSellers) ? verifiedSellers.length : 0,
   };
+
+  if (!mounted) {
+    return (
+      <div className="space-y-5">
+        <Breadcrumb />
+        <div className="h-10 w-48 rounded-xl bg-gray-100 dark:bg-white/[0.06] animate-pulse" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-28 rounded-2xl bg-gray-100 dark:bg-white/[0.06] animate-pulse" />
+          ))}
+        </div>
+        <div className="h-64 rounded-2xl bg-gray-100 dark:bg-white/[0.06] animate-pulse" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -274,6 +307,7 @@ export default function VerificationsPage() {
                       const vsc = vStatusConfig[vs] || vStatusConfig.UNVERIFIED;
                       const logoUrl = biz.logo ? getFileUrl(biz.logo) : null;
                       const docCount = [biz.tradeLicense, biz.nationalIdOrPassport, biz.taxCertificate].filter(Boolean).length;
+                      const displayName = getBusinessName(biz);
 
                       return (
                         <motion.tr
@@ -287,13 +321,13 @@ export default function VerificationsPage() {
                             <div className="flex items-center gap-3 min-w-0">
                               <div className="h-10 w-10 rounded-full flex items-center justify-center shrink-0 shadow-[0_2px_8px_rgba(15,105,176,0.15)] overflow-hidden" style={{ background: "linear-gradient(135deg, #0F69B0 0%, #0c5a9e 100%)" }}>
                                 {logoUrl ? (
-                                  <img src={logoUrl} alt={biz.businessName} className="w-full h-full object-cover" />
+                                  <img src={logoUrl} alt={displayName} className="w-full h-full object-cover" />
                                 ) : (
-                                  <span className="text-xs font-black text-white">{getInitials(biz.businessName)}</span>
+                                  <span className="text-xs font-black text-white">{getInitials(displayName)}</span>
                                 )}
                               </div>
                               <div className="min-w-0">
-                                <p className="text-xs font-bold text-foreground truncate max-w-[160px]">{biz.businessName || "—"}</p>
+                                <p className="text-xs font-bold text-foreground truncate max-w-[160px]">{displayName}</p>
                                 <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
                                   {t("verifications.est")} {biz.yearOfEstablishment || "—"}
                                 </p>
@@ -366,7 +400,11 @@ export default function VerificationsPage() {
         onClose={() => setVerifyDialog({ open: false, business: null, action: null })}
         onConfirm={handleVerifyConfirm}
         title={verifyDialog.action === "approve" ? t("verifications.approveVerification") : t("verifications.rejectVerification")}
-        description={verifyDialog.business ? `${verifyDialog.action === "approve" ? t("verifications.approveDesc") : t("verifications.rejectDesc")} "${verifyDialog.business.businessName}"?` : t("verifications.areYouSure")}
+        description={
+          verifyDialog.business
+            ? `${verifyDialog.action === "approve" ? t("verifications.approveDesc") : t("verifications.rejectDesc")} "${getBusinessName(verifyDialog.business)}"?`
+            : t("verifications.areYouSure")
+        }
         confirmLabel={verifyDialog.action === "approve" ? t("verifications.approve") : t("verifications.reject")}
         isLoading={isProcessing}
         variant={verifyDialog.action === "approve" ? "primary" : "danger"}
@@ -377,7 +415,11 @@ export default function VerificationsPage() {
         onClose={() => setDeleteDialog({ open: false, business: null })}
         onConfirm={handleDeleteConfirm}
         title={t("verifications.deleteBusiness")}
-        description={deleteDialog.business ? `${t("verifications.deleteBusinessDesc")} "${deleteDialog.business.businessName}"${t("verifications.deleteBusinessSuffix")}` : t("verifications.areYouSure")}
+        description={
+          deleteDialog.business
+            ? `${t("verifications.deleteBusinessDesc")} "${getBusinessName(deleteDialog.business)}"${t("verifications.deleteBusinessSuffix")}`
+            : t("verifications.areYouSure")
+        }
         confirmLabel={t("verifications.delete")}
         isLoading={isProcessing}
         variant="danger"

@@ -128,7 +128,10 @@
     "pendingOrders": "تمه لرونکي امرونه",
     "pendingTradeLeads": "تمه لرونکي د سوداګرۍ لیدونه",
     "pendingProducts": "تمه لرونکي محصولات",
-    "pendingSellerBusiness": "تمه لرونکي پلورونکی/سوداګري"
+    "pendingSellerBusiness": "تمه لرونکي پلورونکی/سوداګري",
+    "others": "نور", 
+    "showingTop": "غوره", 
+    "of": "له"
   },
   "stats": {
     "totalUsers": "ټول کارونکي",

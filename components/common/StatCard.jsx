@@ -29,14 +29,34 @@ export default function StatsCard({ title, value, change, changeType, icon: Icon
           {Icon && <Icon className="h-5 w-5" style={{ color: "#0F69B0" }} />}
         </div>
         {change && (
-          <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${isPositive ? "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400" : "bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400"}`}>
-            {isPositive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+          <div
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+              isPositive
+                ? "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400"
+                : "bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400"
+            }`}
+          >
+            {isPositive ? (
+              <ArrowUpRight className="h-3 w-3" />
+            ) : (
+              <ArrowDownRight className="h-3 w-3" />
+            )}
             {change}
           </div>
         )}
       </div>
-      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">{title}</p>
-      <p className="text-2xl font-black text-foreground tracking-tight">{value}</p>
+      <p
+        suppressHydrationWarning
+        className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1"
+      >
+        {title}
+      </p>
+      <p
+        suppressHydrationWarning
+        className="text-2xl font-black text-foreground tracking-tight"
+      >
+        {value}
+      </p>
     </motion.div>
   );
 }

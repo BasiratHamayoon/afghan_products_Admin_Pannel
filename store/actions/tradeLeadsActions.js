@@ -17,34 +17,51 @@ import {
 } from "@/store/slices/tradeLeadsSlice";
 
 const BASE = "/trade_lead";
-
 const BACKEND_HAS_SEPARATE_APPROVE_REJECT = false;
 
-const resolveMultilingual = (raw) => {
-  if (!raw) return "";
-  if (typeof raw === "string") return raw;
-  if (typeof raw === "object" && !Array.isArray(raw)) {
-    return raw.en || raw.fa || raw.ps || "";
+const buildMultilingual = (raw) => {
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    return {
+      en: typeof raw.en === "string" ? raw.en.trim() : "",
+      fa: typeof raw.fa === "string" ? raw.fa.trim() : "",
+      ps: typeof raw.ps === "string" ? raw.ps.trim() : "",
+    };
   }
-  return "";
+  if (typeof raw === "string" && raw.trim()) {
+    return { en: raw.trim(), fa: "", ps: "" };
+  }
+  return { en: "", fa: "", ps: "" };
 };
+
+const getFlatValue = (multiObj) =>
+  multiObj?.en || multiObj?.fa || multiObj?.ps || "";
 
 const normalizeLead = (item) => {
   if (!item) return null;
+
+  const productNameMultilingual = buildMultilingual(item.product?.name || item.productName);
+  const categoryNameMultilingual = buildMultilingual(item.category?.name || item.categoryName);
+  const locationMultilingual = buildMultilingual(item.location);
+  const detailDescriptionMultilingual = buildMultilingual(item.detailDescription || item.description);
+
   return {
     id: item._id || item.id,
     productId: item.product?._id || item.product?.id || item.product,
-    productName: resolveMultilingual(item.product?.name) || resolveMultilingual(item.productName) || "",
+    productNameMultilingual,
+    productName: getFlatValue(productNameMultilingual),
     productSlug: item.product?.slug || "",
     categoryId: item.category?._id || item.category?.id || item.category,
-    categoryName: resolveMultilingual(item.category?.name) || resolveMultilingual(item.categoryName) || "",
+    categoryNameMultilingual,
+    categoryName: getFlatValue(categoryNameMultilingual),
     quantity: item.quantity || 0,
     unit: item.unit || "",
     minBudget: item.budgetRange?.min ?? item.minBudget ?? 0,
     maxBudget: item.budgetRange?.max ?? item.maxBudget ?? 0,
-    location: resolveMultilingual(item.location) || "",
+    locationMultilingual,
+    location: getFlatValue(locationMultilingual),
     urgency: item.urgency || "LOW",
-    detailDescription: resolveMultilingual(item.detailDescription) || resolveMultilingual(item.description) || "",
+    detailDescriptionMultilingual,
+    detailDescription: getFlatValue(detailDescriptionMultilingual),
     attachment: item.attachment || null,
     status: item.status || "PENDING",
     createdByName:
@@ -79,11 +96,14 @@ const normalizeUnlockRequest = (item) => {
       ? {
           id: item.tradeLead._id || item.tradeLead.id || "",
           product: item.tradeLead.product || null,
-          category: resolveMultilingual(item.tradeLead.category?.name) || resolveMultilingual(item.tradeLead.category) || null,
+          categoryNameMultilingual: buildMultilingual(item.tradeLead.category?.name || item.tradeLead.category),
+          category: getFlatValue(buildMultilingual(item.tradeLead.category?.name || item.tradeLead.category)),
           categoryId: item.tradeLead.category?._id || null,
-          location: resolveMultilingual(item.tradeLead.location) || null,
+          locationMultilingual: buildMultilingual(item.tradeLead.location),
+          location: getFlatValue(buildMultilingual(item.tradeLead.location)),
           urgency: item.tradeLead.urgency || null,
-          detailDescription: resolveMultilingual(item.tradeLead.detailDescription) || null,
+          detailDescriptionMultilingual: buildMultilingual(item.tradeLead.detailDescription),
+          detailDescription: getFlatValue(buildMultilingual(item.tradeLead.detailDescription)),
           status: item.tradeLead.status || null,
           postedBy: item.tradeLead.postedBy
             ? {
@@ -126,9 +146,7 @@ export const fetchTradeLeads = (params = {}) => async (dispatch) => {
     );
     return { success: true };
   } catch (err) {
-    dispatch(
-      setError(err.response?.data?.message || err.message || "Failed to fetch trade leads")
-    );
+    dispatch(setError(err.response?.data?.message || err.message || "Failed to fetch trade leads"));
     return { success: false };
   } finally {
     dispatch(setLoading(false));
@@ -144,9 +162,7 @@ export const fetchTradeLeadById = (id) => async (dispatch) => {
     dispatch(setSelectedLead(normalized));
     return { success: true, data: normalized };
   } catch (err) {
-    dispatch(
-      setError(err.response?.data?.message || err.message || "Failed to fetch trade lead")
-    );
+    dispatch(setError(err.response?.data?.message || err.message || "Failed to fetch trade lead"));
     return { success: false, message: err.response?.data?.message || err.message };
   } finally {
     dispatch(setDetailLoading(false));
@@ -163,10 +179,7 @@ export const createTradeLead = (formData) => async (dispatch) => {
     if (created) dispatch(addTradeLead(created));
     return { success: true, data: created };
   } catch (err) {
-    return {
-      success: false,
-      message: err.response?.data?.message || err.message || "Failed to create",
-    };
+    return { success: false, message: err.response?.data?.message || err.message || "Failed to create" };
   }
 };
 
@@ -183,10 +196,7 @@ export const editTradeLead = (id, formData) => async (dispatch) => {
     }
     return { success: true, data: updated };
   } catch (err) {
-    return {
-      success: false,
-      message: err.response?.data?.message || err.message || "Failed to update",
-    };
+    return { success: false, message: err.response?.data?.message || err.message || "Failed to update" };
   }
 };
 
@@ -202,10 +212,7 @@ export const updateTradeLeadStatus = (id, status) => async (dispatch) => {
     }
     return { success: true };
   } catch (err) {
-    return {
-      success: false,
-      message: err.response?.data?.message || err.message || "Failed to update status",
-    };
+    return { success: false, message: err.response?.data?.message || err.message || "Failed to update status" };
   }
 };
 
@@ -215,10 +222,7 @@ export const removeTradeLead = (id) => async (dispatch) => {
     dispatch(removeTradeLeadFromList(id));
     return { success: true };
   } catch (err) {
-    return {
-      success: false,
-      message: err.response?.data?.message || err.message || "Failed to delete",
-    };
+    return { success: false, message: err.response?.data?.message || err.message || "Failed to delete" };
   }
 };
 
@@ -227,10 +231,7 @@ export const requestUnlockTradeLead = (id) => async () => {
     const res = await axiosInstance.post(`${BASE}/${id}/unlock`);
     return { success: true, data: res.data };
   } catch (err) {
-    return {
-      success: false,
-      message: err.response?.data?.message || err.message || "Failed to request unlock",
-    };
+    return { success: false, message: err.response?.data?.message || err.message || "Failed to request unlock" };
   }
 };
 
@@ -243,9 +244,7 @@ export const fetchUnlockRequests = (params = {}) => async (dispatch) => {
     query.set("limit", String(limit));
     if (status && status !== "all") query.set("status", status);
 
-    const res = await axiosInstance.get(
-      `${BASE}/unlock-requests?${query.toString()}`
-    );
+    const res = await axiosInstance.get(`${BASE}/unlock-requests?${query.toString()}`);
     const data = res.data;
     const raw = data.unlockRequests || data.requests || data.data || [];
     const normalized = Array.isArray(raw)
@@ -263,10 +262,7 @@ export const fetchUnlockRequests = (params = {}) => async (dispatch) => {
     );
     return { success: true };
   } catch (err) {
-    return {
-      success: false,
-      message: err.response?.data?.message || err.message || "Failed to fetch requests",
-    };
+    return { success: false, message: err.response?.data?.message || err.message || "Failed to fetch requests" };
   } finally {
     dispatch(setUnlockRequestsLoading(false));
   }
@@ -274,10 +270,7 @@ export const fetchUnlockRequests = (params = {}) => async (dispatch) => {
 
 export const respondToUnlockRequest = (requestId, status) => async (dispatch) => {
   try {
-    const res = await axiosInstance.patch(
-      `${BASE}/unlock-request/${requestId}`,
-      { status }
-    );
+    const res = await axiosInstance.patch(`${BASE}/unlock-request/${requestId}`, { status });
     const raw = res.data?.unlockRequest || res.data?.request || res.data?.data;
     if (raw && typeof raw === "object") {
       dispatch(updateUnlockRequestInList(normalizeUnlockRequest(raw)));
@@ -286,19 +279,14 @@ export const respondToUnlockRequest = (requestId, status) => async (dispatch) =>
     }
     return { success: true };
   } catch (err) {
-    return {
-      success: false,
-      message: err.response?.data?.message || err.message || "Failed to respond",
-    };
+    return { success: false, message: err.response?.data?.message || err.message || "Failed to respond" };
   }
 };
 
 export const approveUnlockRequest = (requestId) => async (dispatch) => {
   if (BACKEND_HAS_SEPARATE_APPROVE_REJECT) {
     try {
-      const res = await axiosInstance.patch(
-        `${BASE}/unlock-request/${requestId}/approve`
-      );
+      const res = await axiosInstance.patch(`${BASE}/unlock-request/${requestId}/approve`);
       const raw = res.data?.unlockRequest || res.data?.request || res.data?.data;
       if (raw && typeof raw === "object") {
         dispatch(updateUnlockRequestInList(normalizeUnlockRequest(raw)));
@@ -307,10 +295,7 @@ export const approveUnlockRequest = (requestId) => async (dispatch) => {
       }
       return { success: true };
     } catch (err) {
-      return {
-        success: false,
-        message: err.response?.data?.message || err.message || "Failed to approve",
-      };
+      return { success: false, message: err.response?.data?.message || err.message || "Failed to approve" };
     }
   }
   return dispatch(respondToUnlockRequest(requestId, "APPROVED"));
@@ -319,9 +304,7 @@ export const approveUnlockRequest = (requestId) => async (dispatch) => {
 export const rejectUnlockRequest = (requestId) => async (dispatch) => {
   if (BACKEND_HAS_SEPARATE_APPROVE_REJECT) {
     try {
-      const res = await axiosInstance.patch(
-        `${BASE}/unlock-request/${requestId}/reject`
-      );
+      const res = await axiosInstance.patch(`${BASE}/unlock-request/${requestId}/reject`);
       const raw = res.data?.unlockRequest || res.data?.request || res.data?.data;
       if (raw && typeof raw === "object") {
         dispatch(updateUnlockRequestInList(normalizeUnlockRequest(raw)));
@@ -330,10 +313,7 @@ export const rejectUnlockRequest = (requestId) => async (dispatch) => {
       }
       return { success: true };
     } catch (err) {
-      return {
-        success: false,
-        message: err.response?.data?.message || err.message || "Failed to reject",
-      };
+      return { success: false, message: err.response?.data?.message || err.message || "Failed to reject" };
     }
   }
   return dispatch(respondToUnlockRequest(requestId, "REJECTED"));

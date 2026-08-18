@@ -128,7 +128,10 @@
     "pendingOrders": "Pending Orders",
     "pendingTradeLeads": "Pending Trade Leads",
     "pendingProducts": "Pending Products",
-    "pendingSellerBusiness": "Pending Seller/Business"
+    "pendingSellerBusiness": "Pending Seller/Business",
+    "others": "Others",
+    "showingTop": "Showing top",
+    "of": "of"
   },
   "stats": {
     "totalUsers": "Total Users",

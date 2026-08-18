@@ -34,6 +34,7 @@ export default function UnlockRequestsPage() {
     (state) => state.tradeLeads
   );
 
+  const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [confirmDialog, setConfirmDialog] = useState({
@@ -45,6 +46,10 @@ export default function UnlockRequestsPage() {
   const [actionLoading, setActionLoading] = useState(false);
 
   const hasFetched = useRef(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const statusConfig = {
     PENDING: {
@@ -93,22 +98,16 @@ export default function UnlockRequestsPage() {
     triggerFetch(1, "all");
   }, [triggerFetch]);
 
-  const handleTabChange = useCallback(
-    (tab) => {
-      setActiveTab(tab);
-      setCurrentPage(1);
-      triggerFetch(1, tab);
-    },
-    [triggerFetch]
-  );
+  const handleTabChange = useCallback((tab) => {
+    setActiveTab(tab);
+    setCurrentPage(1);
+    triggerFetch(1, tab);
+  }, [triggerFetch]);
 
-  const handlePageChange = useCallback(
-    (page) => {
-      setCurrentPage(page);
-      triggerFetch(page, activeTab);
-    },
-    [activeTab, triggerFetch]
-  );
+  const handlePageChange = useCallback((page) => {
+    setCurrentPage(page);
+    triggerFetch(page, activeTab);
+  }, [activeTab, triggerFetch]);
 
   const handleRefresh = useCallback(() => {
     triggerFetch(currentPage, activeTab);
@@ -160,6 +159,21 @@ export default function UnlockRequestsPage() {
     REJECTED: safeRequests.filter((r) => r.status === "REJECTED").length,
   };
 
+  if (!mounted) {
+    return (
+      <div className="space-y-5">
+        <Breadcrumb />
+        <div className="h-10 w-48 rounded-xl bg-gray-100 dark:bg-white/[0.06] animate-pulse" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-28 rounded-2xl bg-gray-100 dark:bg-white/[0.06] animate-pulse" />
+          ))}
+        </div>
+        <div className="h-64 rounded-2xl bg-gray-100 dark:bg-white/[0.06] animate-pulse" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <Breadcrumb />
@@ -169,34 +183,10 @@ export default function UnlockRequestsPage() {
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatsCard
-          title={t("tradeLeads.totalRequests")}
-          value={total}
-          icon={Unlock}
-          color="rgba(15,105,176,0.08)"
-          index={0}
-        />
-        <StatsCard
-          title={t("tradeLeads.pending")}
-          value={tabCounts.PENDING}
-          icon={Clock}
-          color="rgba(245,158,11,0.08)"
-          index={1}
-        />
-        <StatsCard
-          title={t("tradeLeads.approved")}
-          value={tabCounts.APPROVED}
-          icon={CheckCircle}
-          color="rgba(16,185,129,0.08)"
-          index={2}
-        />
-        <StatsCard
-          title={t("tradeLeads.rejected")}
-          value={tabCounts.REJECTED}
-          icon={XCircle}
-          color="rgba(239,68,68,0.08)"
-          index={3}
-        />
+        <StatsCard title={t("tradeLeads.totalRequests")} value={total} icon={Unlock} color="rgba(15,105,176,0.08)" index={0} />
+        <StatsCard title={t("tradeLeads.pending")} value={tabCounts.PENDING} icon={Clock} color="rgba(245,158,11,0.08)" index={1} />
+        <StatsCard title={t("tradeLeads.approved")} value={tabCounts.APPROVED} icon={CheckCircle} color="rgba(16,185,129,0.08)" index={2} />
+        <StatsCard title={t("tradeLeads.rejected")} value={tabCounts.REJECTED} icon={XCircle} color="rgba(239,68,68,0.08)" index={3} />
       </div>
 
       <div className="rounded-2xl bg-white dark:bg-[#0f1420] border border-gray-100 dark:border-white/[0.06] shadow-[0_2px_12px_rgba(15,105,176,0.06)] overflow-hidden">
@@ -213,14 +203,7 @@ export default function UnlockRequestsPage() {
               )}
             >
               {tab.label}
-              <span
-                className={cn(
-                  "px-1.5 py-0.5 rounded-full text-[10px] font-black",
-                  activeTab === tab.id
-                    ? "bg-[#0F69B0] text-white"
-                    : "bg-gray-100 dark:bg-white/[0.08] text-muted-foreground"
-                )}
-              >
+              <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-black", activeTab === tab.id ? "bg-[#0F69B0] text-white" : "bg-gray-100 dark:bg-white/[0.08] text-muted-foreground")}>
                 {tabCounts[tab.id] ?? 0}
               </span>
             </button>
@@ -237,21 +220,14 @@ export default function UnlockRequestsPage() {
               {t("tradeLeads.refresh")}
             </button>
             <p className="text-[11px] text-muted-foreground font-medium">
-              {total}{" "}
-              {total !== 1
-                ? t("tradeLeads.requestsPlural")
-                : t("tradeLeads.requests")}
+              {total} {total !== 1 ? t("tradeLeads.requestsPlural") : t("tradeLeads.requests")}
             </p>
           </div>
         </div>
 
         <div className="p-4">
           {unlockRequestsLoading ? (
-            <LoadingSpinner
-              size="lg"
-              text={t("tradeLeads.loadingUnlockRequests")}
-              className="py-16"
-            />
+            <LoadingSpinner size="lg" text={t("tradeLeads.loadingUnlockRequests")} className="py-16" />
           ) : safeRequests.length === 0 ? (
             <EmptyState
               icon={Unlock}
@@ -270,10 +246,7 @@ export default function UnlockRequestsPage() {
                         t("tradeLeads.requestedAt"),
                         t("tradeLeads.actions"),
                       ].map((h) => (
-                        <th
-                          key={h}
-                          className="text-start py-3.5 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 whitespace-nowrap"
-                        >
+                        <th key={h} className="text-start py-3.5 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 whitespace-nowrap">
                           {h}
                         </th>
                       ))}
@@ -295,7 +268,6 @@ export default function UnlockRequestsPage() {
                           transition={{ delay: i * 0.03 }}
                           className="border-b border-gray-50 dark:border-white/[0.03] last:border-0 hover:bg-gray-50/50 dark:hover:bg-white/[0.015] transition-colors"
                         >
-                          {/* Row Number + ID */}
                           <td className="py-4 px-4">
                             <div className="flex flex-col gap-0.5">
                               <span className="text-xs font-bold text-foreground">
@@ -307,21 +279,13 @@ export default function UnlockRequestsPage() {
                             </div>
                           </td>
 
-                          {/* Status */}
                           <td className="py-4 px-4">
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg whitespace-nowrap",
-                                sc.bg,
-                                sc.text
-                              )}
-                            >
+                            <span className={cn("inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg whitespace-nowrap", sc.bg, sc.text)}>
                               <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", sc.dot)} />
                               {sc.label}
                             </span>
                           </td>
 
-                          {/* Date */}
                           <td className="py-4 px-4">
                             <div className="flex flex-col gap-0.5">
                               <span className="text-xs font-medium text-foreground whitespace-nowrap">
@@ -335,31 +299,18 @@ export default function UnlockRequestsPage() {
                             </div>
                           </td>
 
-                          {/* Actions */}
                           <td className="py-4 px-4">
                             {isPending ? (
                               <div className="flex items-center gap-2">
                                 <button
-                                  onClick={() =>
-                                    openConfirm(
-                                      "approve",
-                                      req.id,
-                                      `#${req.id.slice(-6).toUpperCase()}`
-                                    )
-                                  }
+                                  onClick={() => openConfirm("approve", req.id, `#${req.id.slice(-6).toUpperCase()}`)}
                                   className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-bold text-emerald-600 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors cursor-pointer border border-emerald-200 dark:border-emerald-800/40 whitespace-nowrap"
                                 >
                                   <CheckCircle className="h-3 w-3" />
                                   {t("tradeLeads.approve")}
                                 </button>
                                 <button
-                                  onClick={() =>
-                                    openConfirm(
-                                      "reject",
-                                      req.id,
-                                      `#${req.id.slice(-6).toUpperCase()}`
-                                    )
-                                  }
+                                  onClick={() => openConfirm("reject", req.id, `#${req.id.slice(-6).toUpperCase()}`)}
                                   className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-bold text-red-500 bg-red-500/10 hover:bg-red-500/20 transition-colors cursor-pointer border border-red-200 dark:border-red-800/40 whitespace-nowrap"
                                 >
                                   <XCircle className="h-3 w-3" />
@@ -386,14 +337,7 @@ export default function UnlockRequestsPage() {
               </div>
 
               <div className="mt-5 border-t border-gray-50 dark:border-white/[0.04] pt-4">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                  from={from}
-                  to={to}
-                  total={total}
-                />
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} from={from} to={to} total={total} />
               </div>
             </>
           )}
@@ -404,21 +348,13 @@ export default function UnlockRequestsPage() {
         open={confirmDialog.open}
         onClose={closeConfirm}
         onConfirm={handleConfirmAction}
-        title={
-          confirmDialog.type === "approve"
-            ? t("tradeLeads.approveTitle")
-            : t("tradeLeads.rejectTitle")
-        }
+        title={confirmDialog.type === "approve" ? t("tradeLeads.approveTitle") : t("tradeLeads.rejectTitle")}
         description={
           confirmDialog.type === "approve"
             ? `${t("tradeLeads.approveDesc")} "${confirmDialog.label}"?`
             : `${t("tradeLeads.rejectDesc")} "${confirmDialog.label}"?`
         }
-        confirmLabel={
-          confirmDialog.type === "approve"
-            ? t("tradeLeads.approve")
-            : t("tradeLeads.reject")
-        }
+        confirmLabel={confirmDialog.type === "approve" ? t("tradeLeads.approve") : t("tradeLeads.reject")}
         isLoading={actionLoading}
         variant={confirmDialog.type === "approve" ? "primary" : "danger"}
       />

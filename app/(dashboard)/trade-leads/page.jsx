@@ -26,9 +26,11 @@ const PAGE_LIMIT = 10;
 export default function TradeLeadsPage() {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language || "en";
   const { tradeLeads, isLoading, pagination } = useSelector((state) => state.tradeLeads);
 
+  const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [urgencyFilter, setUrgencyFilter] = useState("all");
@@ -40,6 +42,18 @@ export default function TradeLeadsPage() {
 
   const searchDebounceRef = useRef(null);
   const hasFetched = useRef(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const getLeadDisplayName = useCallback((lead) => {
+    const multi = lead?.productNameMultilingual;
+    if (multi && typeof multi === "object") {
+      return multi[lang] || multi.en || multi.fa || multi.ps || lead?.productName || "—";
+    }
+    return lead?.productName || "—";
+  }, [lang]);
 
   const TABS = [
     { id: "all", label: t("tradeLeads.allLeads") },
@@ -169,6 +183,21 @@ export default function TradeLeadsPage() {
     MEDIUM: safeLeads.filter((l) => l.urgency === "MEDIUM").length,
     HIGH: safeLeads.filter((l) => l.urgency === "HIGH").length,
   };
+
+  if (!mounted) {
+    return (
+      <div className="space-y-5">
+        <Breadcrumb />
+        <div className="h-10 w-48 rounded-xl bg-gray-100 dark:bg-white/[0.06] animate-pulse" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-28 rounded-2xl bg-gray-100 dark:bg-white/[0.06] animate-pulse" />
+          ))}
+        </div>
+        <div className="h-64 rounded-2xl bg-gray-100 dark:bg-white/[0.06] animate-pulse" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">

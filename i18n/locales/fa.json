@@ -128,7 +128,10 @@
     "pendingOrders": "سفارشات در انتظار",
     "pendingTradeLeads": "سرنخ‌های تجاری در انتظار",
     "pendingProducts": "محصولات در انتظار",
-    "pendingSellerBusiness": "فروشنده/کسب‌وکار در انتظار"
+    "pendingSellerBusiness": "فروشنده/کسب‌وکار در انتظار",
+    "others": "سایر", 
+    "showingTop": "نمایش", 
+    "of": "از"
   },
   "stats": {
     "totalUsers": "کل کاربران",

@@ -12,15 +12,6 @@ import {
   setError,
 } from "@/store/slices/businessesSlice";
 
-const resolveMultilingual = (raw) => {
-  if (!raw) return "";
-  if (typeof raw === "string") return raw;
-  if (typeof raw === "object" && !Array.isArray(raw)) {
-    return raw.en || raw.fa || raw.ps || "";
-  }
-  return "";
-};
-
 const resolveDate = (val) => {
   if (!val) return null;
   if (typeof val === "string") return val;
@@ -31,17 +22,67 @@ const resolveDate = (val) => {
   return null;
 };
 
-const resolveScalar = (val) => {
-  if (!val && val !== 0) return null;
-  if (typeof val === "string" || typeof val === "number") return val;
-  if (typeof val === "object" && !Array.isArray(val)) {
-    return val.gregorian || val.display || val.hijri || val.en || val.fa || val.ps || String(val) || null;
-  }
-  return null;
-};
-
 const normalizeBusiness = (item) => {
   if (!item) return null;
+
+  const rawBusinessName = item.businessName;
+  const rawDescription = item.description;
+  const rawOwnershipType = item.ownershipType;
+
+  const businessNameMultilingual =
+    rawBusinessName &&
+    typeof rawBusinessName === "object" &&
+    !Array.isArray(rawBusinessName)
+      ? {
+          en: rawBusinessName.en || "",
+          fa: rawBusinessName.fa || "",
+          ps: rawBusinessName.ps || "",
+        }
+      : {
+          en: typeof rawBusinessName === "string" ? rawBusinessName : "",
+          fa: "",
+          ps: "",
+        };
+
+  const descriptionMultilingual =
+    rawDescription &&
+    typeof rawDescription === "object" &&
+    !Array.isArray(rawDescription)
+      ? {
+          en: rawDescription.en || "",
+          fa: rawDescription.fa || "",
+          ps: rawDescription.ps || "",
+        }
+      : {
+          en: typeof rawDescription === "string" ? rawDescription : "",
+          fa: "",
+          ps: "",
+        };
+
+  const flatBusinessName =
+    businessNameMultilingual.en ||
+    businessNameMultilingual.fa ||
+    businessNameMultilingual.ps ||
+    "";
+
+  const flatOwnershipType =
+    typeof rawOwnershipType === "string"
+      ? rawOwnershipType
+      : rawOwnershipType?.en ||
+        rawOwnershipType?.fa ||
+        rawOwnershipType?.ps ||
+        "";
+
+  const yearRaw = item.yearOfEstablishment;
+  let yearDisplay = null;
+  if (yearRaw) {
+    if (typeof yearRaw === "number") yearDisplay = yearRaw;
+    else if (typeof yearRaw === "string") yearDisplay = yearRaw;
+    else if (typeof yearRaw === "object" && !Array.isArray(yearRaw)) {
+      yearDisplay = yearRaw.gregorian || yearRaw.hijri || null;
+    }
+  }
+
   return {
     ...item,
     id: item._id || item.id,
@@ -50,13 +91,20 @@ const normalizeBusiness = (item) => {
       : item.ownerName || item.userName || "Unknown",
     ownerEmail: item.owner?.email || item.ownerEmail || item.userEmail || "",
     ownerId: item.owner?._id || item.owner?.id || item.userId || null,
-    businessName: resolveMultilingual(item.businessName) || "",
+    businessNameMultilingual,
+    descriptionMultilingual,
+    businessName: flatBusinessName,
+    description:
+      descriptionMultilingual.en ||
+      descriptionMultilingual.fa ||
+      descriptionMultilingual.ps ||
+      "",
     tin: item.tin || "",
-    ownershipType: resolveMultilingual(item.ownershipType) || resolveScalar(item.ownershipType) || "",
-    description: resolveMultilingual(item.description) || "",
-    yearOfEstablishment: resolveScalar(item.yearOfEstablishment) || null,
+    ownershipType: flatOwnershipType,
+    yearOfEstablishment: yearDisplay,
     verificationStatus: item.verificationStatus || "UNVERIFIED",
-    averageRating: resolveScalar(item.averageRating) || 0,
+    averageRating:
+      typeof item.averageRating === "number" ? item.averageRating : 0,
     isDocumentUploaded: item.isDocumentUploaded || false,
     logo: item.logo || null,
     tradeLicense: item.tradeLicense || null,
@@ -90,13 +138,23 @@ export const fetchBusinesses = (params = {}) => async (dispatch) => {
       setPaginationMeta({
         page: data.pagination?.page || data.page || data.currentPage || page,
         limit: data.pagination?.limit || data.limit || limit,
-        total: data.pagination?.total || data.total || data.totalCount || normalized.length,
+        total:
+          data.pagination?.total ||
+          data.total ||
+          data.totalCount ||
+          normalized.length,
         totalPages: data.pagination?.totalPages || data.totalPages || 1,
       })
     );
     return { success: true };
   } catch (err) {
-    dispatch(setError(err.response?.data?.message || err.message || "Failed to fetch businesses"));
+    dispatch(
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to fetch businesses"
+      )
+    );
     return { success: false };
   } finally {
     dispatch(setLoading(false));
@@ -115,7 +173,13 @@ export const fetchPendingSellers = () => async (dispatch) => {
     dispatch(setPendingSellers(normalized));
     return { success: true };
   } catch (err) {
-    dispatch(setError(err.response?.data?.message || err.message || "Failed to fetch pending sellers"));
+    dispatch(
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to fetch pending sellers"
+      )
+    );
     return { success: false };
   } finally {
     dispatch(setLoading(false));
@@ -134,7 +198,13 @@ export const fetchVerifiedSellers = () => async (dispatch) => {
     dispatch(setVerifiedSellers(normalized));
     return { success: true };
   } catch (err) {
-    dispatch(setError(err.response?.data?.message || err.message || "Failed to fetch verified sellers"));
+    dispatch(
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to fetch verified sellers"
+      )
+    );
     return { success: false };
   } finally {
     dispatch(setLoading(false));
@@ -150,8 +220,17 @@ export const fetchBusinessById = (id) => async (dispatch) => {
     dispatch(setSelectedBusiness(normalized));
     return { success: true, data: normalized };
   } catch (err) {
-    dispatch(setError(err.response?.data?.message || err.message || "Failed to fetch business"));
-    return { success: false, message: err.response?.data?.message || err.message };
+    dispatch(
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to fetch business"
+      )
+    );
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message,
+    };
   } finally {
     dispatch(setDetailLoading(false));
   }
@@ -168,7 +247,10 @@ export const createBusiness = (data) => async (dispatch) => {
   } catch (err) {
     return {
       success: false,
-      message: err.response?.data?.message || err.message || "Failed to create business",
+      message:
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to create business",
     };
   }
 };
@@ -193,7 +275,10 @@ export const updateVerificationStatus = (id, action) => async (dispatch) => {
   } catch (err) {
     return {
       success: false,
-      message: err.response?.data?.message || err.message || "Failed to update verification status",
+      message:
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to update verification status",
     };
   }
 };
@@ -206,7 +291,10 @@ export const deleteBusinessAction = (id) => async (dispatch) => {
   } catch (err) {
     return {
       success: false,
-      message: err.response?.data?.message || err.message || "Failed to delete business",
+      message:
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to delete business",
     };
   }
 };

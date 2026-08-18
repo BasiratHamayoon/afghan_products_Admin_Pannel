@@ -14,23 +14,52 @@ import {
   setError,
 } from "@/store/slices/productsSlice";
 
-const resolveMultilingual = (raw) => {
-  if (!raw) return "";
-  if (typeof raw === "string") return raw;
-  if (typeof raw === "object" && !Array.isArray(raw)) {
-    return raw.en || raw.fa || raw.ps || "";
+const buildMultilingual = (raw) => {
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    return {
+      en: typeof raw.en === "string" ? raw.en.trim() : "",
+      fa: typeof raw.fa === "string" ? raw.fa.trim() : "",
+      ps: typeof raw.ps === "string" ? raw.ps.trim() : "",
+    };
   }
-  return "";
+  if (typeof raw === "string" && raw.trim()) {
+    return { en: raw.trim(), fa: "", ps: "" };
+  }
+  return { en: "", fa: "", ps: "" };
 };
+
+const getFlatValue = (multiObj) =>
+  multiObj?.en || multiObj?.fa || multiObj?.ps || "";
 
 const normalizeProduct = (item) => {
   if (!item) return null;
+
+  const nameMultilingual = buildMultilingual(item.name);
+  const descriptionMultilingual = buildMultilingual(item.description);
+  const categoryNameMultilingual = buildMultilingual(
+    item.categoryId?.name || item.category?.name || item.categoryName
+  );
+  const subCategoryNameMultilingual = buildMultilingual(
+    item.subCategoryId?.name || item.subCategory?.name || item.subCategoryName
+  );
+  const productTypeNameMultilingual = buildMultilingual(
+    item.productTypeId?.name || item.productType?.name || item.productTypeName
+  );
+
   return {
     ...item,
     id: item._id || item.id,
-    name: resolveMultilingual(item.name) || "",
+    nameMultilingual,
+    descriptionMultilingual,
+    categoryNameMultilingual,
+    subCategoryNameMultilingual,
+    productTypeNameMultilingual,
+    name: getFlatValue(nameMultilingual),
+    description: getFlatValue(descriptionMultilingual),
+    categoryName: getFlatValue(categoryNameMultilingual),
+    subCategoryName: getFlatValue(subCategoryNameMultilingual),
+    productTypeName: getFlatValue(productTypeNameMultilingual),
     slug: item.slug || "",
-    description: resolveMultilingual(item.description) || "",
     categoryId:
       item.categoryId?._id || item.categoryId?.id ||
       item.category?._id || item.category?.id ||
@@ -43,21 +72,6 @@ const normalizeProduct = (item) => {
       item.productTypeId?._id || item.productTypeId?.id ||
       item.productType?._id || item.productType?.id ||
       item.productTypeId || item.productType,
-    categoryName:
-      resolveMultilingual(item.categoryId?.name) ||
-      resolveMultilingual(item.category?.name) ||
-      resolveMultilingual(item.categoryName) ||
-      "",
-    subCategoryName:
-      resolveMultilingual(item.subCategoryId?.name) ||
-      resolveMultilingual(item.subCategory?.name) ||
-      resolveMultilingual(item.subCategoryName) ||
-      "",
-    productTypeName:
-      resolveMultilingual(item.productTypeId?.name) ||
-      resolveMultilingual(item.productType?.name) ||
-      resolveMultilingual(item.productTypeName) ||
-      "",
     sellerName: item.sellerId
       ? `${item.sellerId.firstName || ""} ${item.sellerId.lastName || ""}`.trim()
       : item.sellerName || "",
@@ -116,9 +130,7 @@ export const fetchProducts = (params = {}) => async (dispatch) => {
     );
     return { success: true };
   } catch (err) {
-    dispatch(
-      setError(err.response?.data?.message || err.message || "Failed to fetch products")
-    );
+    dispatch(setError(err.response?.data?.message || err.message || "Failed to fetch products"));
     return { success: false };
   } finally {
     dispatch(setLoading(false));
@@ -138,10 +150,7 @@ export const fetchProductStats = () => async (dispatch) => {
     return { success: true, data };
   } catch (err) {
     _statsFetchDone = false;
-    return {
-      success: false,
-      message: err.response?.data?.message || err.message,
-    };
+    return { success: false, message: err.response?.data?.message || err.message };
   } finally {
     dispatch(setStatsLoading(false));
     _statsFetchInProgress = false;
@@ -178,24 +187,15 @@ export const fetchProductBySlug = (slug) => async (dispatch) => {
   dispatch(setLoading(true));
   try {
     const res = await axiosInstance.get(`/products/slug/${slug}`);
-    const raw =
-      res.data?.product ||
-      res.data?.data?.product ||
-      res.data?.data ||
-      res.data;
+    const raw = res.data?.product || res.data?.data?.product || res.data?.data || res.data;
     const normalized = normalizeProduct(raw);
     _bySlugCache[slug] = normalized;
     dispatch(setSelectedProduct(normalized));
     return { success: true, data: normalized };
   } catch (err) {
     delete _bySlugCache[slug];
-    dispatch(
-      setError(err.response?.data?.message || err.message || "Failed to fetch product")
-    );
-    return {
-      success: false,
-      message: err.response?.data?.message || err.message,
-    };
+    dispatch(setError(err.response?.data?.message || err.message || "Failed to fetch product"));
+    return { success: false, message: err.response?.data?.message || err.message };
   } finally {
     dispatch(setLoading(false));
   }
@@ -206,22 +206,13 @@ export const fetchProductById = (id) => async (dispatch) => {
   dispatch(setLoading(true));
   try {
     const res = await axiosInstance.get(`/products/${id}`);
-    const raw =
-      res.data?.product ||
-      res.data?.data?.product ||
-      res.data?.data ||
-      res.data;
+    const raw = res.data?.product || res.data?.data?.product || res.data?.data || res.data;
     const normalized = normalizeProduct(raw);
     dispatch(setSelectedProduct(normalized));
     return { success: true, data: normalized };
   } catch (err) {
-    dispatch(
-      setError(err.response?.data?.message || err.message || "Failed to fetch product")
-    );
-    return {
-      success: false,
-      message: err.response?.data?.message || err.message,
-    };
+    dispatch(setError(err.response?.data?.message || err.message || "Failed to fetch product"));
+    return { success: false, message: err.response?.data?.message || err.message };
   } finally {
     dispatch(setLoading(false));
   }
@@ -240,10 +231,7 @@ export const createProduct = (data) => async (dispatch) => {
     const normalized = normalizeProduct(raw);
     return { success: true, data: normalized };
   } catch (err) {
-    return {
-      success: false,
-      message: err.response?.data?.message || err.message || "Failed to create product",
-    };
+    return { success: false, message: err.response?.data?.message || err.message || "Failed to create product" };
   }
 };
 
@@ -259,10 +247,7 @@ export const editProduct = (id, data) => async (dispatch) => {
     if (normalized?.slug) clearProductSlugCache(normalized.slug);
     return { success: true, data: normalized };
   } catch (err) {
-    return {
-      success: false,
-      message: err.response?.data?.message || err.message || "Failed to update product",
-    };
+    return { success: false, message: err.response?.data?.message || err.message || "Failed to update product" };
   }
 };
 
@@ -275,15 +260,10 @@ export const toggleProductStatus = (id, currentStatus) => async (dispatch) => {
       { status: nextStatus },
       { headers: { "Content-Type": "application/json" } }
     );
-    const raw =
-      res.data?.product ||
-      res.data?.data?.product ||
-      res.data?.data ||
-      res.data;
+    const raw = res.data?.product || res.data?.data?.product || res.data?.data || res.data;
     if (raw && (raw._id || raw.id)) {
       const normalized = normalizeProduct(raw);
-      const finalStatus =
-        normalized.status === currentStatus ? nextStatus : normalized.status;
+      const finalStatus = normalized.status === currentStatus ? nextStatus : normalized.status;
       const corrected = { ...normalized, status: finalStatus };
       dispatch(updateProductInList(corrected));
       dispatch(setSelectedProduct(corrected));
@@ -292,10 +272,7 @@ export const toggleProductStatus = (id, currentStatus) => async (dispatch) => {
     return { success: true };
   } catch (err) {
     dispatch(toggleProductStatusInList({ id, status: currentStatus }));
-    return {
-      success: false,
-      message: err.response?.data?.message || err.message || "Failed to toggle",
-    };
+    return { success: false, message: err.response?.data?.message || err.message || "Failed to toggle" };
   }
 };
 
@@ -305,10 +282,7 @@ export const archiveProduct = (id) => async (dispatch) => {
     dispatch(archiveProductInList(id));
     return { success: true };
   } catch (err) {
-    return {
-      success: false,
-      message: err.response?.data?.message || err.message || "Failed to archive",
-    };
+    return { success: false, message: err.response?.data?.message || err.message || "Failed to archive" };
   }
 };
 
@@ -318,10 +292,7 @@ export const unarchiveProduct = (id) => async (dispatch) => {
     dispatch(unarchiveProductInList(id));
     return { success: true };
   } catch (err) {
-    return {
-      success: false,
-      message: err.response?.data?.message || err.message || "Failed to unarchive",
-    };
+    return { success: false, message: err.response?.data?.message || err.message || "Failed to unarchive" };
   }
 };
 
@@ -331,9 +302,6 @@ export const deleteProduct = (id) => async (dispatch) => {
     dispatch(removeProduct(id));
     return { success: true };
   } catch (err) {
-    return {
-      success: false,
-      message: err.response?.data?.message || err.message || "Failed to delete",
-    };
+    return { success: false, message: err.response?.data?.message || err.message || "Failed to delete" };
   }
 };

@@ -17,6 +17,7 @@ const CATEGORY_COLORS = [
 ];
 
 const YEAR_OPTIONS = [2024, 2025, 2026];
+const MAX_CATEGORIES_SHOWN = 5;
 
 const resolveString = (val, lang = "en") => {
   if (!val) return "";
@@ -27,8 +28,8 @@ const resolveString = (val, lang = "en") => {
   return String(val);
 };
 
-function Skeleton({ className }) {
-  return <div className={`rounded-xl bg-gray-100 dark:bg-white/[0.06] animate-pulse ${className}`} />;
+function Skeleton({ className, style }) {
+  return <div className={`rounded-xl bg-gray-100 dark:bg-white/[0.06] animate-pulse ${className}`} style={style} />;
 }
 
 function AreaChartSkeleton() {
@@ -81,10 +82,9 @@ export default function RevenueChart() {
   const totalRevenue = revenueData.reduce((sum, d) => sum + (d.revenue || 0), 0);
   const totalProducts = categories.reduce((sum, c) => sum + (c.productsCount || 0), 0);
 
-  const categoryDistribution = categories.map((c, i) => {
+  const allCategories = categories.map((c, i) => {
     const rawName = c.categoryName || c.name;
     const displayName = resolveString(rawName, lang) || `Category ${i + 1}`;
-
     return {
       name: displayName,
       value: totalProducts > 0 ? Math.round((c.productsCount / totalProducts) * 100) : 0,
@@ -92,6 +92,25 @@ export default function RevenueChart() {
       color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
     };
   });
+
+  const sortedCategories = [...allCategories].sort((a, b) => b.count - a.count);
+  const topCategories = sortedCategories.slice(0, MAX_CATEGORIES_SHOWN);
+
+  const othersCount = sortedCategories
+    .slice(MAX_CATEGORIES_SHOWN)
+    .reduce((sum, c) => sum + c.count, 0);
+
+  const categoryDistribution = othersCount > 0
+    ? [
+        ...topCategories,
+        {
+          name: t("dashboard.others") || "Others",
+          value: totalProducts > 0 ? Math.round((othersCount / totalProducts) * 100) : 0,
+          count: othersCount,
+          color: "#94a3b8",
+        },
+      ]
+    : topCategories;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
@@ -212,6 +231,12 @@ export default function RevenueChart() {
                 </div>
               ))}
             </div>
+
+            {sortedCategories.length > MAX_CATEGORIES_SHOWN && (
+              <p className="text-[10px] text-muted-foreground font-medium text-center mt-3 pt-3 border-t border-gray-100 dark:border-white/[0.06]">
+                {t("dashboard.showingTop") || "Showing top"} {MAX_CATEGORIES_SHOWN} {t("dashboard.of") || "of"} {categories.length} {t("dashboard.categories").toLowerCase()}
+              </p>
+            )}
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground font-medium">

@@ -10,8 +10,16 @@ import { getFileUrl } from "@/lib/fileUrl";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
+const resolveField = (multiObj, flatFallback, lang) => {
+  if (multiObj && typeof multiObj === "object" && !Array.isArray(multiObj)) {
+    return multiObj[lang] || multiObj.en || multiObj.fa || multiObj.ps || (typeof flatFallback === "string" ? flatFallback : "") || "";
+  }
+  return typeof flatFallback === "string" ? flatFallback : "";
+};
+
 export default function ProductTable({ products = [], onView, onEdit, onDelete, onArchive, onUnarchive, onToggleStatus }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language || "en";
   const safeProducts = Array.isArray(products) ? products.filter(Boolean) : [];
   if (safeProducts.length === 0) return null;
 
@@ -30,13 +38,20 @@ export default function ProductTable({ products = [], onView, onEdit, onDelete, 
               t("products.created"),
               t("products.actions"),
             ].map((h) => (
-              <th key={h} className="text-start py-3.5 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 whitespace-nowrap">{h}</th>
+              <th key={h} className="text-start py-3.5 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 whitespace-nowrap">
+                {h}
+              </th>
             ))}
           </tr>
         </thead>
         <tbody>
           {safeProducts.map((product, i) => {
             if (!product?.id) return null;
+
+            const displayName = resolveField(product.nameMultilingual, product.name, lang) || "—";
+            const displayCategory = resolveField(product.categoryNameMultilingual, product.categoryName, lang) || "—";
+            const displaySubCategory = resolveField(product.subCategoryNameMultilingual, product.subCategoryName, lang);
+
             const imageUrl = product.images?.[0] ? getFileUrl(product.images[0]) : null;
             const isOutOfStock = (product.stock ?? 0) === 0;
             const isLowStock = (product.stock ?? 0) > 0 && (product.stock ?? 0) <= (product.minStock ?? 10);
@@ -54,7 +69,7 @@ export default function ProductTable({ products = [], onView, onEdit, onDelete, 
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="h-10 w-10 rounded-xl overflow-hidden bg-gray-50 dark:bg-white/[0.04] border border-gray-100 dark:border-white/[0.06] shrink-0">
                       {imageUrl ? (
-                        <img src={imageUrl} alt={product.name || ""} className="h-full w-full object-cover" onError={(e) => { e.target.style.display = "none"; }} />
+                        <img src={imageUrl} alt={displayName} className="h-full w-full object-cover" onError={(e) => { e.target.style.display = "none"; }} />
                       ) : (
                         <div className="h-full w-full flex items-center justify-center">
                           <Package className="h-5 w-5 text-muted-foreground/40" />
@@ -62,7 +77,7 @@ export default function ProductTable({ products = [], onView, onEdit, onDelete, 
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-foreground truncate max-w-[160px]">{product.name || "—"}</p>
+                      <p className="text-xs font-bold text-foreground truncate max-w-[160px]">{displayName}</p>
                       <p className="text-[10px] text-muted-foreground font-medium mt-0.5 truncate max-w-[160px]">{product.sku || `ID: ${product.id}`}</p>
                       {product.brand && <p className="text-[10px] text-[#0F69B0] font-semibold mt-0.5">{product.brand}</p>}
                     </div>
@@ -70,8 +85,10 @@ export default function ProductTable({ products = [], onView, onEdit, onDelete, 
                 </td>
 
                 <td className="py-4 px-4">
-                  <p className="text-xs font-semibold text-foreground whitespace-nowrap">{product.categoryName || "—"}</p>
-                  {product.subCategoryName && <p className="text-[10px] text-muted-foreground font-medium mt-0.5">{product.subCategoryName}</p>}
+                  <p className="text-xs font-semibold text-foreground whitespace-nowrap">{displayCategory}</p>
+                  {displaySubCategory && (
+                    <p className="text-[10px] text-muted-foreground font-medium mt-0.5">{displaySubCategory}</p>
+                  )}
                 </td>
 
                 <td className="py-4 px-4">

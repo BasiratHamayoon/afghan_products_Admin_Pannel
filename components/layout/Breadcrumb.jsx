@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { ChevronRight, Home } from "lucide-react";
@@ -17,22 +18,23 @@ const EXTRA_LABEL_KEYS = {
 
 const flattenMenuItems = (items, parentTrail = []) => {
   let result = [];
-
   for (const item of items) {
     const current = {
       id: item.id,
       href: item.href,
       labelKey: item.labelKey,
-      trail: [...parentTrail, { href: item.href, labelKey: item.labelKey, id: item.id }],
+      trail: [
+        ...parentTrail,
+        { href: item.href, labelKey: item.labelKey, id: item.id },
+      ],
     };
-
     result.push(current);
-
     if (Array.isArray(item.submenu) && item.submenu.length > 0) {
-      result = result.concat(flattenMenuItems(item.submenu, current.trail.slice(0, -1)));
+      result = result.concat(
+        flattenMenuItems(item.submenu, current.trail.slice(0, -1))
+      );
     }
   }
-
   return result;
 };
 
@@ -46,10 +48,15 @@ const normalizePath = (path) => {
 const isMongoId = (value) => /^[a-f\d]{24}$/i.test(value);
 const isNumeric = (value) => /^\d+$/.test(value);
 
-export default function Breadcrumb() {
+function BreadcrumbContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { t, i18n } = useTranslation();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const normalizedPath = normalizePath(pathname);
 
@@ -62,14 +69,19 @@ export default function Breadcrumb() {
           normalizedPath.startsWith(`${itemPath}/`)
         );
       })
-      .sort((a, b) => normalizePath(b.href).length - normalizePath(a.href).length)[0] || null;
+      .sort(
+        (a, b) =>
+          normalizePath(b.href).length - normalizePath(a.href).length
+      )[0] || null;
 
   let breadcrumbItems = matchedItem ? [...matchedItem.trail] : [];
 
   const segments = normalizedPath.split("/").filter(Boolean);
   const lastSegment = segments[segments.length - 1];
 
-  const knownHrefs = new Set(breadcrumbItems.map((item) => normalizePath(item.href)));
+  const knownHrefs = new Set(
+    breadcrumbItems.map((item) => normalizePath(item.href))
+  );
 
   if (normalizedPath !== "/" && !knownHrefs.has(normalizedPath)) {
     let lastLabel = "";
@@ -100,6 +112,19 @@ export default function Breadcrumb() {
     return "";
   };
 
+  if (!mounted) {
+    return (
+      <nav className="flex items-center gap-1.5 text-sm mb-6 flex-wrap">
+        <Link
+          href="/dashboard"
+          className="text-muted-foreground hover:text-[#0F69B0] transition-colors"
+        >
+          <Home className="h-4 w-4" />
+        </Link>
+      </nav>
+    );
+  }
+
   return (
     <motion.nav
       key={i18n.language}
@@ -120,7 +145,10 @@ export default function Breadcrumb() {
         const label = getLabel(item);
 
         return (
-          <div key={`${item.href}-${index}`} className="flex items-center gap-1.5">
+          <div
+            key={`${item.href}-${index}`}
+            className="flex items-center gap-1.5"
+          >
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 breadcrumb-rtl-chevron" />
             {isLast ? (
               <span className="font-medium text-foreground capitalize">
@@ -138,5 +166,24 @@ export default function Breadcrumb() {
         );
       })}
     </motion.nav>
+  );
+}
+
+export default function Breadcrumb() {
+  return (
+    <Suspense
+      fallback={
+        <nav className="flex items-center gap-1.5 text-sm mb-6 flex-wrap">
+          <Link
+            href="/dashboard"
+            className="text-muted-foreground hover:text-[#0F69B0] transition-colors"
+          >
+            <Home className="h-4 w-4" />
+          </Link>
+        </nav>
+      }
+    >
+      <BreadcrumbContent />
+    </Suspense>
   );
 }

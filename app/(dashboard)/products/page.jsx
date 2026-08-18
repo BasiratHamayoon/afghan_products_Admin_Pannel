@@ -37,9 +37,11 @@ const PAGE_LIMIT = 10;
 export default function ProductsPage() {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language || "en";
   const { products, isLoading, pagination, stats } = useSelector((state) => state.products);
 
+  const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [viewMode, setViewMode] = useState("table");
   const [searchQuery, setSearchQuery] = useState("");
@@ -55,6 +57,18 @@ export default function ProductsPage() {
 
   const searchDebounceRef = useRef(null);
   const hasFetchedRef = useRef(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const getProductName = useCallback((product) => {
+    const multi = product?.nameMultilingual;
+    if (multi && typeof multi === "object") {
+      return multi[lang] || multi.en || multi.fa || multi.ps || product?.name || "—";
+    }
+    return product?.name || "—";
+  }, [lang]);
 
   const TABS = [
     { id: "all", label: t("products.allProducts"), icon: LayoutGrid },
@@ -244,6 +258,21 @@ export default function ProductsPage() {
     onToggleStatus: (p) => setStatusDialog({ open: true, item: p }),
   };
 
+  if (!mounted) {
+    return (
+      <div className="space-y-5">
+        <Breadcrumb />
+        <div className="h-10 w-48 rounded-xl bg-gray-100 dark:bg-white/[0.06] animate-pulse" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-28 rounded-2xl bg-gray-100 dark:bg-white/[0.06] animate-pulse" />
+          ))}
+        </div>
+        <div className="h-64 rounded-2xl bg-gray-100 dark:bg-white/[0.06] animate-pulse" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <Breadcrumb />
@@ -360,7 +389,7 @@ export default function ProductsPage() {
         onClose={() => setDeleteDialog({ open: false, item: null })}
         onConfirm={handleDeleteConfirm}
         title={t("products.deleteProduct")}
-        description={deleteDialog.item ? `${t("products.deleteProductDesc")} "${deleteDialog.item.name}"${t("products.deleteProductSuffix")}` : t("products.areYouSure")}
+        description={deleteDialog.item ? `${t("products.deleteProductDesc")} "${getProductName(deleteDialog.item)}"${t("products.deleteProductSuffix")}` : t("products.areYouSure")}
         confirmLabel={t("products.delete")}
         isLoading={isDeleting}
         variant="danger"
@@ -371,7 +400,7 @@ export default function ProductsPage() {
         onClose={() => setArchiveDialog({ open: false, item: null, action: null })}
         onConfirm={handleArchiveConfirm}
         title={archiveDialog.action === "archive" ? t("products.archiveProduct") : t("products.unarchiveProduct")}
-        description={archiveDialog.item ? `${archiveDialog.action === "archive" ? t("products.archiveDesc") : t("products.unarchiveDesc")} "${archiveDialog.item.name}"?` : t("products.areYouSure")}
+        description={archiveDialog.item ? `${archiveDialog.action === "archive" ? t("products.archiveDesc") : t("products.unarchiveDesc")} "${getProductName(archiveDialog.item)}"?` : t("products.areYouSure")}
         confirmLabel={archiveDialog.action === "archive" ? t("products.archive") : t("products.unarchive")}
         isLoading={isActioning}
         variant={archiveDialog.action === "archive" ? "warning" : "primary"}
@@ -382,7 +411,7 @@ export default function ProductsPage() {
         onClose={() => setStatusDialog({ open: false, item: null })}
         onConfirm={handleStatusConfirm}
         title={t("products.changeApprovalStatus")}
-        description={statusDialog.item ? `${t("products.approvalStatusDesc")} ${statusDialog.item.status === "APPROVED" ? t("products.approvalSetPending") : t("products.approve")} "${statusDialog.item.name}"?` : t("products.areYouSure")}
+        description={statusDialog.item ? `${t("products.approvalStatusDesc")} ${statusDialog.item.status === "APPROVED" ? t("products.approvalSetPending") : t("products.approve")} "${getProductName(statusDialog.item)}"?` : t("products.areYouSure")}
         confirmLabel={statusDialog.item?.status === "APPROVED" ? t("products.setPending") : t("products.approve")}
         isLoading={isTogglingStatus}
         variant={statusDialog.item?.status === "APPROVED" ? "warning" : "primary"}
