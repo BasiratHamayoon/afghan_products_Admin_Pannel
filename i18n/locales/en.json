@@ -1359,6 +1359,8 @@
     "title": "Consultancy",
     "description": "Manage consultant profiles",
     "total": "Total",
+    "specOperations": "Operations",
+    "specHumanResources": "Human Resources",
     "active": "Active",
     "avgRating": "Avg Rating",
     "totalSessions": "Total Sessions",

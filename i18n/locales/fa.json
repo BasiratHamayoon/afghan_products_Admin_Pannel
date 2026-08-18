@@ -1357,6 +1357,8 @@
     "description": "مدیریت پروفایل‌های مشاور",
     "total": "کل",
     "active": "فعال",
+    "specOperations": "عملیات",
+    "specHumanResources": "منابع انسانی",
     "avgRating": "میانگین امتیاز",
     "totalSessions": "کل جلسات",
     "all": "همه",

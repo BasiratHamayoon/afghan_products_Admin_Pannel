@@ -1357,6 +1357,8 @@
     "description": "د مشاورینو پروفایلونه اداره کړئ",
     "total": "ټول",
     "active": "فعال",
+    "specOperations": "عملیات",
+    "specHumanResources": "د بشري زیرمو مدیریت",
     "avgRating": "اوسط درجه بندي",
     "totalSessions": "ټولې ناستې",
     "all": "ټول",

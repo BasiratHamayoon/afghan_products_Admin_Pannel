@@ -2,31 +2,44 @@
 
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Save, X, Loader2, Star, ImageIcon } from "lucide-react";
+import { Save, X, Loader2, Star, ImageIcon, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
-export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLoading }) {
-  const { t, i18n } = useTranslation();
-  const currentLang = i18n.language || "en";
-  const isRTL = currentLang === "fa" || currentLang === "ps";
+const LANGUAGES = [
+  { code: "en", label: "EN", fullLabel: "English", dir: "ltr" },
+  { code: "fa", label: "FA", fullLabel: "فارسی", dir: "rtl" },
+  { code: "ps", label: "PS", fullLabel: "پښتو", dir: "rtl" },
+];
 
+export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLoading }) {
+  const { t } = useTranslation();
   const safe = initialData && typeof initialData === "object" ? initialData : {};
 
-  const getFieldValue = (multiKey, flatKey) => {
+  const getMultiValue = (multiKey, flatKey) => {
     if (safe[multiKey] && typeof safe[multiKey] === "object") {
-      return safe[multiKey][currentLang] || safe[multiKey].en || safe[multiKey].fa || safe[multiKey].ps || "";
+      return {
+        en: safe[multiKey].en || "",
+        fa: safe[multiKey].fa || "",
+        ps: safe[multiKey].ps || "",
+      };
     }
     if (safe[flatKey] && typeof safe[flatKey] === "object") {
-      return safe[flatKey][currentLang] || safe[flatKey].en || safe[flatKey].fa || safe[flatKey].ps || "";
+      return {
+        en: safe[flatKey].en || "",
+        fa: safe[flatKey].fa || "",
+        ps: safe[flatKey].ps || "",
+      };
     }
-    return typeof safe[flatKey] === "string" ? safe[flatKey] : "";
+    const flat = typeof safe[flatKey] === "string" ? safe[flatKey] : "";
+    return { en: flat, fa: "", ps: "" };
   };
 
-  const [fullName, setFullName] = useState(getFieldValue("fullNameMultilingual", "fullName"));
-  const [companyName, setCompanyName] = useState(getFieldValue("companyNameMultilingual", "companyName"));
-  const [story, setStory] = useState(getFieldValue("storyMultilingual", "story"));
-  const [location, setLocation] = useState(getFieldValue("locationMultilingual", "location"));
+  const [activeLang, setActiveLang] = useState("en");
+  const [fullName, setFullName] = useState(getMultiValue("fullNameMultilingual", "fullName"));
+  const [companyName, setCompanyName] = useState(getMultiValue("companyNameMultilingual", "companyName"));
+  const [story, setStory] = useState(getMultiValue("storyMultilingual", "story"));
+  const [location, setLocation] = useState(getMultiValue("locationMultilingual", "location"));
   const [profilePicture, setProfilePicture] = useState(safe.profilePicture || "");
   const [profilePictureFile, setProfilePictureFile] = useState(null);
   const [profilePicturePreview, setProfilePicturePreview] = useState(safe.profilePicture || "");
@@ -41,6 +54,14 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
   const [errors, setErrors] = useState({});
 
   const profilePictureRef = useRef(null);
+
+  const currentLangObj = LANGUAGES.find((l) => l.code === activeLang) || LANGUAGES[0];
+
+  const hasAtLeastOne = (fieldObj) =>
+    LANGUAGES.some((l) => fieldObj[l.code]?.trim() !== "");
+
+  const getFilledCount = (fieldObj) =>
+    LANGUAGES.filter((l) => fieldObj[l.code]?.trim() !== "").length;
 
   const clearErr = (key) => {
     if (errors[key]) setErrors((p) => ({ ...p, [key]: "" }));
@@ -68,10 +89,10 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
     e.stopPropagation();
 
     const errs = {};
-    if (!fullName.trim()) errs.fullName = t("successStories.fullNameRequired");
-    if (!companyName.trim()) errs.companyName = t("successStories.companyNameRequired");
-    if (!story.trim()) errs.story = t("successStories.storyRequired");
-    if (!location.trim()) errs.location = t("successStories.locationRequired");
+    if (!hasAtLeastOne(fullName)) errs.fullName = t("successStories.fullNameRequired");
+    if (!hasAtLeastOne(companyName)) errs.companyName = t("successStories.companyNameRequired");
+    if (!hasAtLeastOne(story)) errs.story = t("successStories.storyRequired");
+    if (!hasAtLeastOne(location)) errs.location = t("successStories.locationRequired");
     if (!storyDate) errs.storyDate = t("successStories.storyDateRequired");
     if (!profilePictureFile && !profilePicture.trim()) {
       errs.profilePicture = t("successStories.profilePictureRequired");
@@ -79,13 +100,15 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
 
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
-    const lang = currentLang === "ps" ? "ps" : currentLang === "fa" ? "fa" : "en";
-
     const formData = new FormData();
-    formData.append(`fullName[${lang}]`, fullName.trim());
-    formData.append(`companyName[${lang}]`, companyName.trim());
-    formData.append(`story[${lang}]`, story.trim());
-    formData.append(`location[${lang}]`, location.trim());
+
+    LANGUAGES.forEach((l) => {
+      if (fullName[l.code]?.trim()) formData.append(`fullName[${l.code}]`, fullName[l.code].trim());
+      if (companyName[l.code]?.trim()) formData.append(`companyName[${l.code}]`, companyName[l.code].trim());
+      if (story[l.code]?.trim()) formData.append(`story[${l.code}]`, story[l.code].trim());
+      if (location[l.code]?.trim()) formData.append(`location[${l.code}]`, location[l.code].trim());
+    });
+
     formData.append("rating", String(rating));
     formData.append("storyDate", storyDate);
     formData.append("displayOrder", String(displayOrder));
@@ -117,60 +140,119 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
       onSubmit={handleSubmit}
       className="space-y-8"
     >
+      {/* Person Information */}
       <div>
         <h3 className="text-xs font-black text-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-[#0F69B0]" />
           {t("successStories.personInformation")}
         </h3>
+
+        {/* Language Tabs */}
+        <div className="space-y-3 mb-5">
+          <div className="flex items-center gap-2">
+            <Globe className="h-4 w-4 text-[#0F69B0]" />
+            <label className="text-xs font-bold text-foreground uppercase tracking-widest">
+              {t("categories.languageContent")}
+            </label>
+          </div>
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-100 dark:bg-white/[0.06]">
+            {LANGUAGES.map((lang) => {
+              const isFilled = !!fullName[lang.code]?.trim();
+              const isActive = activeLang === lang.code;
+              return (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => setActiveLang(lang.code)}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                    isActive
+                      ? "bg-white dark:bg-white/[0.12] text-[#0F69B0] shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <span>{lang.label}</span>
+                  {isFilled && (
+                    <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", isActive ? "bg-[#0F69B0]" : "bg-emerald-500")} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[10px] text-muted-foreground font-medium">
+            {currentLangObj.fullLabel} · {t("categories.atLeastOneLangRequired")}
+            {" "}({getFilledCount(fullName)}/3 {t("categories.filled")})
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Full Name */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-foreground uppercase tracking-widest">
               {t("successStories.fullName")} <span className="text-red-500">*</span>
+              <span className="ml-1.5 text-[10px] font-medium text-muted-foreground normal-case tracking-normal">({currentLangObj.fullLabel})</span>
             </label>
-            <input
-              type="text"
-              value={fullName}
-              onChange={(e) => { setFullName(e.target.value); clearErr("fullName"); }}
-              placeholder={t("successStories.fullNamePlaceholder")}
-              disabled={isLoading}
-              dir={isRTL ? "rtl" : "ltr"}
-              className={inputClass(errors.fullName)}
-            />
+            {LANGUAGES.map((lang) => (
+              <div key={lang.code} className={cn(activeLang === lang.code ? "block" : "hidden")}>
+                <input
+                  type="text"
+                  value={fullName[lang.code]}
+                  onChange={(e) => { setFullName((prev) => ({ ...prev, [lang.code]: e.target.value })); clearErr("fullName"); }}
+                  placeholder={t("successStories.fullNamePlaceholder")}
+                  disabled={isLoading}
+                  dir={lang.dir}
+                  className={inputClass(errors.fullName)}
+                />
+              </div>
+            ))}
             {errors.fullName && <p className="text-[11px] text-red-500 font-semibold">{errors.fullName}</p>}
           </div>
 
+          {/* Company Name */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-foreground uppercase tracking-widest">
               {t("successStories.companyName")} <span className="text-red-500">*</span>
+              <span className="ml-1.5 text-[10px] font-medium text-muted-foreground normal-case tracking-normal">({currentLangObj.fullLabel})</span>
             </label>
-            <input
-              type="text"
-              value={companyName}
-              onChange={(e) => { setCompanyName(e.target.value); clearErr("companyName"); }}
-              placeholder={t("successStories.companyNamePlaceholder")}
-              disabled={isLoading}
-              dir={isRTL ? "rtl" : "ltr"}
-              className={inputClass(errors.companyName)}
-            />
+            {LANGUAGES.map((lang) => (
+              <div key={lang.code} className={cn(activeLang === lang.code ? "block" : "hidden")}>
+                <input
+                  type="text"
+                  value={companyName[lang.code]}
+                  onChange={(e) => { setCompanyName((prev) => ({ ...prev, [lang.code]: e.target.value })); clearErr("companyName"); }}
+                  placeholder={t("successStories.companyNamePlaceholder")}
+                  disabled={isLoading}
+                  dir={lang.dir}
+                  className={inputClass(errors.companyName)}
+                />
+              </div>
+            ))}
             {errors.companyName && <p className="text-[11px] text-red-500 font-semibold">{errors.companyName}</p>}
           </div>
 
+          {/* Location */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-foreground uppercase tracking-widest">
               {t("successStories.locationLabel")} <span className="text-red-500">*</span>
+              <span className="ml-1.5 text-[10px] font-medium text-muted-foreground normal-case tracking-normal">({currentLangObj.fullLabel})</span>
             </label>
-            <input
-              type="text"
-              value={location}
-              onChange={(e) => { setLocation(e.target.value); clearErr("location"); }}
-              placeholder={t("successStories.locationPlaceholder")}
-              disabled={isLoading}
-              dir={isRTL ? "rtl" : "ltr"}
-              className={inputClass(errors.location)}
-            />
+            {LANGUAGES.map((lang) => (
+              <div key={lang.code} className={cn(activeLang === lang.code ? "block" : "hidden")}>
+                <input
+                  type="text"
+                  value={location[lang.code]}
+                  onChange={(e) => { setLocation((prev) => ({ ...prev, [lang.code]: e.target.value })); clearErr("location"); }}
+                  placeholder={t("successStories.locationPlaceholder")}
+                  disabled={isLoading}
+                  dir={lang.dir}
+                  className={inputClass(errors.location)}
+                />
+              </div>
+            ))}
             {errors.location && <p className="text-[11px] text-red-500 font-semibold">{errors.location}</p>}
           </div>
 
+          {/* Profile Picture */}
           <div className="space-y-1.5 lg:col-span-2">
             <label className="text-xs font-bold text-foreground uppercase tracking-widest">
               {t("successStories.profilePictureUrl")} <span className="text-red-500">*</span>
@@ -221,13 +303,9 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
                     </p>
                   )}
                   <div className="flex items-center gap-2 mt-2">
-                    <button type="button" onClick={() => profilePictureRef.current?.click()} disabled={isLoading} className="text-[11px] font-bold text-[#0F69B0] hover:underline cursor-pointer disabled:opacity-60">
-                      Change
-                    </button>
+                    <button type="button" onClick={() => profilePictureRef.current?.click()} disabled={isLoading} className="text-[11px] font-bold text-[#0F69B0] hover:underline cursor-pointer disabled:opacity-60">Change</button>
                     <span className="text-muted-foreground/30">·</span>
-                    <button type="button" onClick={handleRemoveProfilePicture} disabled={isLoading} className="text-[11px] font-bold text-red-500 hover:underline cursor-pointer disabled:opacity-60">
-                      Remove
-                    </button>
+                    <button type="button" onClick={handleRemoveProfilePicture} disabled={isLoading} className="text-[11px] font-bold text-red-500 hover:underline cursor-pointer disabled:opacity-60">Remove</button>
                   </div>
                 </div>
               </div>
@@ -235,32 +313,86 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
             {errors.profilePicture && <p className="text-[11px] text-red-500 font-semibold">{errors.profilePicture}</p>}
           </div>
         </div>
+
+        {/* Translation Status */}
+        <div className="mt-4 p-3 rounded-xl border border-gray-100 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02] space-y-2">
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{t("categories.translationStatus")}</p>
+          <div className="grid grid-cols-3 gap-2">
+            {LANGUAGES.map((lang) => {
+              const hasN = !!fullName[lang.code]?.trim();
+              const hasC = !!companyName[lang.code]?.trim();
+              const hasL = !!location[lang.code]?.trim();
+              const hasS = !!story[lang.code]?.trim();
+              return (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => setActiveLang(lang.code)}
+                  className={cn(
+                    "flex flex-col items-center gap-1 p-2 rounded-lg border transition-all cursor-pointer",
+                    activeLang === lang.code ? "border-[#0F69B0]/40 bg-[#0F69B0]/[0.04]" : "border-gray-200 dark:border-white/[0.06] hover:border-[#0F69B0]/20"
+                  )}
+                >
+                  <span className={cn("text-xs font-black", activeLang === lang.code ? "text-[#0F69B0]" : "text-foreground")}>{lang.label}</span>
+                  <div className="flex items-center gap-0.5">
+                    <span className={cn("h-1.5 w-1.5 rounded-full", hasN ? "bg-emerald-500" : "bg-gray-300 dark:bg-white/20")} />
+                    <span className={cn("h-1.5 w-1.5 rounded-full", hasC ? "bg-blue-500" : "bg-gray-300 dark:bg-white/20")} />
+                    <span className={cn("h-1.5 w-1.5 rounded-full", hasL ? "bg-purple-500" : "bg-gray-300 dark:bg-white/20")} />
+                    <span className={cn("h-1.5 w-1.5 rounded-full", hasS ? "bg-amber-500" : "bg-gray-300 dark:bg-white/20")} />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-2 flex-wrap text-[10px] text-muted-foreground font-medium">
+            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{t("successStories.fullName")}</span>
+            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-blue-500" />{t("successStories.companyName")}</span>
+            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-purple-500" />{t("successStories.locationLabel")}</span>
+            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-amber-500" />{t("successStories.successStoryLabel")}</span>
+            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-gray-300 dark:bg-white/20" />{t("categories.empty")}</span>
+          </div>
+        </div>
       </div>
 
+      {/* Story Section */}
       <div>
         <h3 className="text-xs font-black text-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
           {t("successStories.storySection")}
         </h3>
+
+        <div className="flex items-center gap-2 mb-3">
+          <Globe className="h-3.5 w-3.5 text-[#0F69B0]" />
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+            {currentLangObj.fullLabel}
+          </span>
+        </div>
+
         <div className="space-y-5">
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-foreground uppercase tracking-widest">
               {t("successStories.successStoryLabel")} <span className="text-red-500">*</span>
+              <span className="ml-1.5 text-[10px] font-medium text-muted-foreground normal-case tracking-normal">({currentLangObj.fullLabel})</span>
             </label>
-            <textarea
-              value={story}
-              onChange={(e) => { setStory(e.target.value); clearErr("story"); }}
-              rows={5}
-              placeholder={t("successStories.successStoryPlaceholder")}
-              disabled={isLoading}
-              dir={isRTL ? "rtl" : "ltr"}
-              className={cn(inputClass(errors.story), "resize-none")}
-            />
+            {LANGUAGES.map((lang) => (
+              <div key={lang.code} className={cn(activeLang === lang.code ? "block" : "hidden")}>
+                <textarea
+                  value={story[lang.code]}
+                  onChange={(e) => { setStory((prev) => ({ ...prev, [lang.code]: e.target.value })); clearErr("story"); }}
+                  rows={5}
+                  placeholder={t("successStories.successStoryPlaceholder")}
+                  disabled={isLoading}
+                  dir={lang.dir}
+                  className={cn(inputClass(errors.story), "resize-none")}
+                />
+              </div>
+            ))}
             {errors.story && <p className="text-[11px] text-red-500 font-semibold">{errors.story}</p>}
           </div>
         </div>
       </div>
 
+      {/* Rating and Settings */}
       <div>
         <h3 className="text-xs font-black text-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
@@ -268,9 +400,7 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
         </h3>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground uppercase tracking-widest">
-              {t("successStories.ratingLabel")}
-            </label>
+            <label className="text-xs font-bold text-foreground uppercase tracking-widest">{t("successStories.ratingLabel")}</label>
             <div className="flex items-center gap-1 p-3 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.04]">
               {[1, 2, 3, 4, 5].map((s) => (
                 <button key={s} type="button" onClick={() => setRating(s)} disabled={isLoading} className="p-1 cursor-pointer disabled:opacity-60">
@@ -296,9 +426,7 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground uppercase tracking-widest">
-              {t("successStories.displayOrder")}
-            </label>
+            <label className="text-xs font-bold text-foreground uppercase tracking-widest">{t("successStories.displayOrder")}</label>
             <input
               type="number"
               value={displayOrder}
@@ -320,9 +448,7 @@ export default function SuccessStoryForm({ initialData, onSubmit, onCancel, isLo
             </button>
             <div>
               <p className="text-sm font-bold text-foreground">{t("successStories.activeLabel")}</p>
-              <p className="text-[11px] text-muted-foreground font-medium">
-                {isActive ? t("successStories.visibleToUsers") : t("successStories.hidden")}
-              </p>
+              <p className="text-[11px] text-muted-foreground font-medium">{isActive ? t("successStories.visibleToUsers") : t("successStories.hidden")}</p>
             </div>
           </div>
         </div>
