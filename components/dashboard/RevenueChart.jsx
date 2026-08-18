@@ -18,11 +18,11 @@ const CATEGORY_COLORS = [
 
 const YEAR_OPTIONS = [2024, 2025, 2026];
 
-const getString = (val) => {
+const resolveString = (val, lang = "en") => {
   if (!val) return "";
   if (typeof val === "string") return val;
   if (typeof val === "object" && !Array.isArray(val)) {
-    return val.en || val.fa || val.ps || Object.values(val).find((v) => typeof v === "string") || "";
+    return val[lang] || val.en || val.fa || val.ps || Object.values(val).find((v) => typeof v === "string") || "";
   }
   return String(val);
 };
@@ -66,7 +66,9 @@ function CategoryRowSkeleton() {
 
 export default function RevenueChart() {
   const dispatch = useDispatch();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language || "en";
+
   const { revenueData, revenueLoading, selectedRevenueYear, categories } = useSelector(
     (state) => state.dashboard
   );
@@ -79,12 +81,17 @@ export default function RevenueChart() {
   const totalRevenue = revenueData.reduce((sum, d) => sum + (d.revenue || 0), 0);
   const totalProducts = categories.reduce((sum, c) => sum + (c.productsCount || 0), 0);
 
-  const categoryDistribution = categories.map((c, i) => ({
-    name: getString(c.categoryName) || getString(c.name) || `Category ${i + 1}`,
-    value: totalProducts > 0 ? Math.round((c.productsCount / totalProducts) * 100) : 0,
-    count: c.productsCount || 0,
-    color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
-  }));
+  const categoryDistribution = categories.map((c, i) => {
+    const rawName = c.categoryName || c.name;
+    const displayName = resolveString(rawName, lang) || `Category ${i + 1}`;
+
+    return {
+      name: displayName,
+      value: totalProducts > 0 ? Math.round((c.productsCount / totalProducts) * 100) : 0,
+      count: c.productsCount || 0,
+      color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
+    };
+  });
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
@@ -185,7 +192,7 @@ export default function RevenueChart() {
                       style={{ backgroundColor: cat.color }}
                     />
                     <span className="text-xs text-muted-foreground font-medium truncate max-w-[100px]">
-                      {typeof cat.name === "string" ? cat.name : ""}
+                      {cat.name}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -195,10 +202,7 @@ export default function RevenueChart() {
                     <div className="h-1 w-14 rounded-full overflow-hidden bg-gray-100 dark:bg-white/[0.06]">
                       <div
                         className="h-full rounded-full"
-                        style={{
-                          width: `${Math.max(cat.value, 2)}%`,
-                          backgroundColor: cat.color,
-                        }}
+                        style={{ width: `${Math.max(cat.value, 2)}%`, backgroundColor: cat.color }}
                       />
                     </div>
                     <span className="text-xs font-black text-foreground w-8 text-right">
