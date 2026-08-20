@@ -24,9 +24,11 @@ const PAGE_LIMIT = 20;
 export default function InvestmentsPage() {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language || "en";
   const { investments, isLoading, pagination } = useSelector((state) => state.investments);
 
+  const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -37,6 +39,18 @@ export default function InvestmentsPage() {
 
   const searchDebounceRef = useRef(null);
   const hasFetchedRef = useRef(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const getInvestmentTitle = useCallback((item) => {
+    const multi = item?.titleMultilingual;
+    if (multi && typeof multi === "object") {
+      return multi[lang] || multi.en || multi.fa || multi.ps || item?.title || "—";
+    }
+    return item?.title || "—";
+  }, [lang]);
 
   const TABS = [
     { id: "all", label: t("investments.all") },
@@ -150,6 +164,21 @@ export default function InvestmentsPage() {
     rejected: safeItems.filter((i) => i.approvalStatus === "REJECTED").length,
   };
 
+  if (!mounted) {
+    return (
+      <div className="space-y-5">
+        <Breadcrumb />
+        <div className="h-10 w-48 rounded-xl bg-gray-100 dark:bg-white/[0.06] animate-pulse" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-28 rounded-2xl bg-gray-100 dark:bg-white/[0.06] animate-pulse" />
+          ))}
+        </div>
+        <div className="h-64 rounded-2xl bg-gray-100 dark:bg-white/[0.06] animate-pulse" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <Breadcrumb />
@@ -237,7 +266,7 @@ export default function InvestmentsPage() {
         onClose={() => setApprovalDialog({ open: false, item: null, action: null })}
         onConfirm={handleApprovalConfirm}
         title={approvalDialog.action === "APPROVED" ? t("investments.approveInvestment") : t("investments.rejectInvestment")}
-        description={approvalDialog.item ? `${approvalDialog.action === "APPROVED" ? t("investments.approveDesc") : t("investments.rejectDesc")} "${approvalDialog.item.title}"?` : t("investments.areYouSure")}
+        description={approvalDialog.item ? `${approvalDialog.action === "APPROVED" ? t("investments.approveDesc") : t("investments.rejectDesc")} "${getInvestmentTitle(approvalDialog.item)}"?` : t("investments.areYouSure")}
         confirmLabel={approvalDialog.action === "APPROVED" ? t("investments.approve") : t("investments.reject")}
         isLoading={isApproving}
         variant={approvalDialog.action === "APPROVED" ? "primary" : "danger"}
@@ -248,7 +277,7 @@ export default function InvestmentsPage() {
         onClose={() => setDeleteDialog({ open: false, item: null })}
         onConfirm={handleDeleteConfirm}
         title={t("investments.deleteInvestment")}
-        description={deleteDialog.item ? `${t("investments.deleteDesc")} "${deleteDialog.item.title}"${t("investments.deleteSuffix")}` : t("investments.areYouSure")}
+        description={deleteDialog.item ? `${t("investments.deleteDesc")} "${getInvestmentTitle(deleteDialog.item)}"${t("investments.deleteSuffix")}` : t("investments.areYouSure")}
         confirmLabel={t("investments.delete")}
         isLoading={isDeleting}
         variant="danger"

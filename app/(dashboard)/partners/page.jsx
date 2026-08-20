@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { motion } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { Handshake, X, RefreshCw, CheckCircle, Clock, XCircle, Users, FileText } from "lucide-react";
@@ -26,9 +27,11 @@ const PAGE_LIMIT = 20;
 export default function PartnersPage() {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language || "en";
   const { partners, partnershipRequests, isLoading, isRequestsLoading, partnersPagination, requestsPagination } = useSelector((state) => state.partners);
 
+  const [mounted, setMounted] = useState(false);
   const [mainTab, setMainTab] = useState("partners");
   const [partnerTab, setPartnerTab] = useState("all");
   const [requestTab, setRequestTab] = useState("all");
@@ -42,6 +45,18 @@ export default function PartnersPage() {
 
   const searchDebounceRef = useRef(null);
   const hasFetchedRef = useRef(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const getPartnerDisplayName = useCallback((item) => {
+    const multi = item?.titleMultilingual;
+    if (multi && typeof multi === "object") {
+      return multi[lang] || multi.en || multi.fa || multi.ps || item?.title || "—";
+    }
+    return item?.title || "—";
+  }, [lang]);
 
   const MAIN_TABS = [
     { id: "partners", label: t("partners.partnerListings") },
@@ -181,6 +196,21 @@ export default function PartnersPage() {
   const requestsFrom = requestsTotal === 0 ? 0 : (currentRequestsPage - 1) * PAGE_LIMIT + 1;
   const requestsTo = Math.min(currentRequestsPage * PAGE_LIMIT, requestsTotal);
 
+  if (!mounted) {
+    return (
+      <div className="space-y-5">
+        <Breadcrumb />
+        <div className="h-10 w-48 rounded-xl bg-gray-100 dark:bg-white/[0.06] animate-pulse" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-28 rounded-2xl bg-gray-100 dark:bg-white/[0.06] animate-pulse" />
+          ))}
+        </div>
+        <div className="h-64 rounded-2xl bg-gray-100 dark:bg-white/[0.06] animate-pulse" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <Breadcrumb />
@@ -319,7 +349,7 @@ export default function PartnersPage() {
         onClose={() => setDeleteDialog({ open: false, item: null })}
         onConfirm={handleDeleteConfirm}
         title={t("partners.deletePartner")}
-        description={deleteDialog.item ? `${t("partners.deletePartnerDesc")} "${deleteDialog.item.title}"${t("partners.deletePartnerSuffix")}` : t("partners.areYouSure")}
+        description={deleteDialog.item ? `${t("partners.deletePartnerDesc")} "${getPartnerDisplayName(deleteDialog.item)}"${t("partners.deletePartnerSuffix")}` : t("partners.areYouSure")}
         confirmLabel={t("partners.delete")}
         isLoading={isDeleting}
         variant="danger"

@@ -13,8 +13,17 @@ function formatAmount(amount) {
   return `$${amount}`;
 }
 
+const resolveField = (multiObj, flatFallback, lang) => {
+  if (multiObj && typeof multiObj === "object" && !Array.isArray(multiObj)) {
+    return multiObj[lang] || multiObj.en || multiObj.fa || multiObj.ps || (typeof flatFallback === "string" ? flatFallback : "") || "";
+  }
+  return typeof flatFallback === "string" ? flatFallback : "";
+};
+
 export default function PartnershipRequestsTable({ items = [], onView, onApprove, onReject }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language || "en";
+
   const safeItems = Array.isArray(items) ? items.filter(Boolean) : [];
   if (safeItems.length === 0) return null;
 
@@ -51,6 +60,12 @@ export default function PartnershipRequestsTable({ items = [], onView, onApprove
             if (!item?.id) return null;
             const approval = APPROVAL_CONFIG[item.approvalStatus] || APPROVAL_CONFIG.PENDING;
 
+            const displayCompanyName = resolveField(item.companyNameMultilingual, item.companyName, lang) || "—";
+            const displayCategory = resolveField(item.businessCategoryMultilingual, item.businessCategory, lang) || "—";
+            const displayPartnershipType = resolveField(item.partnershipTypeMultilingual, item.partnershipType, lang) || "—";
+            const displayCity = resolveField(item.cityMultilingual, item.city, lang);
+            const displayCountry = resolveField(item.countryMultilingual, item.country, lang);
+
             return (
               <motion.tr
                 key={item.id}
@@ -61,20 +76,20 @@ export default function PartnershipRequestsTable({ items = [], onView, onApprove
               >
                 <td className="py-4 px-4">
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-foreground truncate max-w-[140px]">{item.companyName || "—"}</p>
+                    <p className="text-sm font-bold text-foreground truncate max-w-[140px]">{displayCompanyName}</p>
                     <div className="flex items-center gap-1 mt-0.5">
                       <MapPin className="h-3 w-3 text-muted-foreground/50" />
                       <p className="text-[10px] text-muted-foreground font-medium truncate max-w-[120px]">
-                        {[item.city, item.country].filter(Boolean).join(", ") || "—"}
+                        {[displayCity, displayCountry].filter(Boolean).join(", ") || "—"}
                       </p>
                     </div>
                   </div>
                 </td>
                 <td className="py-4 px-4">
-                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-600 capitalize">{item.businessCategory || "—"}</span>
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-600 capitalize">{displayCategory}</span>
                 </td>
                 <td className="py-4 px-4">
-                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-purple-500/10 text-purple-600 capitalize whitespace-nowrap">{item.partnershipType || "—"}</span>
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-purple-500/10 text-purple-600 capitalize whitespace-nowrap">{displayPartnershipType}</span>
                 </td>
                 <td className="py-4 px-4">
                   <div className="flex items-center gap-1">
